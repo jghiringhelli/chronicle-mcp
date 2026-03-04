@@ -1,0 +1,66 @@
+{
+  "config": {
+    "projectName": "Chronicle",
+    "workingDirectory": "c:\\workspace\\claude\\chronicle",
+    "executionMode": "supervised",
+    "executorType": "claude-cli",
+    "maxConcurrentRoles": 4,
+    "maxTurnsPerTask": 15
+  },
+  "tasks": [],
+  "roles": [
+    {
+      "id": "architect",
+      "type": "thinking",
+      "maxInstances": 1
+    },
+    {
+      "id": "developer",
+      "type": "thinking",
+      "maxInstances": 3
+    },
+    {
+      "id": "tech_lead",
+      "type": "thinking",
+      "maxInstances": 1
+    },
+    {
+      "id": "code_reviewer",
+      "type": "thinking",
+      "maxInstances": 1
+    },
+    {
+      "id": "qa",
+      "type": "thinking",
+      "maxInstances": 1
+    },
+    {
+      "id": "security",
+      "type": "thinking",
+      "maxInstances": 1
+    },
+    {
+      "id": "documenter",
+      "type": "thinking",
+      "maxInstances": 1
+    },
+    {
+      "id": "auditor",
+      "type": "thinking",
+      "maxInstances": 1
+    },
+    {
+      "id": "indexer",
+      "type": "thinking",
+      "maxInstances": 1
+    },
+    {
+      "id": "deployer",
+      "type": "thinking",
+      "maxInstances": 1
+    }
+  ],
+  "executionHistory": [],
+  "interactions": [],
+  "savedAt": "2026-03-04T03:10:48.919Z"
+}

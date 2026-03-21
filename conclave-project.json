@@ -19,10 +19,10 @@
       "status": "completed",
       "artifacts": [],
       "messages": [],
-      "createdAt": "2026-03-21T16:49:28.279Z",
+      "createdAt": "2026-03-21T23:01:52.418Z",
       "bounceCount": 0,
-      "startedAt": "2026-03-21T16:49:30.291Z",
-      "completedAt": "2026-03-21T16:50:41.818Z"
+      "startedAt": "2026-03-21T23:01:54.428Z",
+      "completedAt": "2026-03-21T23:03:56.410Z"
     },
     {
       "id": "pipeline-p1-spec-spec-validation",
@@ -40,10 +40,10 @@
         "CLAUDE.md"
       ],
       "messages": [],
-      "createdAt": "2026-03-21T16:49:28.279Z",
+      "createdAt": "2026-03-21T23:01:52.419Z",
       "bounceCount": 0,
-      "startedAt": "2026-03-21T16:50:42.625Z",
-      "completedAt": "2026-03-21T16:55:45.824Z"
+      "startedAt": "2026-03-21T23:03:56.861Z",
+      "completedAt": "2026-03-21T23:10:07.932Z"
     },
     {
       "id": "pipeline-p2-build-architecture",
@@ -62,10 +62,10 @@
         "docs/adrs/*.md"
       ],
       "messages": [],
-      "createdAt": "2026-03-21T16:49:28.279Z",
+      "createdAt": "2026-03-21T23:01:52.419Z",
       "bounceCount": 0,
-      "startedAt": "2026-03-21T16:55:47.827Z",
-      "completedAt": "2026-03-21T20:11:57.633Z"
+      "startedAt": "2026-03-21T23:10:08.080Z",
+      "completedAt": "2026-03-21T23:12:06.265Z"
     },
     {
       "id": "pipeline-p2-build-implement",
@@ -85,10 +85,10 @@
         "docs/adrs/*.md"
       ],
       "messages": [],
-      "createdAt": "2026-03-21T16:49:28.279Z",
+      "createdAt": "2026-03-21T23:01:52.419Z",
       "bounceCount": 0,
-      "startedAt": "2026-03-21T20:11:58.533Z",
-      "completedAt": "2026-03-21T20:16:18.777Z"
+      "startedAt": "2026-03-21T23:12:06.572Z",
+      "completedAt": "2026-03-21T23:14:23.266Z"
     },
     {
       "id": "pipeline-p3-test-qa",
@@ -106,10 +106,10 @@
         "src/**/*.test.ts"
       ],
       "messages": [],
-      "createdAt": "2026-03-21T16:49:28.279Z",
+      "createdAt": "2026-03-21T23:01:52.419Z",
       "bounceCount": 0,
-      "startedAt": "2026-03-21T20:16:19.034Z",
-      "completedAt": "2026-03-21T20:20:42.324Z"
+      "startedAt": "2026-03-21T23:14:25.270Z",
+      "completedAt": "2026-03-21T23:20:27.365Z"
     },
     {
       "id": "pipeline-p4-security-security",
@@ -127,10 +127,10 @@
         "src/**/*.test.ts"
       ],
       "messages": [],
-      "createdAt": "2026-03-21T16:49:28.279Z",
+      "createdAt": "2026-03-21T23:01:52.419Z",
       "bounceCount": 0,
-      "startedAt": "2026-03-21T20:20:43.473Z",
-      "completedAt": "2026-03-21T20:23:49.529Z"
+      "startedAt": "2026-03-21T23:20:28.947Z",
+      "completedAt": "2026-03-21T23:23:55.721Z"
     },
     {
       "id": "pipeline-p5-review-review",
@@ -149,10 +149,10 @@
         "docs/security-audit.md"
       ],
       "messages": [],
-      "createdAt": "2026-03-21T16:49:28.279Z",
+      "createdAt": "2026-03-21T23:01:52.419Z",
       "bounceCount": 0,
-      "startedAt": "2026-03-21T20:23:49.837Z",
-      "completedAt": "2026-03-21T20:30:20.067Z"
+      "startedAt": "2026-03-21T23:23:55.732Z",
+      "completedAt": "2026-03-21T23:31:50.387Z"
     },
     {
       "id": "pipeline-p6-deploy-deploy",
@@ -169,10 +169,10 @@
         "docs/review-verdict.md"
       ],
       "messages": [],
-      "createdAt": "2026-03-21T16:49:28.279Z",
+      "createdAt": "2026-03-21T23:01:52.419Z",
       "bounceCount": 0,
-      "startedAt": "2026-03-21T20:30:21.385Z",
-      "completedAt": "2026-03-21T20:31:51.722Z"
+      "startedAt": "2026-03-21T23:31:51.600Z",
+      "completedAt": "2026-03-21T23:33:18.216Z"
     }
   ],
   "roles": [
@@ -333,7 +333,112 @@
       "phase": "pre_execution",
       "id": "int-1774125111722-iatfnu",
       "timestamp": "2026-03-21T20:31:51.722Z"
+    },
+    {
+      "type": "infra_config",
+      "skillLevel": "experienced",
+      "projectType": "new",
+      "deployTarget": "auto",
+      "note": "Launched: template=slim, experienced level, auto deploy target",
+      "id": "int-1774134112419-vd4p08",
+      "timestamp": "2026-03-21T23:01:52.419Z"
+    },
+    {
+      "type": "gate_approved",
+      "gateId": "gate-pipeline-p0-forge-forge-refresh-1774134114429",
+      "gateType": "pre_execution",
+      "taskId": "pipeline-p0-forge-forge-refresh",
+      "roleId": "architect",
+      "description": "Approve pre_execution for task \"Set up or refresh ForgeCraft structural enforcement\" (architect:1)",
+      "note": "",
+      "phase": "pre_execution",
+      "id": "int-1774134236410-25mk1j",
+      "timestamp": "2026-03-21T23:03:56.410Z"
+    },
+    {
+      "type": "gate_approved",
+      "gateId": "gate-pipeline-p1-spec-spec-validation-1774134236862",
+      "gateType": "pre_execution",
+      "taskId": "pipeline-p1-spec-spec-validation",
+      "roleId": "architect",
+      "description": "Approve pre_execution for task \"Complete the 5-step cascade and generate roadmap\" (architect:1)",
+      "note": "",
+      "phase": "pre_execution",
+      "id": "int-1774134607932-k3lnze",
+      "timestamp": "2026-03-21T23:10:07.932Z"
+    },
+    {
+      "type": "gate_approved",
+      "gateId": "gate-pipeline-p2-build-architecture-1774134608080",
+      "gateType": "pre_execution",
+      "taskId": "pipeline-p2-build-architecture",
+      "roleId": "architect",
+      "description": "Approve pre_execution for task \"Generate session prompts and scaffold architecture\" (architect:1)",
+      "note": "",
+      "phase": "pre_execution",
+      "id": "int-1774134726265-2u5v9n",
+      "timestamp": "2026-03-21T23:12:06.265Z"
+    },
+    {
+      "type": "gate_approved",
+      "gateId": "gate-pipeline-p2-build-implement-1774134726572",
+      "gateType": "pre_execution",
+      "taskId": "pipeline-p2-build-implement",
+      "roleId": "developer",
+      "description": "Approve pre_execution for task \"Implement features via forgecraft session prompts (TDD)\" (developer:1)",
+      "note": "",
+      "phase": "pre_execution",
+      "id": "int-1774134863266-yptw9m",
+      "timestamp": "2026-03-21T23:14:23.266Z"
+    },
+    {
+      "type": "gate_approved",
+      "gateId": "gate-pipeline-p3-test-qa-1774134865270",
+      "gateType": "pre_execution",
+      "taskId": "pipeline-p3-test-qa",
+      "roleId": "qa",
+      "description": "Approve pre_execution for task \"Run tests and score GS properties\" (qa:1)",
+      "note": "",
+      "phase": "pre_execution",
+      "id": "int-1774135227366-ryjh1t",
+      "timestamp": "2026-03-21T23:20:27.366Z"
+    },
+    {
+      "type": "gate_approved",
+      "gateId": "gate-pipeline-p4-security-security-1774135228947",
+      "gateType": "pre_execution",
+      "taskId": "pipeline-p4-security-security",
+      "roleId": "security",
+      "description": "Approve pre_execution for task \"OWASP security audit\" (security:1)",
+      "note": "",
+      "phase": "pre_execution",
+      "id": "int-1774135435722-v49leh",
+      "timestamp": "2026-03-21T23:23:55.722Z"
+    },
+    {
+      "type": "gate_approved",
+      "gateId": "gate-pipeline-p5-review-review-1774135435732",
+      "gateType": "pre_execution",
+      "taskId": "pipeline-p5-review-review",
+      "roleId": "code_reviewer",
+      "description": "Approve pre_execution for task \"Code review with codeseeker context\" (code_reviewer:1)",
+      "note": "",
+      "phase": "pre_execution",
+      "id": "int-1774135910387-km7iee",
+      "timestamp": "2026-03-21T23:31:50.387Z"
+    },
+    {
+      "type": "gate_approved",
+      "gateId": "gate-pipeline-p6-deploy-deploy-1774135911600",
+      "gateType": "pre_execution",
+      "taskId": "pipeline-p6-deploy-deploy",
+      "roleId": "deployer",
+      "description": "Approve pre_execution for task \"Deploy and close the forgecraft cycle\" (deployer:1)",
+      "note": "",
+      "phase": "pre_execution",
+      "id": "int-1774135998216-txso2f",
+      "timestamp": "2026-03-21T23:33:18.216Z"
     }
   ],
-  "savedAt": "2026-03-21T20:31:51.722Z"
+  "savedAt": "2026-03-21T23:33:18.216Z"
 }

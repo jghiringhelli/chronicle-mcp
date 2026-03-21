@@ -18,31 +18,38 @@
 | Step | Description | Status |
 |------|-------------|--------|
 | 1 | Functional Specification | ✅ Found: docs/PRD.md |
-| 2 | Architecture Diagrams | ✅ 1 diagram in docs/diagrams/ |
+| 2 | Architecture Diagrams | ✅ 1 diagram in docs/diagrams/ (c4-context.md) |
 | 3 | Architectural Constitution | ✅ CLAUDE.md present |
 | 4 | Architecture Decision Records | ✅ 2 ADRs in docs/adrs/ |
 | 5 | Use Cases / Behavioral Contracts | ✅ docs/use-cases.md |
 
 ## Cascade Decisions
 
-Based on MVP stage with tags [LIBRARY]:
+Based on Production stage with tags [CLI, DATABASE, API, FINTECH, UNIVERSAL]:
 
-| Artifact | Required |
-|----------|----------|
-| functional_spec | ✓ required |
-| architecture_diagrams | ○ optional (MVP stage) |
-| constitution | ✓ required |
-| adrs | ○ optional (scope evolving) |
-| behavioral_contracts | ✓ required |
+| Artifact | Required | Rationale |
+|----------|----------|-----------|
+| functional_spec | ✓ required | All projects require a functional specification |
+| architecture_diagrams | ✓ required | Production phase requires architecture diagrams |
+| constitution | ✓ required | All projects require an architectural constitution |
+| adrs | ✓ required | Production phase requires ADRs |
+| behavioral_contracts | ✓ required | Existing consumers detected — contracts required |
+
+## Configuration
+
+- **Release Phase:** development
+- **Tier:** core
+- **Sensitive Data:** true (compliance gates added)
 
 ## Configured MCP Tools
 
 - forgecraft
 - filesystem
 - context7
-- npm-search
+- postman
 - sequential-thinking
 - spec-workflow
+- stripe
 
 ## Available Actions
 
@@ -54,7 +61,10 @@ action: "check_cascade"  — verify GS cascade steps
 
 ## Next Steps
 
+The derivability criterion (§4.3) is satisfied. A stateless agent given these artifacts can derive any valid implementation state without further human direction.
+
 Use `generate_session_prompt` to produce bound prompts for each roadmap item.
 
 ---
 *ForgeCraft is a setup-time tool. Remove from MCP servers after configuration to save tokens.*
+*This file is injected into every downstream task for context.*

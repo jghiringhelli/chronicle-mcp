@@ -1,0 +1,64 @@
+id: docker-container-reuse
+title: Reuse Dev Docker Containers -- No Duplicate Servers
+description: >
+  Before spinning up a new Docker container for a development database or
+  service, check whether a container of that type already exists. If one does,
+  create a new database or namespace inside it rather than running a second
+  container. Prevents resource waste, port collisions, and environment drift
+  caused by multiple parallel instances of the same service type.
+domain: environment-hygiene
+implementation: cli
+gsProperty: defended
+phase: development
+hook: pre-commit
+os: cross-platform
+check: >
+  Before spinning up a new Docker container for development databases or
+  services:
+
+  1. Run: docker ps -a --format "{{.Names}}\t{{.Status}}\t{{.Image}}"
+
+  2. Check if a container for this service type (postgres, redis, mongo, etc.)
+  already exists
+
+  3. If exists and running: create a new database/namespace WITHIN the existing
+  container
+     - PostgreSQL: CREATE DATABASE {project}_dev within existing postgres container
+     - Redis: use a different DB index (SELECT 1, SELECT 2, etc.) per project
+     - MongoDB: create a new database within existing mongod
+  4. If exists but stopped: docker start {container_name}
+
+  5. Only create a new container if no existing container of this type exists
+
+  6. All dev containers should connect to a shared 'forgecraft-dev' Docker
+  network
+
+  7. Document the shared container name and project-specific DB/namespace in
+  docs/dev-environment.md
+passCriterion: >-
+  No duplicate database/service containers running for development. Projects
+  share containers, separate by database/namespace.
+failureMessage: >-
+  New Docker container created when existing container of same type already
+  running.
+fixHint: >-
+  Use `docker ps -a` to find existing containers. Create a new database within
+  the existing container instead of a new container.
+tools:
+  - name: docker
+    purpose: Container runtime
+    installCommand: https://docs.docker.com/get-docker/
+    category: binary
+    required: true
+tags:
+  - UNIVERSAL
+priority: P1
+likelihood: medium
+impact: medium
+confidence: medium
+references:
+  - https://docs.docker.com/engine/reference/commandline/ps/
+status: ready
+source: registry
+addedAt: '2026-03-19T20:00:00Z'
+_path: gates/environment-hygiene/docker-container-reuse.yaml

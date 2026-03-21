@@ -1,0 +1,51 @@
+id: package-manager-check-before-install
+title: Check Before Install -- All Package Managers
+description: >
+  Before installing any package with any package manager, verify it is not
+  already installed or declared. Prevents version conflicts, duplicate entries
+  in manifests, and unnecessary network calls. Applies to npm, pip, brew, choco,
+  apt, go get, and any other package manager in use on the project.
+domain: environment-hygiene
+implementation: process
+gsProperty: defended
+phase: development
+hook: pre-commit
+os: cross-platform
+check: >
+  Before installing any package with any package manager (npm, pip, brew, choco,
+  apt, go get):
+
+  1. Check if the package is already installed/declared:
+     - npm local: check package.json dependencies
+     - npm global: npm list -g {pkg}
+     - pip: pip list | grep {pkg} OR check pyproject.toml/requirements.txt
+     - brew: brew list --versions {pkg}
+     - choco: choco list --local-only {pkg}
+     - apt: dpkg -l {pkg}
+     - go: check go.mod for module
+  2. Semver check:
+     - Same major, older minor/patch: update (upgrade command) or skip
+     - Same major, same or newer: skip entirely
+     - Different major: only proceed if project explicitly requires this major version (documented)
+  3. Before adding any new runtime dependency: search semantically for existing
+  packages/utilities
+     that already cover the use case (use codeseeker if available, or grep).
+passCriterion: >-
+  No package is installed without first checking if it already exists. No
+  duplicate major versions unless explicitly justified.
+failureMessage: >-
+  Package installed without checking existing installations, or duplicate
+  versions detected.
+fixHint: >-
+  Always check before installing. For npm: check package.json. For others: run
+  the list command for that package manager first.
+tags:
+  - UNIVERSAL
+priority: P1
+likelihood: high
+impact: low
+confidence: high
+status: ready
+source: registry
+addedAt: '2026-03-19T20:00:00Z'
+_path: gates/environment-hygiene/package-manager-check-before-install.yaml

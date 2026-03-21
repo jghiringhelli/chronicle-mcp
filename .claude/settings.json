@@ -1,0 +1,57 @@
+{
+  "mcpServers": {
+    "forgecraft": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "forgecraft-mcp"
+      ]
+    },
+    "filesystem": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "/"
+      ]
+    },
+    "context7": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@upstash/context7-mcp@latest"
+      ]
+    },
+    "npm-search": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-server-npm-search"
+      ]
+    },
+    "sequential-thinking": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-sequential-thinking"
+      ]
+    },
+    "spec-workflow": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "spec-workflow-mcp"
+      ]
+    }
+  },
+  "permissions": {
+    "allow": [
+      "mcp__filesystem__*",
+      "mcp__context7__*",
+      "mcp__forgecraft__*",
+      "mcp__npm-search__*",
+      "mcp__sequential-thinking__*",
+      "mcp__spec-workflow__*"
+    ]
+  }
+}

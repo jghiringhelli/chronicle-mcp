@@ -1,0 +1,52 @@
+id: codeseeker-orphan-detection
+title: Orphaned Code Detection at End of Cycle
+description: >
+  At the end of each development cycle, run CodeSeeker's orphan detection to
+  find modules and functions with no incoming edges in the dependency graph.
+  Remove confirmed dead exports rather than commenting them out. Keeps the
+  codebase lean, reduces cognitive load on reviewers, and prevents stale code
+  from accumulating across cycles.
+domain: code-quality
+implementation: mcp
+gsProperty: composable
+phase: pre-release
+hook: close-cycle
+os: cross-platform
+check: >
+  At end of each development cycle:
+
+  1. Run CodeSeeker orphan detection (isolated subgraph scan)
+
+  2. Review results: modules/functions with no incoming edges in the dependency
+  graph
+
+  3. For each orphaned code unit:
+     - Is it a dead export? Remove it.
+     - Is it test-only? Move to test files or mark clearly.
+     - Is it intentionally standalone? Document why in a comment.
+  4. Delete orphaned code. Do not comment it out. Git has history.
+passCriterion: >-
+  No isolated subgraphs in the dependency graph. All exported symbols have at
+  least one call site.
+failureMessage: Orphaned code detected -- modules or functions with no callers found.
+fixHint: >-
+  Use codeseeker_orphans to identify isolated code. Delete unused exports. Move
+  test helpers to test files.
+tools:
+  - name: codeseeker
+    purpose: Finds isolated subgraphs (orphaned modules) in the dependency graph
+    installCommand: npx codeseeker install --vscode
+    category: mcp
+    required: true
+tags:
+  - UNIVERSAL
+priority: P1
+likelihood: medium
+impact: low
+confidence: high
+references:
+  - https://github.com/jghiringhelli/codeseeker
+status: ready
+source: registry
+addedAt: '2026-03-19T20:00:00Z'
+_path: gates/code-quality/codeseeker-orphan-detection.yaml

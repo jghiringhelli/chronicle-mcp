@@ -1,13 +1,180 @@
 {
   "config": {
-    "projectName": "Chronicle",
+    "projectName": "Chronicle Full Test",
     "workingDirectory": "c:\\workspace\\claude\\chronicle",
     "executionMode": "supervised",
     "executorType": "claude-cli",
     "maxConcurrentRoles": 4,
-    "maxTurnsPerTask": 15
+    "maxTurnsPerTask": 10
   },
-  "tasks": [],
+  "tasks": [
+    {
+      "id": "pipeline-p0-forge-forge-refresh",
+      "phaseId": "p0-forge",
+      "title": "Set up or refresh ForgeCraft structural enforcement",
+      "description": "You are setting up ForgeCraft structural enforcement for **Chronicle Full Test**.\n\n## Step 1 — Detect project state\n\nCheck whether `c:\\workspace\\claude\\chronicle/CLAUDE.md` exists and has ≥ 300 non-empty lines.\n\n- **New project (no CLAUDE.md or < 300 lines):** call `setup_project` to create all cascade artifacts from scratch.\n- **Existing project:** call `refresh` to re-sync instruction files after any tag changes.\n\n## Step 2 — Run the appropriate forgecraft action\n\n**New project:**\n```\nmcp__forgecraft__forgecraft_actions\naction: setup_project\nproject_dir: c:\\workspace\\claude\\chronicle\n```\n\nThis generates: CLAUDE.md (architectural constitution ≥ 300 lines), pre-commit hooks,\ndocs/diagrams/c4-context.md, docs/adrs/ stub, docs/use-cases.md stub, forgecraft.yaml.\n\n**Existing project:**\n```\nmcp__forgecraft__forgecraft_actions\naction: refresh\nproject_dir: c:\\workspace\\claude\\chronicle\n```\n\n## Step 3 — Verify with the sentinel\n\nAfter setup/refresh, call the sentinel to confirm state:\n```\nmcp__forgecraft__forgecraft\nproject_dir: c:\\workspace\\claude\\chronicle\n```\n\nWrite the sentinel output to docs/forge-status.md. This file is injected into every downstream task.",
+      "assignedRole": "architect",
+      "dependsOn": [],
+      "blocks": [],
+      "status": "completed",
+      "artifacts": [],
+      "messages": [],
+      "createdAt": "2026-03-21T16:49:28.279Z",
+      "bounceCount": 0,
+      "startedAt": "2026-03-21T16:49:30.291Z",
+      "completedAt": "2026-03-21T16:50:41.818Z"
+    },
+    {
+      "id": "pipeline-p1-spec-spec-validation",
+      "phaseId": "p1-spec",
+      "title": "Complete the 5-step cascade and generate roadmap",
+      "description": "You are the architect for **Chronicle Full Test**. Your job is to complete the forgecraft cascade so the project is derivation-ready.\n\n## Step 1 — Check cascade status\n\n```\nmcp__forgecraft__forgecraft_actions\naction: check_cascade\nproject_dir: c:\\workspace\\claude\\chronicle\n```\n\nThe cascade has 5 required steps. All must PASS, WARN, or SKIP before implementation can begin:\n\n| Step | Artifact | What it Provides |\n|------|----------|-----------------|\n| 1 | docs/spec.md (or PRD.md) | Functional spec with users, requirements, goals |\n| 2 | docs/diagrams/c4-context.md | C4 architecture diagram |\n| 3 | CLAUDE.md (≥ 300 lines) | Architectural constitution — operative grammar |\n| 4 | docs/adrs/ (≥ 1 ADR) | Non-obvious decisions before implementation |\n| 5 | docs/use-cases.md | Behavioral contracts + acceptance criteria seed |\n\n## Step 2 — Close any FAIL or STUB steps\n\nFor each step that is FAIL or STUB, create or complete the missing artifact.\nUse `generate_adr` for Step 4:\n```\nmcp__forgecraft__forgecraft_actions\naction: generate_adr\nproject_dir: c:\\workspace\\claude\\chronicle\ntitle: <decision title>\ncontext: <why this decision was needed>\ndecision: <what was decided>\nconsequences: <trade-offs and implications>\n```\n\n## Step 3 — Generate the roadmap (gated on cascade complete)\n\nOnce all 5 steps pass, generate the phased implementation roadmap:\n```\nmcp__forgecraft__forgecraft_actions\naction: generate_roadmap\nproject_dir: c:\\workspace\\claude\\chronicle\n```\n\nThis produces docs/roadmap.md — a phased list of roadmap items (RM-001, RM-002, …).\nEach item will become a bound session prompt in p2-build.\n\nWrite a summary of cascade status + roadmap to docs/cascade-status.md.",
+      "assignedRole": "architect",
+      "dependsOn": [
+        "pipeline-p0-forge-forge-refresh"
+      ],
+      "blocks": [],
+      "status": "completed",
+      "artifacts": [
+        "docs/forge-status.md",
+        "CLAUDE.md"
+      ],
+      "messages": [],
+      "createdAt": "2026-03-21T16:49:28.279Z",
+      "bounceCount": 0,
+      "startedAt": "2026-03-21T16:50:42.625Z",
+      "completedAt": "2026-03-21T16:55:45.824Z"
+    },
+    {
+      "id": "pipeline-p2-build-architecture",
+      "phaseId": "p2-build",
+      "title": "Generate session prompts and scaffold architecture",
+      "description": "You are the architect for **Chronicle Full Test**.\n\nThe cascade is complete (verified in p1-spec). Your job is to scaffold the architecture and generate bound session prompts for all roadmap items.\n\n## Step 1 — Generate a session prompt for the architecture roadmap item\n\nFind the architecture or scaffold item in docs/roadmap.md, then generate a bound prompt:\n```\nmcp__forgecraft__forgecraft_actions\naction: generate_session_prompt\nproject_dir: c:\\workspace\\claude\\chronicle\nroadmap_item_id: <RM-XXX for architecture/scaffold item>\n```\n\nThis returns a bound, self-contained prompt. Execute the work described in that prompt:\n- Define module structure and boundaries\n- Define port interfaces (repositories, gateways) — interfaces first\n- Scaffold the project structure (directories, entry files, JSDoc stubs)\n\n## Step 2 — Record architectural decisions\n\nFor each significant design choice, call `generate_adr`:\n```\nmcp__forgecraft__forgecraft_actions\naction: generate_adr\nproject_dir: c:\\workspace\\claude\\chronicle\ntitle: <decision title>\ncontext: <why>\ndecision: <what>\nconsequences: <trade-offs>\n```\n\nThen record it as a verification step:\n```\nmcp__forgecraft__forgecraft_actions\naction: record_verification\nproject_dir: c:\\workspace\\claude\\chronicle\ntags: [project tags from forgecraft.yaml]\nstrategy_tag: UNIVERSAL\nphase_id: architecture\nstep_id: adr-<decision-slug>\nstatus: pass\nnotes: <one-sentence summary>\nrecorded_by: architect\n```\n\nOutput: docs/adrs/*.md, src/ scaffolded structure",
+      "assignedRole": "architect",
+      "dependsOn": [
+        "pipeline-p1-spec-spec-validation"
+      ],
+      "blocks": [],
+      "status": "completed",
+      "artifacts": [
+        "docs/cascade-status.md",
+        "docs/roadmap.md",
+        "docs/adrs/*.md"
+      ],
+      "messages": [],
+      "createdAt": "2026-03-21T16:49:28.279Z",
+      "bounceCount": 0,
+      "startedAt": "2026-03-21T16:55:47.827Z",
+      "completedAt": "2026-03-21T20:11:57.633Z"
+    },
+    {
+      "id": "pipeline-p2-build-implement",
+      "phaseId": "p2-build",
+      "title": "Implement features via forgecraft session prompts (TDD)",
+      "description": "You are the developer for **Chronicle Full Test**.\n\n## Step 1 — Get your session prompt from forgecraft\n\nFor each pending roadmap item (implementation items in docs/roadmap.md), call:\n```\nmcp__forgecraft__forgecraft_actions\naction: generate_session_prompt\nproject_dir: c:\\workspace\\claude\\chronicle\nroadmap_item_id: <RM-XXX for next pending implementation item>\n```\n\nThe returned prompt is **bound and self-contained** — it embeds the spec constraints,\nCLAUDE.md rules, acceptance criteria, and ADR context you need. Execute it exactly.\n\n## Step 2 — Implement TDD (for each roadmap item)\n\n1. Write failing test first (RED) — test is the acceptance criterion\n2. Write minimal code to pass (GREEN)\n3. Refactor against CLAUDE.md conventions (REFACTOR)\n\nUse codeseeker to understand existing code before making changes:\n```\nmcp__codeseeker__search\nquery: <relevant concept>\n```\n\n## Step 3 — Repeat for all pending roadmap items\n\nWork through RM items in order. For each one, generate_session_prompt → implement → verify tests pass.\n\nTarget: all roadmap items implemented with ≥ 80% coverage.",
+      "assignedRole": "developer",
+      "dependsOn": [
+        "pipeline-p2-build-architecture"
+      ],
+      "blocks": [],
+      "status": "completed",
+      "artifacts": [
+        "docs/cascade-status.md",
+        "docs/roadmap.md",
+        "docs/adrs/*.md",
+        "docs/adrs/*.md"
+      ],
+      "messages": [],
+      "createdAt": "2026-03-21T16:49:28.279Z",
+      "bounceCount": 0,
+      "startedAt": "2026-03-21T20:11:58.533Z",
+      "completedAt": "2026-03-21T20:16:18.777Z"
+    },
+    {
+      "id": "pipeline-p3-test-qa",
+      "phaseId": "p3-test",
+      "title": "Run tests and score GS properties",
+      "description": "You are QA for **Chronicle Full Test**.\n\n## Step 1 — Run the full test suite\n\nRun: `pnpm test` (or the test command from CLAUDE.md)\n\nCoverage must meet the target in CLAUDE.md (default: 80%).\nWrite any missing tests for uncovered critical paths.\n\n## Step 2 — Score the 7 GS properties with forgecraft verify\n\n```\nmcp__forgecraft__forgecraft_actions\naction: verify\nproject_dir: c:\\workspace\\claude\\chronicle\n```\n\nThis scores all 7 GS properties (0-2 each, max 14):\n- Self-Describing, Bounded, Verifiable, Defended, Auditable, Composable, Executable\n- PASS threshold: ≥ 11/14\n\n## Step 3 — Record QA verification step\n\n```\nmcp__forgecraft__forgecraft_actions\naction: record_verification\nproject_dir: c:\\workspace\\claude\\chronicle\ntags: [project tags from forgecraft.yaml]\nstrategy_tag: UNIVERSAL\nphase_id: testing\nstep_id: test-suite-pass\nstatus: pass   (or fail if coverage below target)\nnotes: <coverage %, test count, GS score>\nrecorded_by: qa\n```\n\nDo not proceed if tests fail or coverage is below target.",
+      "assignedRole": "qa",
+      "dependsOn": [
+        "pipeline-p2-build-implement"
+      ],
+      "blocks": [],
+      "status": "completed",
+      "artifacts": [
+        "src/**/*.ts",
+        "src/**/*.test.ts"
+      ],
+      "messages": [],
+      "createdAt": "2026-03-21T16:49:28.279Z",
+      "bounceCount": 0,
+      "startedAt": "2026-03-21T20:16:19.034Z",
+      "completedAt": "2026-03-21T20:20:42.324Z"
+    },
+    {
+      "id": "pipeline-p4-security-security",
+      "phaseId": "p4-security",
+      "title": "OWASP security audit",
+      "description": "You are the security reviewer for **Chronicle Full Test**.\n\nAudit against OWASP Top 10:\n1. Injection (parameterized queries only)\n2. Broken Auth (token handling, rate limiting)\n3. Sensitive Data Exposure (no PII in logs)\n4. XXE / XSS (input sanitization)\n5. Broken Access Control (ownership checks)\n6. Security Misconfiguration (no default creds, security headers)\n7. CSRF protection\n\nReport findings with severity (CRITICAL/HIGH/MEDIUM/LOW) to docs/security-audit.md.\nFix any CRITICAL or HIGH findings before allowing deploy.\n\n## Record Security Gate\n\n```\nmcp__forgecraft__forgecraft_actions\naction: record_verification\nproject_dir: c:\\workspace\\claude\\chronicle\ntags: [project tags from forgecraft.yaml]\nstrategy_tag: UNIVERSAL\nphase_id: security\nstep_id: owasp-audit\nstatus: pass   (or fail if CRITICAL/HIGH remain)\nnotes: <summary of findings>\nrecorded_by: security\n```",
+      "assignedRole": "security",
+      "dependsOn": [
+        "pipeline-p3-test-qa"
+      ],
+      "blocks": [],
+      "status": "completed",
+      "artifacts": [
+        "src/**/*.ts",
+        "src/**/*.test.ts"
+      ],
+      "messages": [],
+      "createdAt": "2026-03-21T16:49:28.279Z",
+      "bounceCount": 0,
+      "startedAt": "2026-03-21T20:20:43.473Z",
+      "completedAt": "2026-03-21T20:23:49.529Z"
+    },
+    {
+      "id": "pipeline-p5-review-review",
+      "phaseId": "p5-review",
+      "title": "Code review with codeseeker context",
+      "description": "You are the code reviewer for **Chronicle Full Test**.\n\nUse codeseeker to get full context before reviewing.\n\nReview for:\n1. SOLID principles adherence (SRP, OCP, LSP, ISP, DIP)\n2. CLAUDE.md conventions followed\n3. No hardcoded values, all config through env vars\n4. Error handling — custom exception hierarchy, no silent swallows\n5. Test quality — tests are specifications, not just coverage\n6. Orphaned code removed\n7. All public APIs have JSDoc\n\nOutput verdict: ✅ Approved / ⚠ Changes Requested to docs/review-verdict.md",
+      "assignedRole": "code_reviewer",
+      "dependsOn": [
+        "pipeline-p4-security-security"
+      ],
+      "blocks": [],
+      "status": "completed",
+      "artifacts": [
+        "src/**/*.ts",
+        "src/**/*.test.ts",
+        "docs/security-audit.md"
+      ],
+      "messages": [],
+      "createdAt": "2026-03-21T16:49:28.279Z",
+      "bounceCount": 0,
+      "startedAt": "2026-03-21T20:23:49.837Z",
+      "completedAt": "2026-03-21T20:30:20.067Z"
+    },
+    {
+      "id": "pipeline-p6-deploy-deploy",
+      "phaseId": "p6-deploy",
+      "title": "Deploy and close the forgecraft cycle",
+      "description": "You are the deployer for **Chronicle Full Test**.\n\n## Step 1 — Deploy\n\nDetect deployment target from project root:\n- railway.json / railway.toml → Railway\n- vercel.json → Vercel\n- fly.toml → Fly.io\n- Dockerfile → Docker / container registry\n- package.json with publishConfig → npm publish\n\nRun the appropriate deploy command. Verify the deployment is live.\n\n## Step 2 — Close the forgecraft cycle\n\nAfter a successful deploy, close the cycle to log S_realized, promote gates, and detect the next roadmap item:\n\n```\nmcp__forgecraft__forgecraft_actions\naction: close_cycle\nproject_dir: c:\\workspace\\claude\\chronicle\n```\n\nThis call:\n- Re-checks the full cascade (all 5 steps)\n- Logs current S_realized to docs/gs-score.md\n- Detects the next pending roadmap item (or marks the project complete)\n- Promotes any conditional gates to permanent if S_realized ≥ 0.95\n\nWhen S_realized ≥ 0.95, I(S) ≈ 1.05 — meaning ~1 iteration remaining. The project is in\nsustained convergence. When S_realized < 0.95, the close_cycle output will surface the\nroadmap items needed to close the gap.\n\n## Step 3 — Update Status.md\n\nRecord: deployment URL, version deployed, S_realized from docs/gs-score.md, next roadmap item.",
+      "assignedRole": "deployer",
+      "dependsOn": [
+        "pipeline-p5-review-review"
+      ],
+      "blocks": [],
+      "status": "completed",
+      "artifacts": [
+        "docs/review-verdict.md"
+      ],
+      "messages": [],
+      "createdAt": "2026-03-21T16:49:28.279Z",
+      "bounceCount": 0,
+      "startedAt": "2026-03-21T20:30:21.385Z",
+      "completedAt": "2026-03-21T20:31:51.722Z"
+    }
+  ],
   "roles": [
     {
       "id": "architect",
@@ -61,6 +228,112 @@
     }
   ],
   "executionHistory": [],
-  "interactions": [],
-  "savedAt": "2026-03-04T03:10:48.919Z"
+  "interactions": [
+    {
+      "type": "infra_config",
+      "skillLevel": "experienced",
+      "projectType": "new",
+      "deployTarget": "auto",
+      "note": "Launched: template=slim, experienced level, auto deploy target",
+      "id": "int-1774111768280-34477a",
+      "timestamp": "2026-03-21T16:49:28.280Z"
+    },
+    {
+      "type": "gate_approved",
+      "gateId": "gate-pipeline-p0-forge-forge-refresh-1774111770292",
+      "gateType": "pre_execution",
+      "taskId": "pipeline-p0-forge-forge-refresh",
+      "roleId": "architect",
+      "description": "Approve pre_execution for task \"Set up or refresh ForgeCraft structural enforcement\" (architect:1)",
+      "note": "",
+      "phase": "pre_execution",
+      "id": "int-1774111841818-7qfboh",
+      "timestamp": "2026-03-21T16:50:41.818Z"
+    },
+    {
+      "type": "gate_approved",
+      "gateId": "gate-pipeline-p1-spec-spec-validation-1774111842625",
+      "gateType": "pre_execution",
+      "taskId": "pipeline-p1-spec-spec-validation",
+      "roleId": "architect",
+      "description": "Approve pre_execution for task \"Complete the 5-step cascade and generate roadmap\" (architect:1)",
+      "note": "",
+      "phase": "pre_execution",
+      "id": "int-1774112145824-3ogywi",
+      "timestamp": "2026-03-21T16:55:45.824Z"
+    },
+    {
+      "type": "gate_approved",
+      "gateId": "gate-pipeline-p2-build-architecture-1774112147827",
+      "gateType": "pre_execution",
+      "taskId": "pipeline-p2-build-architecture",
+      "roleId": "architect",
+      "description": "Approve pre_execution for task \"Generate session prompts and scaffold architecture\" (architect:1)",
+      "note": "",
+      "phase": "pre_execution",
+      "id": "int-1774123917634-gh80dn",
+      "timestamp": "2026-03-21T20:11:57.634Z"
+    },
+    {
+      "type": "gate_approved",
+      "gateId": "gate-pipeline-p2-build-implement-1774123918533",
+      "gateType": "pre_execution",
+      "taskId": "pipeline-p2-build-implement",
+      "roleId": "developer",
+      "description": "Approve pre_execution for task \"Implement features via forgecraft session prompts (TDD)\" (developer:1)",
+      "note": "",
+      "phase": "pre_execution",
+      "id": "int-1774124178777-58qmti",
+      "timestamp": "2026-03-21T20:16:18.777Z"
+    },
+    {
+      "type": "gate_approved",
+      "gateId": "gate-pipeline-p3-test-qa-1774124179034",
+      "gateType": "pre_execution",
+      "taskId": "pipeline-p3-test-qa",
+      "roleId": "qa",
+      "description": "Approve pre_execution for task \"Run tests and score GS properties\" (qa:1)",
+      "note": "",
+      "phase": "pre_execution",
+      "id": "int-1774124442324-pfjmq3",
+      "timestamp": "2026-03-21T20:20:42.324Z"
+    },
+    {
+      "type": "gate_approved",
+      "gateId": "gate-pipeline-p4-security-security-1774124443473",
+      "gateType": "pre_execution",
+      "taskId": "pipeline-p4-security-security",
+      "roleId": "security",
+      "description": "Approve pre_execution for task \"OWASP security audit\" (security:1)",
+      "note": "",
+      "phase": "pre_execution",
+      "id": "int-1774124629529-9bgs50",
+      "timestamp": "2026-03-21T20:23:49.529Z"
+    },
+    {
+      "type": "gate_approved",
+      "gateId": "gate-pipeline-p5-review-review-1774124629837",
+      "gateType": "pre_execution",
+      "taskId": "pipeline-p5-review-review",
+      "roleId": "code_reviewer",
+      "description": "Approve pre_execution for task \"Code review with codeseeker context\" (code_reviewer:1)",
+      "note": "",
+      "phase": "pre_execution",
+      "id": "int-1774125020067-x48bdz",
+      "timestamp": "2026-03-21T20:30:20.067Z"
+    },
+    {
+      "type": "gate_approved",
+      "gateId": "gate-pipeline-p6-deploy-deploy-1774125021385",
+      "gateType": "pre_execution",
+      "taskId": "pipeline-p6-deploy-deploy",
+      "roleId": "deployer",
+      "description": "Approve pre_execution for task \"Deploy and close the forgecraft cycle\" (deployer:1)",
+      "note": "",
+      "phase": "pre_execution",
+      "id": "int-1774125111722-iatfnu",
+      "timestamp": "2026-03-21T20:31:51.722Z"
+    }
+  ],
+  "savedAt": "2026-03-21T20:31:51.722Z"
 }

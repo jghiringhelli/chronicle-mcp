@@ -1,0 +1,54 @@
+id: codeseeker-duplicate-detection
+title: Semantic Duplicate Code Detection at End of Cycle
+description: >
+  At the end of each development cycle, run CodeSeeker's duplicate detection
+  scan to identify semantically similar code blocks (similarity > 0.85).
+  Consolidate duplicates into shared utilities before marking the cycle
+  complete. Prevents the progressive accumulation of near-identical logic that
+  diverges over time, making the codebase harder to maintain and test.
+domain: code-quality
+implementation: mcp
+gsProperty: composable
+phase: pre-release
+hook: close-cycle
+os: cross-platform
+check: >
+  At end of each development cycle (before close_cycle completes):
+
+  1. Run CodeSeeker duplicate detection scan on the codebase
+
+  2. Review results: any pair with semantic similarity > 0.85 is a candidate for
+  deduplication
+
+  3. For each duplicate pair:
+     - Confirm they solve the same problem (not just syntactically similar)
+     - Consolidate into a shared utility
+     - Update all call sites
+  4. Commit the deduplication before marking cycle complete
+passCriterion: >-
+  No semantically duplicate code blocks with similarity > 0.85 remain in the
+  codebase.
+failureMessage: Semantically duplicate code detected. Consolidate before closing the cycle.
+fixHint: >-
+  Use codeseeker_duplicates to identify pairs. Extract shared logic to a
+  utility. Update call sites.
+tools:
+  - name: codeseeker
+    purpose: >-
+      Finds semantically similar code blocks using vector embeddings and AST
+      analysis
+    installCommand: npx codeseeker install --vscode
+    category: mcp
+    required: true
+tags:
+  - UNIVERSAL
+priority: P1
+likelihood: medium
+impact: medium
+confidence: high
+references:
+  - https://github.com/jghiringhelli/codeseeker
+status: ready
+source: registry
+addedAt: '2026-03-19T20:00:00Z'
+_path: gates/code-quality/codeseeker-duplicate-detection.yaml

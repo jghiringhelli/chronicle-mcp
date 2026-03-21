@@ -1,0 +1,59 @@
+id: codeseeker-semantic-search-before-grep
+title: Use Semantic Search Before Grep
+description: >
+  When searching the codebase for existing utilities, patterns, or similar
+  implementations, prefer CodeSeeker's semantic (vector + graph) search over
+  literal grep. Grep misses conceptually identical code with different naming,
+  leading to duplicate utilities and inflated dependency footprints. This gate
+  enforces the habit of semantic-first search in sessions where CodeSeeker is
+  available.
+domain: environment-hygiene
+implementation: mcp
+gsProperty: composable
+phase: development
+hook: pre-commit
+os: cross-platform
+check: >
+  When searching the codebase for existing code, utilities, patterns, or similar
+  implementations:
+
+  1. If CodeSeeker MCP tool is available in the session: use codeseeker_search
+  FIRST
+
+  2. Only fall back to grep/glob for exact literal string matches that semantic
+  search won't help with
+
+  3. Before writing any new utility function: search semantically ("find utility
+  that does X")
+
+  4. Before adding a new dependency: search semantically ("existing code that
+  handles X")
+
+  This prevents duplicate code proliferation in large codebases.
+passCriterion: >-
+  CodeSeeker used for conceptual searches. grep reserved for exact string
+  matches.
+failureMessage: >-
+  grep used for conceptual search when CodeSeeker is available, risking missed
+  existing utilities.
+fixHint: >-
+  Add CodeSeeker MCP to .claude/settings.json. Use codeseeker_search for "find
+  code that does X" queries.
+tools:
+  - name: codeseeker
+    purpose: Graph-powered semantic code search with duplicate and orphan detection
+    installCommand: npx codeseeker install --vscode
+    category: mcp
+    required: true
+tags:
+  - UNIVERSAL
+priority: P2
+likelihood: high
+impact: low
+confidence: medium
+references:
+  - https://github.com/jghiringhelli/codeseeker
+status: ready
+source: registry
+addedAt: '2026-03-19T20:00:00Z'
+_path: gates/environment-hygiene/codeseeker-semantic-search-before-grep.yaml

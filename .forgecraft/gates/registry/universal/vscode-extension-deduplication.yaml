@@ -1,0 +1,49 @@
+id: vscode-extension-deduplication
+title: VS Code Extension Version Hygiene
+description: >
+  Before installing any VS Code extension, check the already-installed list to
+  prevent duplicate major versions and unnecessary re-installs. Keeps the
+  development environment deterministic and avoids conflicting extension
+  behaviour caused by co-existing major versions of the same tool.
+domain: environment-hygiene
+implementation: cli
+gsProperty: defended
+phase: development
+hook: pre-commit
+os: cross-platform
+check: |
+  Before installing any VS Code extension:
+  1. Run: code --list-extensions --show-versions
+  2. Parse output as {id}@{semver} map
+  3. For each extension to install:
+     a. Same ID, same major version exists → update (code --install-extension {id}) or skip if already latest minor
+     b. Same ID, different major version → only install if .vscode/extensions.json documents the version requirement with a rationale comment
+     c. Multiple copies at same major → deduplicate: keep highest minor, uninstall older ones
+  4. Never run code --install-extension without first checking installed list
+passCriterion: >-
+  No duplicate extension installs exist at the same major version. All installs
+  were checked against existing list first.
+failureMessage: >-
+  Duplicate VS Code extensions detected or extensions installed without checking
+  existing list.
+fixHint: >-
+  Run `code --list-extensions --show-versions`, remove duplicates with `code
+  --uninstall-extension {id}@{old-version}`, keep highest minor per major.
+tools:
+  - name: vscode-cli
+    purpose: List and manage installed VS Code extensions
+    installCommand: Bundled with VS Code installation
+    category: cli
+    required: true
+tags:
+  - UNIVERSAL
+priority: P1
+likelihood: high
+impact: low
+confidence: high
+references:
+  - https://code.visualstudio.com/docs/editor/extension-marketplace
+status: ready
+source: registry
+addedAt: '2026-03-19T20:00:00Z'
+_path: gates/environment-hygiene/vscode-extension-deduplication.yaml

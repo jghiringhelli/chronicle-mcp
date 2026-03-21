@@ -1,0 +1,10 @@
+projectName: chronicle
+tags:
+  - UNIVERSAL
+tier: core
+variables: {}
+cascade:
+  mvp: false
+  scope_complete: false
+  has_consumers: false
+releasePhase: development

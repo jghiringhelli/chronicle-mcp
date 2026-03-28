@@ -13,6 +13,7 @@
 | RM-001 | Implement UC-001: Implement primary use case | pending | docs/session-prompts/RM-001.md |
 | RM-002 | Implement UC-002: Implement secondary use case | pending | docs/session-prompts/RM-002.md |
 | RM-003 | Implement UC-003: Implement observer use case | pending | docs/session-prompts/RM-003.md |
+| RM-004 | JanitorService: LLM-based memory consolidation (F10) | pending | docs/session-prompts/RM-004.md |
 
 ## Phase 2: Integration & Quality Hardening
 

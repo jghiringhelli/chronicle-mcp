@@ -166,6 +166,59 @@ Raw memories are distilled into three YAML artifacts (updated every 12h):
 ### F9 — Insights Engine
 - `extract_insights(scope, since?)` — Surface recurring problems, effective patterns, and improvement areas across all sessions and projects.
 
+### F10 — JanitorService (Memory Consolidation)
+
+Background process that consolidates and sanitises Chronicle's memory store using LLM-based semantic judgment — the same mechanism as Claude Code's "Auto Dream" feature, generalised to work independently of any specific AI client.
+
+**Problem it solves:** The Ebbinghaus decay system (§3.2) handles *temporal* staleness mathematically. But it cannot detect *semantic* contradictions ("always use tabs" stored alongside "switched to spaces in session 42"), near-duplicate memories that differ only in wording, or memories that are factually stale but still frequently accessed (high weight despite being wrong).
+
+**Design:**
+
+```
+Chronicle MCP (fast path)           JanitorService (slow path)
+   remember() / recall()      ←──→  export() → LLM consolidation → import()
+   Ebbinghaus weight decay           semantic dedup + contradiction detection
+   synchronous, per-call             async, background, post-session
+```
+
+**Trigger conditions** (must satisfy ALL):
+- ≥24h since last consolidation run
+- ≥5 sessions completed since last run
+- No active session lock (janitor never runs mid-session)
+
+**What the janitor does per run:**
+1. Exports all `Buffer` and `Working` tier memories as structured JSON
+2. Groups by `memoryType` and `project`
+3. LLM pass: detect contradictions, near-duplicates, stale facts
+4. For each conflict: keep highest-weight memory; tombstone losers with reason
+5. For near-duplicates: merge into single memory, sum access counts, take max weight
+6. Re-import consolidated set; update weights and tombstones atomically
+7. Write `~/.chronicle/janitor-log.json` (last run, memories pruned, contradictions resolved)
+
+**Invariants:**
+- `architectural` and `procedural` memories (Core tier, decay = 0.00) are **never pruned** — exempt from janitor
+- Janitor uses a lockfile (`~/.chronicle/.janitor.lock`) to prevent concurrent runs
+- All tombstoned memories are soft-deleted (queryable for 30 days before hard delete)
+- LLM call is optional — janitor degrades gracefully to weight-only pruning if no LLM is configured
+
+**Auto Dream integration (optional):**
+When running inside a Claude Code session, Chronicle can delegate the LLM consolidation pass to Auto Dream rather than making its own API call. Chronicle detects Auto Dream availability via the presence of Claude Code's session context. If available, Chronicle exports its memory snapshot to a temp file, signals Auto Dream via the lock protocol, and re-imports the result. If unavailable, Chronicle runs its own consolidation using the configured `ANTHROPIC_API_KEY`.
+
+**New MCP tools:**
+- `janitor_status()` — Last run timestamp, memories pruned, next scheduled run
+- `janitor_run(scope?)` — Manually trigger a consolidation run (scope: `all` | `project:<name>` | `type:<memoryType>`)
+- `janitor_log(limit?)` — Retrieve recent consolidation decisions with reasons
+
+**Port interface:** `JanitorService` in `src/ports/gateways/janitor-service.ts`
+- `run(scope: JanitorScope): Promise<JanitorReport>`
+- `getStatus(): JanitorStatus`
+- `getLock(): boolean`
+
+**Implementations:**
+- `LLMJanitorService` — Full consolidation using LLM API (primary)
+- `WeightOnlyJanitorService` — Prunes by weight threshold only, no LLM (fallback / offline mode)
+- `AutoDreamJanitorService` — Delegates to Claude Code's Auto Dream when available (optional, detected at runtime)
+
 ## 5. Non-Functional Requirements
 
 - MCP transport: stdio, usable as `npx -y chronicle-mcp`

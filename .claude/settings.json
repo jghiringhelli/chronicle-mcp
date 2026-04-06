@@ -55,6 +55,18 @@
       "env": {
         "STRIPE_SECRET_KEY": ""
       }
+    },
+    "codeseeker": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "codeseeker@2",
+        "serve",
+        "--mcp"
+      ],
+      "env": {
+        "CODESEEKER_STORAGE_MODE": "embedded"
+      }
     }
   },
   "permissions": {
@@ -65,7 +77,8 @@
       "mcp__postman__*",
       "mcp__sequential-thinking__*",
       "mcp__spec-workflow__*",
-      "mcp__stripe__*"
+      "mcp__stripe__*",
+      "mcp__codeseeker__*"
     ]
   }
 }

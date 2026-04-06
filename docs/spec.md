@@ -219,6 +219,49 @@ When running inside a Claude Code session, Chronicle can delegate the LLM consol
 - `WeightOnlyJanitorService` — Prunes by weight threshold only, no LLM (fallback / offline mode)
 - `AutoDreamJanitorService` — Delegates to Claude Code's Auto Dream when available (optional, detected at runtime)
 
+### F11 — Ecosystem Registry
+
+Explicit structural registry of related projects and their relationships within a developer's workspace or organisation. Where F6 tools are *query-driven* (ask Chronicle about another project), the Ecosystem Registry is *topology-driven* — Chronicle knows the shape of the project graph and can proactively surface relevant context when starting any session within the ecosystem.
+
+**Problem it solves:** Cross-pollination and decision inheritance depend on Chronicle knowing which projects are related and how. Without explicit topology, `cross_pollinate()` can only do broad semantic search across all projects. With it, Chronicle can scope results to the actual dependency graph, propagate relevant architectural decisions along relationship edges, and warn when a decision in one project conflicts with the conventions of its dependents.
+
+**MCP tools:**
+- `register_project(name, description, type, tags, related_projects[], ecosystem?)` — Declare a project and its relationships. `type`: `library | api | cli | service | tool | experiment`. `related_projects`: array of `{ name, relationship }` where `relationship` is `depends_on | integrates_with | spawned_from | shares_conventions_with | experiment_of`. `ecosystem`: optional group label (e.g. `"pragmaworks"`).
+- `get_ecosystem(root_project?, ecosystem?)` — Return the full project graph as a structured list with relationships and per-project memory counts. Optionally filter by ecosystem label.
+- `ecosystem_decisions(project, scope?)` — Retrieve architectural decisions that affect related projects. `scope`: `upstream | downstream | all`. Surfaces decisions from dependencies that the current project should inherit or be aware of.
+- `propagate_decision(decision_id, affects_projects[])` — Flag an architectural decision as relevant to specific related projects. On next `session_start()` in an affected project, Chronicle surfaces the decision as a priority context item.
+- `ecosystem_diff(project_a, project_b)` — Compare architectural decisions, preferences, and patterns between two related projects. Highlights intentional divergences vs potential drift.
+
+**Storage:**
+- `~/.chronicle/ecosystem.json` — Project registry with relationship graph. Human-readable, editable.
+- Per-project namespace entries in `memory.db` already exist (§3.4); the registry adds the relationship metadata layer on top.
+
+**Proactive surfacing:**
+When `session_start(project)` is called, Chronicle checks the ecosystem registry for the project's relationships and prepends relevant upstream decisions and shared-convention memories to the context payload — without the developer needing to query for them.
+
+**PragmaWorks example:**
+```json
+{
+  "ecosystem": "pragmaworks",
+  "projects": [
+    { "name": "forgecraft-mcp", "type": "tool", "related": [
+        { "name": "chronicle-mcp", "relationship": "integrates_with" },
+        { "name": "loom", "relationship": "integrates_with" },
+        { "name": "storycraft", "relationship": "shares_conventions_with" }
+    ]},
+    { "name": "chronicle-mcp", "type": "service", "related": [
+        { "name": "forgecraft-mcp", "relationship": "integrates_with" },
+        { "name": "loom", "relationship": "integrates_with" }
+    ]},
+    { "name": "loom", "type": "tool", "related": [
+        { "name": "forgecraft-mcp", "relationship": "spawned_from" }
+    ]}
+  ]
+}
+```
+
+**Out of scope for F11 v1:** automatic relationship inference from import graphs or git history (v2), shared team ecosystems (v2).
+
 ## 5. Non-Functional Requirements
 
 - MCP transport: stdio, usable as `npx -y chronicle-mcp`

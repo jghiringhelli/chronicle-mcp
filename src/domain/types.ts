@@ -5,13 +5,39 @@
  * Domain layer has zero external imports.
  */
 
-/** The five cognitive memory types (Tulving, 1972, 1985; Squire, 1987) */
+/**
+ * The five cognitive memory types.
+ *
+ * Pick the type that matches HOW the AI should treat this knowledge:
+ *
+ * - episodic:      Something that happened. Events, bugs, decisions made at a point in time.
+ *                  Decays fast (half-life ~7 days). Use for: "Auth broke after Lucia upgrade",
+ *                  "Deployed at 14:00, rolled back at 14:15".
+ *
+ * - semantic:      Something that is true about the world or the codebase right now.
+ *                  Decays slowly (half-life ~35 days). Use for: "Railway does not persist /tmp",
+ *                  "pnpm is our package manager", "the API rate limit is 100 req/min".
+ *                  Add confirmed:true to make it permanent (decay = 0).
+ *
+ * - procedural:    How to do something. Step-by-step sequences, commands, workflows.
+ *                  Never decays. Starts in Core. Use for: "To run migrations: railway run prisma migrate deploy",
+ *                  "Deploy sequence: build → test → railway up → check logs".
+ *
+ * - architectural: Why something is built the way it is. ADRs, tradeoffs, rejected alternatives.
+ *                  Never decays. Starts in Core. Use for: "Chose better-sqlite3 over Prisma —
+ *                  sync API, no ORM overhead, fits our domain model".
+ *
+ * - insight:       A synthesised pattern about the developer or team. Cross-session learning.
+ *                  Never decays. Starts in Core. Set by the distill tool or explicitly when a
+ *                  pattern becomes clear. Use for: "You consistently forget migrations before deploy",
+ *                  "This team always uses functional patterns, never classes".
+ */
 export type MemoryType =
-  | 'episodic'      // What happened — autobiographical events
-  | 'semantic'      // What is true — factual domain knowledge
-  | 'procedural'    // How to do it — step-by-step solutions
-  | 'session'       // What is active now — live context
-  | 'architectural'; // Why it is built this way — design decisions
+  | 'episodic'
+  | 'semantic'
+  | 'procedural'
+  | 'architectural'
+  | 'insight';
 
 /** Storage tiers based on access frequency and permanence */
 export type StorageTier =
@@ -60,11 +86,11 @@ export type DecayRate = number;
  * From spec.md Section 3.2
  */
 export const DECAY_RATES: Record<MemoryType, DecayRate> = {
-  episodic: 0.10,      // Half-life ~7 days
-  semantic: 0.02,      // Half-life ~35 days
-  procedural: 0.00,    // Never decays
-  session: 0.10,       // Ephemeral, 7-day TTL (treated like episodic)
-  architectural: 0.00, // Never decays
+  episodic:     0.10, // Half-life ~7 days — events fade
+  semantic:     0.02, // Half-life ~35 days — facts linger (confirmed:true → 0.00)
+  procedural:   0.00, // Never decays — how-to knowledge is permanent
+  architectural:0.00, // Never decays — decisions are permanent
+  insight:      0.00, // Never decays — synthesised patterns about the developer
 } as const;
 
 /**
@@ -72,11 +98,11 @@ export const DECAY_RATES: Record<MemoryType, DecayRate> = {
  * Procedural and Architectural skip to Core immediately
  */
 export const DEFAULT_TIERS: Record<MemoryType, StorageTier> = {
-  episodic: 'buffer',
-  semantic: 'working',
-  procedural: 'core',
-  session: 'buffer',
-  architectural: 'core',
+  episodic:     'buffer',  // Promote as accessed
+  semantic:     'working', // Promote as accessed; confirmed:true → core
+  procedural:   'core',    // Always permanent
+  architectural:'core',    // Always permanent
+  insight:      'core',    // Always permanent — synthesised knowledge
 } as const;
 
 /**

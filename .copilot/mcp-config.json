@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "chronicle": {
+      "command": "node",
+      "type": "stdio",
+      "args": [
+        "C:\\workspace\\PragmaWorks\\mcp\\chronicle\\dist\\cli.js"
+      ],
+      "env": {
+        "CHRONICLE_DB": "C:\\Users\\JC\\.chronicle\\chronicle.db"
+      }
+    }
+  }
+}

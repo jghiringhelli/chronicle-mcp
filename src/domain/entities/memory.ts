@@ -65,18 +65,20 @@ export function createMemory(id: MemoryId, input: CreateMemoryInput): Memory {
   const now = new Date().toISOString();
   const memoryType = input.memoryType;
 
-  // Confirmed memories get immediate boost
+  // Confirmed memories get immediate boost + zero decay + core tier
   const baseWeight = 0.5;
   const confirmedBoost = input.confirmed ? REINFORCEMENT_BOOSTS.CONFIRMED_REMEMBER : 0;
   const initialWeight = Math.min(1.0, baseWeight + confirmedBoost);
+  const decayRate = input.confirmed ? 0 : DECAY_RATES[memoryType];
+  const tier: StorageTier = input.confirmed ? 'core' : DEFAULT_TIERS[memoryType];
 
   return {
     id,
     content: input.content,
     memoryType,
-    tier: DEFAULT_TIERS[memoryType],
+    tier,
     weight: initialWeight,
-    decayRate: DECAY_RATES[memoryType],
+    decayRate,
     accessCount: 0,
     createdAt: now,
     lastAccessedAt: now,

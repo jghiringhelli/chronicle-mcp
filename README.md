@@ -176,7 +176,7 @@ recall({query: "Railway environment variables at build time"})
 
 ## Cross-PC sync (Railway Postgres)
 
-Chronicle is local-first. Your SQLite database is the primary store — fast, offline-capable, zero latency.
+Chronicle is local-first. Your SQLite database is the primary store — fast, offline-capable, zero latency. **You only need this if you work across multiple machines.**
 
 When you set `railwayUrl`, Chronicle syncs your Working and Core tier memories plus distilled intelligence to Railway Postgres. Any device with the same `userId` and a `railwayUrl` pulls those memories in automatically.
 
@@ -186,6 +186,28 @@ Machine A (home laptop)  →  Railway Postgres  →  Machine B (work laptop)
 ```
 
 Only Working+Core memories sync (not ephemeral Buffer). Your local SQLite always has the full picture.
+
+### Setup (5 minutes)
+
+1. Go to [railway.app](https://railway.app) → **New Project** → **Add Postgres**
+2. Click the Postgres service → **Connect** tab → copy the connection string
+3. Add it to `~/.chronicle/config.json`:
+   ```json
+   {
+     "userId": "your-username",
+     "deviceId": "laptop-home",
+     "dbPath": "/path/to/chronicle.db",
+     "railwayUrl": "postgresql://user:pass@host.railway.app:5432/railway"
+   }
+   ```
+4. Apply the cloud schema once:
+   ```bash
+   psql "postgresql://..." -f path/to/chronicle-mcp/src/infrastructure/db/cloud-schema.sql
+   ```
+
+Sync activates automatically on the next `session_start`. No restart needed.
+
+> **Tip:** If you use an AI assistant (Copilot, Claude) to do this setup, ask it to look up your Railway project, find the Postgres connection string, and write it into `~/.chronicle/config.json` directly.
 
 ---
 

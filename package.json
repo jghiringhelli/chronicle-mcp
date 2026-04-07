@@ -33,14 +33,24 @@
     "copilot",
     "cursor"
   ],
-  "author": "",
+  "author": "Juan Carlos Ghiringhelli",
   "license": "MIT",
+  "homepage": "https://github.com/jghiringhelli/chronicle-mcp#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jghiringhelli/chronicle-mcp.git"
+  },
+  "bugs": {
+    "url": "https://github.com/jghiringhelli/chronicle-mcp/issues"
+  },
   "engines": {
     "node": ">=20"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",
-    "better-sqlite3": "^11.0.0"
+    "better-sqlite3": "^11.0.0",
+    "postgres": "^3.4.9",
+    "zod": "^4.0.0"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.0",

@@ -16,6 +16,8 @@ export interface ChronicleConfig {
   dbPath: string;
   railwayUrl?: string;
   logLevel?: string;
+  /** Team slug to enable Chronicle Team features. Omit for individual-only use. */
+  teamId?: string;
 }
 
 const CONFIG_DIR = path.join(os.homedir(), '.chronicle');

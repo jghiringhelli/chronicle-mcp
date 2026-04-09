@@ -101,15 +101,17 @@ Create `~/.chronicle/config.json`:
 }
 ```
 
-Optional — add `railwayUrl` to enable cross-PC sync:
+Optional — add `railwayUrl` to enable cross-PC sync, and `teamId` to enable Chronicle Team:
 ```json
 {
   "userId": "your-username",
   "deviceId": "laptop-home",
   "dbPath": "/path/to/chronicle.db",
-  "railwayUrl": "postgres://..."
+  "railwayUrl": "postgres://...",
+  "teamId": "your-team-slug"
 }
 ```
+`teamId` is optional. All team features are a strict no-op when it is absent.
 
 ---
 
@@ -121,7 +123,7 @@ Optional — add `railwayUrl` to enable cross-PC sync:
 | `recall` | Retrieve memories ranked by relevance and weight |
 | `forget` | Delete a memory by ID |
 | `session_start` | Begin a session; returns compressed prior context |
-| `session_end` | End a session with a summary |
+| `session_end` | End a session with a summary (triggers team sync if configured) |
 | `session_recover` | Recover context from a crashed/interrupted session |
 | `set_trigger` | Attach a trigger to a memory (fires on action keywords) |
 | `check_triggers` | Check what memories fire before an action |
@@ -259,13 +261,102 @@ MCP Client (Claude / Copilot / Cursor)
        ├── SessionService   — start / end / recover
        ├── TriggerService   — set / check / remove
        ├── PreferenceService — set / get
-       └── SyncService      — Railway push / pull
+       ├── TeamService      — join / list members
+       ├── PromptLogService — buffer + push prompt patterns
+       ├── TeamSyncService  — team push / pull
+       ├── PatternService   — compute usage stats from cache
+       └── SyncService      — Railway push / pull (individual)
               │
        SQLite (better-sqlite3, local-first)
-       Railway Postgres (optional, Working+Core sync)
+       Railway Postgres (optional, Working+Core sync + team data)
 ```
 
 Domain is pure TypeScript with zero external imports. All repositories are synchronous (better-sqlite3). The MCP layer is async. Sync to Railway uses the `postgres` package with dynamic import.
+
+---
+
+## Chronicle Team
+
+Chronicle Team extends Chronicle with opt-in, privacy-first team knowledge sharing. Individuals control everything — nothing is shared unless you explicitly call a sharing tool.
+
+### How it works
+
+- You log **prompt patterns** (not raw prompts) that your team can learn from
+- You **share memories** you want teammates to benefit from
+- Team insights and practices are **synthesized and pulled** to every member's local cache
+- Usage stats help you understand your own AI interaction patterns — never used for surveillance
+
+### Privacy model
+
+| What | Stored where | Who sees it |
+|------|-------------|-------------|
+| Prompt pattern (what you were doing) | Railway, visible to team | All team members |
+| Raw prompt text | Railway, only if `share_content: true` | All team members (explicit opt-in only) |
+| Personal memories (not shared) | Local SQLite only | You only |
+| Your usage stats (`my_stats`) | Local only | You only |
+| Team aggregate stats | Local cache | All team members |
+
+### Setup
+
+1. Same Railway Postgres as cross-PC sync. Apply the team schema:
+   ```bash
+   psql "postgresql://..." -f path/to/chronicle-mcp/src/infrastructure/db/team-cloud-schema.sql
+   ```
+
+2. Add `teamId` to `~/.chronicle/config.json`:
+   ```json
+   {
+     "userId": "your-username",
+     "deviceId": "laptop-home",
+     "dbPath": "/path/to/chronicle.db",
+     "railwayUrl": "postgresql://...",
+     "teamId": "your-team-slug"
+   }
+   ```
+
+3. Join your team:
+   ```
+   team_join({ team_id: "your-team-slug", team_name: "Your Team" })
+   ```
+
+### Team MCP tools
+
+| Tool | What it does |
+|------|-------------|
+| `team_join` | Join or create a team on the shared Railway instance |
+| `team_share` | Explicitly share a memory with your team |
+| `team_recall` | Search team-shared memories and insights |
+| `log_prompt` | Opt-in: record a prompt pattern (category, outcome, tags) |
+| `team_insights` | View synthesized team practices and anti-patterns |
+| `team_stats` | Aggregate team usage: contributions, top categories |
+| `my_stats` | Your individual contribution and usage summary |
+| `team_sync` | Manually trigger push/pull (also fires at `session_end`) |
+| `team_members` | List all members of your team |
+
+### Example
+
+```
+# Log a prompt pattern after a successful refactoring session
+log_prompt({
+  pattern: "ask Claude to identify all callers before refactoring a function",
+  outcome: "good",
+  category: "refactoring",
+  project: "my-api"
+})
+
+# Share a key architectural memory with the team
+team_share({
+  id: "mem-xyz",
+  content: "Railway Postgres resets prepared statements on deploy — always reconnect",
+  memory_type: "architectural",
+  project: "my-api"
+})
+
+# Your teammates pull this on their next session_end sync
+team_recall({ query: "Railway deploy gotcha" })
+→ "Railway Postgres resets prepared statements on deploy — always reconnect"
+   (shared by alice, 2 hours ago)
+```
 
 ---
 

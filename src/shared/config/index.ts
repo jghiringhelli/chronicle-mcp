@@ -16,7 +16,7 @@ export interface ChronicleConfig {
   dbPath: string;
   railwayUrl?: string;
   logLevel?: string;
-  /** Team slug to enable Chronicle Team features. Omit for individual-only use. */
+  /** Team slug — read by chronicle-team. Ignored by chronicle-mcp. */
   teamId?: string;
 }
 

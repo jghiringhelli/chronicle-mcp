@@ -9,21 +9,15 @@ import {
   SqliteMemoryRepository,
   SqliteSessionRepository,
   SqlitePreferenceRepository,
-  SqliteTeamRepository,
 } from '../adapters/repositories/index.js';
 import { MemoryService } from '../services/memory-service.js';
 import { SessionService } from '../services/session-service.js';
 import { TriggerService } from '../services/trigger-service.js';
 import { PreferenceService } from '../services/preference-service.js';
-import { TeamService } from '../services/team-service.js';
-import { PromptLogService } from '../services/prompt-log-service.js';
-import { TeamSyncService } from '../services/team-sync-service.js';
-import { PatternService } from '../services/pattern-service.js';
 import { NodeIdGenerator } from '../infrastructure/gateways/node-id-generator.js';
 import { NodeClock } from '../infrastructure/gateways/node-clock.js';
 import type { MemoryType } from '../domain/types.js';
 import { REINFORCEMENT_BOOSTS } from '../domain/types.js';
-import { registerTeamTools } from './team-tools.js';
 
 /** Wire up all services and register MCP tools. */
 export function createMcpServer(): McpServer {
@@ -33,15 +27,10 @@ export function createMcpServer(): McpServer {
   const memRepo = new SqliteMemoryRepository(db);
   const sessRepo = new SqliteSessionRepository(db);
   const prefRepo = new SqlitePreferenceRepository(db);
-  const teamRepo = new SqliteTeamRepository(db);
   const memSvc = new MemoryService(memRepo, idGen, clock);
   const sessSvc = new SessionService(sessRepo, idGen, clock);
   const trigSvc = new TriggerService(db);
   const prefSvc = new PreferenceService(prefRepo, idGen);
-  const teamSvc = new TeamService();
-  const promptLogSvc = new PromptLogService(teamRepo, idGen);
-  const teamSyncSvc = new TeamSyncService(teamRepo, promptLogSvc);
-  const patternSvc = new PatternService(teamRepo);
 
   const server = new McpServer({ name: 'chronicle', version: '0.1.0' });
 
@@ -220,7 +209,6 @@ export function createMcpServer(): McpServer {
           const sess     = sessSvc.endSession(args.id ?? '', args.summary);
           const decayed  = memSvc.applyDecay();
           const promoted = memSvc.evaluateTierPromotions();
-          teamSyncSvc.sync().catch(() => undefined);
           return {
             content: [{ type: 'text', text: JSON.stringify({
               id: sess.id, status: sess.status, endedAt: sess.endedAt,
@@ -247,8 +235,6 @@ export function createMcpServer(): McpServer {
       }
     },
   );
-
-  registerTeamTools(server, teamSvc, promptLogSvc, teamSyncSvc, patternSvc, teamRepo, memRepo);
 
   return server;
 }

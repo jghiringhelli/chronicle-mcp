@@ -6,7 +6,7 @@
  */
 
 /**
- * The five cognitive memory types.
+ * The six cognitive memory types.
  *
  * Pick the type that matches HOW the AI should treat this knowledge:
  *
@@ -31,13 +31,19 @@
  *                  Never decays. Starts in Core. Set by the distill tool or explicitly when a
  *                  pattern becomes clear. Use for: "You consistently forget migrations before deploy",
  *                  "This team always uses functional patterns, never classes".
+ *
+ * - coordination:  Live team coordination state — who owns what, work package assignments,
+ *                  dependency graph snapshots. Decays slowly (half-life ~70 days). Starts in
+ *                  Working. Use for: "Alice owns auth service in sprint 3",
+ *                  "merge-gate blocked until Chronicle v0.2 ships".
  */
 export type MemoryType =
   | 'episodic'
   | 'semantic'
   | 'procedural'
   | 'architectural'
-  | 'insight';
+  | 'insight'
+  | 'coordination';
 
 /** Storage tiers based on access frequency and permanence */
 export type StorageTier =
@@ -91,6 +97,7 @@ export const DECAY_RATES: Record<MemoryType, DecayRate> = {
   procedural:   0.00, // Never decays — how-to knowledge is permanent
   architectural:0.00, // Never decays — decisions are permanent
   insight:      0.00, // Never decays — synthesised patterns about the developer
+  coordination: 0.01, // Half-life ~70 days — team state fades as work completes
 } as const;
 
 /**
@@ -103,6 +110,7 @@ export const DEFAULT_TIERS: Record<MemoryType, StorageTier> = {
   procedural:   'core',    // Always permanent
   architectural:'core',    // Always permanent
   insight:      'core',    // Always permanent — synthesised knowledge
+  coordination: 'working', // Active team state; decays as work completes
 } as const;
 
 /**

@@ -1,6 +1,6 @@
 {
   "name": "chronicle-mcp",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Cross-project AI memory MCP server with five cognitive memory types",
   "type": "module",
   "main": "dist/index.js",
@@ -16,6 +16,7 @@
   "scripts": {
     "build": "tsup",
     "dev": "tsx watch src/cli.ts",
+    "dashboard": "tsx src/cli.ts --dashboard",
     "test": "vitest",
     "test:coverage": "vitest --coverage",
     "lint": "eslint src tests",

@@ -3,15 +3,30 @@
  * Chronicle MCP server CLI entry point.
  *
  * Usage:
- *   chronicle-mcp              — stdio mode (default)
- *   chronicle-mcp --http       — HTTP mode on port 3000
+ *   chronicle-mcp                          — stdio mode (default)
+ *   chronicle-mcp --http                   — HTTP MCP mode on port 3000
  *   chronicle-mcp --http --port 8080
+ *   chronicle-mcp --dashboard              — Axon coordination dashboard on port 4321
+ *   chronicle-mcp --dashboard --dash-port 4000
  */
 
 import { createMcpServer } from './mcp/server.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 
 const args = process.argv.slice(2);
+const dashIndex = args.indexOf('--dashboard');
+
+if (dashIndex !== -1) {
+  const dashPortIndex = args.indexOf('--dash-port');
+  const dashPortArg = dashPortIndex !== -1 ? args[dashPortIndex + 1] : undefined;
+  const dashPort = dashPortArg !== undefined ? parseInt(dashPortArg, 10) : 4321;
+  const { startDashboard } = await import('./dashboard/server.js');
+  startDashboard(dashPort);
+  // If --http is also present, fall through to start the MCP server too.
+  // Otherwise exit after dashboard starts (dashboard is the process).
+  if (!args.includes('--http')) process.stdin.resume(); // keep alive
+}
+
 const httpIndex = args.indexOf('--http');
 const server = createMcpServer();
 

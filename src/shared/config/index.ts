@@ -16,8 +16,10 @@ export interface ChronicleConfig {
   dbPath: string;
   railwayUrl?: string;
   logLevel?: string;
-  /** Team slug — read by chronicle-team. Ignored by chronicle-mcp. */
+  /** Team slug — enables Axon coordination sync to Railway. */
   teamId?: string;
+  /** Team license token — required to use Axon (team coordination) tools. */
+  teamToken?: string;
 }
 
 const CONFIG_DIR = path.join(os.homedir(), '.chronicle');

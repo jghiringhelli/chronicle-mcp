@@ -5,6 +5,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { getDatabase } from '../infrastructure/db/database.js';
+import { getConfig } from '../shared/config/index.js';
 import {
   SqliteMemoryRepository,
   SqliteSessionRepository,
@@ -14,6 +15,9 @@ import { MemoryService } from '../services/memory-service.js';
 import { SessionService } from '../services/session-service.js';
 import { TriggerService } from '../services/trigger-service.js';
 import { PreferenceService } from '../services/preference-service.js';
+import { CoordinationService } from '../services/coordination-service.js';
+import type { ContributorRole } from '../services/coordination-service.js';
+import { syncCoordination } from '../services/sync.js';
 import { NodeIdGenerator } from '../infrastructure/gateways/node-id-generator.js';
 import { NodeClock } from '../infrastructure/gateways/node-clock.js';
 import type { MemoryType } from '../domain/types.js';
@@ -31,8 +35,9 @@ export function createMcpServer(): McpServer {
   const sessSvc = new SessionService(sessRepo, idGen, clock);
   const trigSvc = new TriggerService(db);
   const prefSvc = new PreferenceService(prefRepo, idGen);
+  const coordSvc = new CoordinationService(db);
 
-  const server = new McpServer({ name: 'chronicle', version: '0.1.0' });
+  const server = new McpServer({ name: 'chronicle', version: '0.3.0' });
 
   // ── chronicle ─────────────────────────────────────────────────────────────
   // Covers: memory CRUD, triggers, preferences, stats, decay.
@@ -58,13 +63,13 @@ export function createMcpServer(): McpServer {
       category:     z.string().optional(),
       // remember
       content:      z.string().optional(),
-      memory_type:  z.enum(['episodic', 'semantic', 'procedural', 'architectural', 'insight']).optional()
-                      .describe('episodic=happened | semantic=is-true | procedural=how-to | architectural=why | insight=pattern'),
+      memory_type:  z.enum(['episodic', 'semantic', 'procedural', 'architectural', 'insight', 'coordination']).optional()
+                      .describe('episodic=happened | semantic=is-true | procedural=how-to | architectural=why | insight=pattern | coordination=team-state'),
       tags:         z.array(z.string()).optional(),
       confirmed:    z.boolean().optional().describe('Permanent truth — zero decay, Core tier'),
       // recall / prefs
       query:        z.string().optional(),
-      memory_types: z.array(z.enum(['episodic', 'semantic', 'procedural', 'architectural', 'insight'])).optional(),
+      memory_types: z.array(z.enum(['episodic', 'semantic', 'procedural', 'architectural', 'insight', 'coordination'])).optional(),
       tiers:        z.array(z.enum(['buffer', 'working', 'core'])).optional(),
       limit:        z.number().optional(),
       context:      z.string().optional(),
@@ -228,6 +233,233 @@ export function createMcpServer(): McpServer {
               touchedFiles: sess.touchedFiles, summary: sess.summary,
             } : { message: 'No session found.' }) }],
           };
+        }
+
+        default:
+          return { content: [{ type: 'text', text: JSON.stringify({ error: `Unknown action: ${args.action}` }) }] };
+      }
+    },
+  );
+
+  // ── axon ──────────────────────────────────────────────────────────────────
+  // Team coordination: contributors, work decomposition, assignment, status.
+
+  server.tool(
+    'axon',
+    'Coordinate a development team — register contributors, decompose specs into ranked work packages, assign tasks, track progress.',
+    {
+      action: z.enum([
+        'contributor_add',
+        'spec_sync',
+        'milestone_add',
+        'decompose',
+        'assign',
+        'complete',
+        'request_merge',
+        'resolve_merge',
+        'merges',
+        'status',
+        'queue',
+      ]).describe(
+        'contributor_add=register-dev | spec_sync=read-spec-files | milestone_add=create-milestone | ' +
+        'decompose=break-spec-into-ranked-packages | assign=assign-next-unblocked-package | ' +
+        'complete=mark-work-locally-done | request_merge=submit-for-merger-review | ' +
+        'resolve_merge=approve-or-reject-merge | merges=list-merge-requests | ' +
+        'status=full-team-dashboard | queue=ranked-work-queue',
+      ),
+      project: z.string().optional().describe('Project identifier'),
+
+      // contributor_add
+      name:         z.string().optional().describe('Contributor full name'),
+      email:        z.string().optional(),
+      skills:       z.array(z.string()).optional().describe('Skill tags, e.g. ["typescript","testing"]'),
+      role:         z.enum(['specwright', 'builder', 'merger', 'verifier', 'watcher']).optional()
+                      .describe('specwright=spec/ADR | builder=implement | merger=integrate | verifier=test/score | watcher=monitor'),
+      bandwidth:    z.number().optional().describe('Available hours per week'),
+
+      // decompose — AI provides the breakdown, Axon ranks and persists it
+      packages: z.array(z.object({
+        title:        z.string().describe('Short unique title'),
+        description:  z.string().describe('What needs to be done'),
+        spec_section: z.string().optional().describe('Spec or ADR reference'),
+        role_required: z.enum(['specwright', 'builder', 'merger', 'verifier', 'watcher']),
+        depends_on:   z.array(z.string()).optional().describe('Titles of packages this must wait for'),
+      })).optional().describe('Work packages to decompose — AI derives these from spec+state gap'),
+
+      // spec_sync
+      project_dir: z.string().optional().describe('Absolute path to repo root for spec_sync'),
+
+      // milestone_add
+      milestone_title:        z.string().optional(),
+      milestone_description:  z.string().optional(),
+      milestone_spec_section: z.string().optional(),
+
+      // decompose
+      milestone_id: z.string().optional().describe('Parent milestone ID to attach packages to'),
+
+      // assign / complete / availability
+      id:              z.string().optional().describe('Work package ID, merge request ID, or contributor ID'),
+      contributor_id:  z.string().optional().describe('Force-assign to this contributor'),
+      role_filter:     z.enum(['specwright', 'builder', 'merger', 'verifier', 'watcher']).optional()
+                         .describe('Only consider packages requiring this role'),
+      availability:    z.enum(['available', 'busy', 'offline']).optional()
+                         .describe('Update contributor availability state'),
+
+      // request_merge
+      branch_name:       z.string().optional().describe('Git branch name'),
+      forgecraft_score:  z.number().optional().describe('ForgeCraft verify totalScore (0–14)'),
+      forgecraft_tier:   z.number().optional().describe('ForgeCraft GS maturity tier (1–5)'),
+      forgecraft_pass:   z.boolean().optional().describe('Whether ForgeCraft verify passed'),
+      forgecraft_report: z.string().optional().describe('Full ForgeCraft verify report text'),
+
+      // resolve_merge
+      approve:          z.boolean().optional().describe('true=approve, false=reject'),
+      rejection_reason: z.string().optional(),
+
+      // merges filter
+      merge_status: z.enum(['pending', 'approved', 'rejected']).optional(),
+    },
+    async (args) => {
+      const config = getConfig();
+      if (!config.teamToken) {
+        return { content: [{ type: 'text', text: JSON.stringify({
+          error: 'Axon requires a Chronicle Team license. Add teamToken to ~/.chronicle/config.json. Contact pragmaworks to get one.',
+        }) }] };
+      }
+
+      const project = args.project ?? 'default';
+
+      // Pull latest team state from Railway before any read or write.
+      // Fire-and-forget on write actions — response is not blocked.
+      const isRead = args.action === 'status' || args.action === 'queue' || args.action === 'merges';
+      if (isRead) {
+        await syncCoordination(project).catch(() => { /* offline — use local cache */ });
+      }
+
+      switch (args.action) {
+
+        case 'contributor_add': {
+          const contributor = coordSvc.addContributor({
+            project,
+            name: args.name ?? 'Unknown',
+            email: args.email,
+            skills: args.skills ?? [],
+            role: (args.role ?? 'builder') as ContributorRole,
+            bandwidthHoursPerWeek: args.bandwidth ?? 20,
+          });
+          syncCoordination(project).catch(() => {});
+          return { content: [{ type: 'text', text: JSON.stringify(contributor) }] };
+        }
+
+        case 'spec_sync': {
+          if (!args.project_dir) {
+            return { content: [{ type: 'text', text: JSON.stringify({ error: 'project_dir required for spec_sync' }) }] };
+          }
+          const sync = coordSvc.syncSpec(args.project_dir);
+          return { content: [{ type: 'text', text: JSON.stringify(sync) }] };
+        }
+
+        case 'milestone_add': {
+          if (!args.milestone_title) {
+            return { content: [{ type: 'text', text: JSON.stringify({ error: 'milestone_title required' }) }] };
+          }
+          const milestone = coordSvc.addMilestone({
+            project,
+            title: args.milestone_title,
+            description: args.milestone_description ?? '',
+            specSection: args.milestone_spec_section,
+          });
+          return { content: [{ type: 'text', text: JSON.stringify(milestone) }] };
+        }
+
+        case 'decompose': {
+          if (!args.packages?.length) {
+            return { content: [{ type: 'text', text: JSON.stringify({ error: 'packages[] required for decompose' }) }] };
+          }
+          const queue = coordSvc.decomposeWork({
+            project,
+            milestoneId: args.milestone_id,
+            packages: args.packages.map(p => ({
+              title: p.title,
+              description: p.description,
+              specSection: p.spec_section,
+              roleRequired: p.role_required as ContributorRole,
+              dependsOn: p.depends_on,
+            })),
+          });
+          syncCoordination(project).catch(() => {});
+          return { content: [{ type: 'text', text: JSON.stringify(queue) }] };
+        }
+
+        case 'assign': {
+          const result = coordSvc.assignNext({
+            project,
+            contributorId: args.contributor_id,
+            roleFilter: args.role_filter as ContributorRole | undefined,
+          });
+          if (!result) {
+            return { content: [{ type: 'text', text: JSON.stringify({ message: 'No unblocked work available or no matching contributor free.' }) }] };
+          }
+          syncCoordination(project).catch(() => {});
+          return { content: [{ type: 'text', text: JSON.stringify(result) }] };
+        }
+
+        case 'complete': {
+          if (!args.id) {
+            return { content: [{ type: 'text', text: JSON.stringify({ error: 'id (work package ID) required' }) }] };
+          }
+          const result = coordSvc.completeWork(args.id);
+          syncCoordination(project).catch(() => {});
+          return { content: [{ type: 'text', text: JSON.stringify(result) }] };
+        }
+
+        case 'request_merge': {
+          if (!args.id || !args.branch_name || !args.contributor_id) {
+            return { content: [{ type: 'text', text: JSON.stringify({ error: 'id (work_package_id), branch_name, and contributor_id required' }) }] };
+          }
+          const mr = coordSvc.requestMerge({
+            workPackageId: args.id,
+            branchName: args.branch_name,
+            fromContributorId: args.contributor_id,
+            forgecraftScore: args.forgecraft_score,
+            forgecraftTier: args.forgecraft_tier,
+            forgecraftPass: args.forgecraft_pass,
+            forgecraftReport: args.forgecraft_report,
+          });
+          syncCoordination(project).catch(() => {});
+          return { content: [{ type: 'text', text: JSON.stringify(mr) }] };
+        }
+
+        case 'resolve_merge': {
+          if (!args.id || !args.contributor_id || args.approve == null) {
+            return { content: [{ type: 'text', text: JSON.stringify({ error: 'id (merge_request_id), contributor_id, and approve (bool) required' }) }] };
+          }
+          const result = coordSvc.resolveMerge({
+            mergeRequestId: args.id,
+            reviewerId: args.contributor_id,
+            approve: args.approve,
+            rejectionReason: args.rejection_reason,
+          });
+          syncCoordination(project).catch(() => {});
+          return { content: [{ type: 'text', text: JSON.stringify(result) }] };
+        }
+
+        case 'merges': {
+          const mrs = coordSvc.listMergeRequests(
+            project,
+            args.merge_status as 'pending' | 'approved' | 'rejected' | undefined,
+          );
+          return { content: [{ type: 'text', text: JSON.stringify(mrs) }] };
+        }
+
+        case 'status': {
+          const status = coordSvc.getStatus(project);
+          return { content: [{ type: 'text', text: JSON.stringify(status) }] };
+        }
+
+        case 'queue': {
+          const queue = coordSvc.getQueue(project);
+          return { content: [{ type: 'text', text: JSON.stringify(queue) }] };
         }
 
         default:

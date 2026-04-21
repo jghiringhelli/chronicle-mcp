@@ -6,6 +6,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { getDatabase } from '../infrastructure/db/database.js';
 import { getConfig } from '../shared/config/index.js';
+import { TEAM_SCHEMA_SQL } from '../infrastructure/db/team-schema.js';
 import {
   SqliteMemoryRepository,
   SqliteSessionRepository,
@@ -22,6 +23,30 @@ import { NodeIdGenerator } from '../infrastructure/gateways/node-id-generator.js
 import { NodeClock } from '../infrastructure/gateways/node-clock.js';
 import type { MemoryType } from '../domain/types.js';
 import { REINFORCEMENT_BOOSTS } from '../domain/types.js';
+
+// Cache token validation for process lifetime — one Railway round-trip max.
+let _tokenValid: boolean | null = null;
+
+async function validateTeamToken(token: string, railwayUrl: string | undefined, teamId: string): Promise<boolean> {
+  if (_tokenValid !== null) return _tokenValid;
+  if (!railwayUrl) { _tokenValid = true; return true; } // local-only mode — trust presence
+  try {
+    const { default: postgres } = await import('postgres');
+    const sql = postgres(railwayUrl, { ssl: 'require', max: 1 });
+    await sql.unsafe(TEAM_SCHEMA_SQL);
+    const rows = await sql<{ token: string }[]>`
+      SELECT token FROM team_licenses
+      WHERE token = ${token} AND team_id = ${teamId}
+        AND revoked = FALSE
+        AND (expires_at IS NULL OR expires_at > NOW())
+    `;
+    await sql.end();
+    _tokenValid = rows.length > 0;
+  } catch {
+    _tokenValid = true; // Railway down — fail open so offline work is not blocked
+  }
+  return _tokenValid;
+}
 
 /** Wire up all services and register MCP tools. */
 export function createMcpServer(): McpServer {
@@ -323,7 +348,18 @@ export function createMcpServer(): McpServer {
       const config = getConfig();
       if (!config.teamToken) {
         return { content: [{ type: 'text', text: JSON.stringify({
-          error: 'Axon requires a Chronicle Team license. Add teamToken to ~/.chronicle/config.json. Contact pragmaworks to get one.',
+          error: 'Axon requires a Chronicle Team license. Add teamToken to ~/.chronicle/config.json. Generate one with: chronicle-mcp generate-token --team <slug>',
+        }) }] };
+      }
+      if (!config.teamId) {
+        return { content: [{ type: 'text', text: JSON.stringify({
+          error: 'Axon requires teamId in ~/.chronicle/config.json.',
+        }) }] };
+      }
+      const tokenOk = await validateTeamToken(config.teamToken, config.railwayUrl, config.teamId);
+      if (!tokenOk) {
+        return { content: [{ type: 'text', text: JSON.stringify({
+          error: 'Invalid or revoked teamToken. Generate a new one with: chronicle-mcp generate-token --team <slug>',
         }) }] };
       }
 

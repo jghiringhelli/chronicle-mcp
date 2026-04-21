@@ -94,9 +94,19 @@ CREATE TABLE IF NOT EXISTS team_merge_requests (
   source_device TEXT
 );
 
+CREATE TABLE IF NOT EXISTS team_licenses (
+  token TEXT PRIMARY KEY,
+  team_id TEXT NOT NULL REFERENCES teams(id) ON DELETE CASCADE,
+  created_by TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  expires_at TIMESTAMPTZ,
+  revoked BOOLEAN NOT NULL DEFAULT FALSE
+);
+
 CREATE INDEX IF NOT EXISTS idx_team_contributors_team_project ON team_contributors(team_id, project);
 CREATE INDEX IF NOT EXISTS idx_team_work_packages_team_project ON team_work_packages(team_id, project);
 CREATE INDEX IF NOT EXISTS idx_team_work_packages_status ON team_work_packages(status);
 CREATE INDEX IF NOT EXISTS idx_team_assignments_package ON team_assignments(work_package_id);
 CREATE INDEX IF NOT EXISTS idx_team_merge_requests_team ON team_merge_requests(team_id, status);
+CREATE INDEX IF NOT EXISTS idx_team_licenses_team ON team_licenses(team_id);
 `;

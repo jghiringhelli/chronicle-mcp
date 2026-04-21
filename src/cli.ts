@@ -14,6 +14,47 @@ import { createMcpServer } from './mcp/server.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 
 const args = process.argv.slice(2);
+
+// ── generate-token ────────────────────────────────────────────────────────────
+// Usage: chronicle-mcp generate-token --team <slug> [--created-by <userId>]
+if (args[0] === 'generate-token') {
+  const teamIndex = args.indexOf('--team');
+  const teamSlug = teamIndex !== -1 ? args[teamIndex + 1] : undefined;
+  if (!teamSlug) {
+    console.error('Usage: chronicle-mcp generate-token --team <slug>');
+    process.exit(1);
+  }
+
+  const { getConfig } = await import('./shared/config/index.js');
+  const { TEAM_SCHEMA_SQL } = await import('./infrastructure/db/team-schema.js');
+  const { randomBytes } = await import('node:crypto');
+
+  const config = getConfig();
+  if (!config.railwayUrl) {
+    console.error('railwayUrl is required in ~/.chronicle/config.json to generate tokens.');
+    process.exit(1);
+  }
+
+  const { default: postgres } = await import('postgres');
+  const sql = postgres(config.railwayUrl, { ssl: 'require', max: 1 });
+
+  await sql.unsafe(TEAM_SCHEMA_SQL);
+  await sql`INSERT INTO teams (id, name) VALUES (${teamSlug}, ${teamSlug}) ON CONFLICT DO NOTHING`;
+
+  const token = `chron_${randomBytes(32).toString('hex')}`;
+  await sql`
+    INSERT INTO team_licenses (token, team_id, created_by)
+    VALUES (${token}, ${teamSlug}, ${config.userId})
+  `;
+  await sql.end();
+
+  console.log(`\nChronicle Team token generated for team: ${teamSlug}\n`);
+  console.log(`  token: ${token}\n`);
+  console.log(`Add to ~/.chronicle/config.json:`);
+  console.log(JSON.stringify({ teamId: teamSlug, teamToken: token }, null, 2));
+  process.exit(0);
+}
+
 const dashIndex = args.indexOf('--dashboard');
 
 if (dashIndex !== -1) {

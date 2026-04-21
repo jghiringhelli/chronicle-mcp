@@ -91,47 +91,77 @@ Same pattern — point your MCP client at `npx chronicle-mcp` with `CHRONICLE_DB
 
 ### Configuration file
 
-Create `~/.chronicle/config.json`:
+Chronicle creates `~/.chronicle/config.json` automatically on first run, using your `git config --global user.email` as `userId`. No manual setup needed on any machine where git is configured.
 
 ```json
 {
-  "userId": "your-username",
-  "deviceId": "laptop-home",
-  "dbPath": "/path/to/chronicle.db"
+  "userId": "you@example.com",
+  "deviceId": "hostname-a1b2",
+  "dbPath": "/home/you/.chronicle/chronicle.db"
 }
 ```
 
-Optional — add `railwayUrl` to enable cross-PC sync, and `teamId` to enable Chronicle Team:
+Optional fields:
+
+| Field | Purpose |
+|-------|---------|
+| `railwayUrl` | PostgreSQL connection string — enables cross-PC sync |
+| `teamId` | Team slug — enables Axon team coordination |
+| `teamToken` | Team license token — required to use Axon tools |
+
+Full config with all features:
 ```json
 {
-  "userId": "your-username",
-  "deviceId": "laptop-home",
-  "dbPath": "/path/to/chronicle.db",
-  "railwayUrl": "postgres://...",
-  "teamId": "your-team-slug"
+  "userId": "you@example.com",
+  "deviceId": "hostname-a1b2",
+  "dbPath": "/home/you/.chronicle/chronicle.db",
+  "railwayUrl": "postgresql://user:pass@host.railway.app:5432/railway",
+  "teamId": "my-team",
+  "teamToken": "chron_..."
 }
 ```
-`teamId` is optional. All team features are a strict no-op when it is absent.
 
 ---
 
 ## MCP tools
 
-| Tool | What it does |
-|------|-------------|
+### `chronicle` — memory, triggers, preferences
+
+| Action | What it does |
+|--------|-------------|
 | `remember` | Store a memory with type, project, tags, and optional confirmation |
 | `recall` | Retrieve memories ranked by relevance and weight |
 | `forget` | Delete a memory by ID |
-| `session_start` | Begin a session; returns compressed prior context |
-| `session_end` | End a session with a summary (triggers team sync if configured) |
-| `session_recover` | Recover context from a crashed/interrupted session |
-| `set_trigger` | Attach a trigger to a memory (fires on action keywords) |
-| `check_triggers` | Check what memories fire before an action |
-| `trigger_remove` | Remove a trigger |
-| `set_preference` | Store a developer preference |
-| `get_preferences` | Retrieve preferences, optionally filtered by category |
-| `decay_run` | Run the decay job manually (normally automatic) |
-| `stats` | Memory stats: counts by type, tier, weight distribution |
+| `trigger` | Attach a trigger to a memory (fires on action keywords) |
+| `check` | Check what memories fire before an action |
+| `pref` | Store a developer preference |
+| `prefs` | Retrieve preferences, optionally filtered |
+| `stats` | Memory counts by type, tier, weight |
+| `decay` | Run the decay + tier promotion job manually |
+
+### `session` — session lifecycle
+
+| Action | What it does |
+|--------|-------------|
+| `start` | Begin a session; returns core memories for context |
+| `end` | End a session with a summary; triggers Railway sync |
+| `recover` | Recover context from a crashed or interrupted session |
+
+### `axon` — team coordination *(requires teamToken)*
+
+| Action | What it does |
+|--------|-------------|
+| `contributor_add` | Register a team member with role and bandwidth |
+| `spec_sync` | Read GS spec artifacts from a project directory |
+| `milestone_add` | Create a milestone work package |
+| `decompose` | Break a spec into ranked, dependency-ordered work packages |
+| `assign` | Assign the next unblocked package to an available contributor |
+| `complete` | Mark a work package done; unblocks downstream packages |
+| `request_merge` | Submit work for merger review with ForgeCraft results |
+| `resolve_merge` | Approve or reject a merge request |
+| `merges` | List merge requests filtered by status |
+| `status` | Full team dashboard: contributors, queue, merge queue |
+| `queue` | Ranked work queue for the project |
 
 ---
 
@@ -257,105 +287,120 @@ MCP Client (Claude / Copilot / Cursor)
        ▼
   Chronicle MCP Server  (src/mcp/server.ts)
        │
-       ├── MemoryService    — remember / recall / decay / tier promotion
-       ├── SessionService   — start / end / recover
-       ├── TriggerService   — set / check / remove
-       ├── PreferenceService — set / get
-       ├── TeamService      — join / list members
-       ├── PromptLogService — buffer + push prompt patterns
-       ├── TeamSyncService  — team push / pull
-       ├── PatternService   — compute usage stats from cache
-       └── SyncService      — Railway push / pull (individual)
-              │
-       SQLite (better-sqlite3, local-first)
-       Railway Postgres (optional, Working+Core sync + team data)
+       ├── chronicle tool
+       │     ├── MemoryService     — remember / recall / decay / tier promotion
+       │     ├── TriggerService    — set / check
+       │     └── PreferenceService — set / get
+       ├── session tool
+       │     └── SessionService    — start / end / recover
+       └── axon tool  (teamToken required)
+             ├── CoordinationService — contributors, work packages, assignments, merges
+             └── syncCoordination    — Railway push / pull (team state)
+                    │
+             SQLite (better-sqlite3, local-first)
+             Railway Postgres (optional — cross-PC sync + team coordination)
 ```
 
 Domain is pure TypeScript with zero external imports. All repositories are synchronous (better-sqlite3). The MCP layer is async. Sync to Railway uses the `postgres` package with dynamic import.
 
 ---
 
-## Chronicle Team
+## Axon — team coordination for GS workflows
 
-Chronicle Team extends Chronicle with opt-in, privacy-first team knowledge sharing. Individuals control everything — nothing is shared unless you explicitly call a sharing tool.
+Axon is Chronicle's team coordination layer for [Generative Specification](https://github.com/jghiringhelli/generative-specification) workflows. It decomposes a GS spec into a ranked, dependency-ordered work queue, assigns packages to contributors by role, and gates merges on ForgeCraft quality scores — all synced in real time across the team via Railway.
 
-### How it works
+**Requires a team license token.** Contact [PragmaWorks](https://github.com/jghiringhelli) or generate one yourself if you run your own Railway instance (see below).
 
-- You log **prompt patterns** (not raw prompts) that your team can learn from
-- You **share memories** you want teammates to benefit from
-- Team insights and practices are **synthesized and pulled** to every member's local cache
-- Usage stats help you understand your own AI interaction patterns — never used for surveillance
+### Role model
 
-### Privacy model
-
-| What | Stored where | Who sees it |
-|------|-------------|-------------|
-| Prompt pattern (what you were doing) | Railway, visible to team | All team members |
-| Raw prompt text | Railway, only if `share_content: true` | All team members (explicit opt-in only) |
-| Personal memories (not shared) | Local SQLite only | You only |
-| Your usage stats (`my_stats`) | Local only | You only |
-| Team aggregate stats | Local cache | All team members |
+| Role | Responsibility |
+|------|---------------|
+| `specwright` | Authors and maintains GS spec artifacts (CLAUDE.md, ADRs, use-cases) |
+| `builder` | Implements work packages derived from the spec |
+| `merger` | Reviews and approves merge requests; gates on ForgeCraft tier |
+| `verifier` | Runs tests and quality checks |
+| `watcher` | Monitors — read-only visibility into team state |
 
 ### Setup
 
-1. Same Railway Postgres as cross-PC sync. Apply the team schema:
-   ```bash
-   psql "postgresql://..." -f path/to/chronicle-mcp/src/infrastructure/db/team-cloud-schema.sql
-   ```
+1. **Railway Postgres** — same instance as cross-PC sync (see above). The team schema is applied automatically on first use.
 
-2. Add `teamId` to `~/.chronicle/config.json`:
-   ```json
+2. **Generate a token** (run once, by the team lead):
+   ```bash
+   chronicle-mcp generate-token --team my-team
+   ```
+   Output:
+   ```
+   Chronicle Team token generated for team: my-team
+
+     token: chron_a1b2c3...
+
+   Add to ~/.chronicle/config.json:
    {
-     "userId": "your-username",
-     "deviceId": "laptop-home",
-     "dbPath": "/path/to/chronicle.db",
-     "railwayUrl": "postgresql://...",
-     "teamId": "your-team-slug"
+     "teamId": "my-team",
+     "teamToken": "chron_a1b2c3..."
    }
    ```
 
-3. Join your team:
+3. **Each team member** adds `teamId` and `teamToken` to their `~/.chronicle/config.json`:
+   ```json
+   {
+     "userId": "you@example.com",
+     "railwayUrl": "postgresql://...",
+     "teamId": "my-team",
+     "teamToken": "chron_a1b2c3..."
+   }
    ```
-   team_join({ team_id: "your-team-slug", team_name: "Your Team" })
+
+4. **Register contributors** — once per person:
+   ```
+   axon({ action: "contributor_add", name: "Alice", email: "alice@example.com",
+          role: "builder", bandwidth: 30, project: "my-project" })
    ```
 
-### Team MCP tools
-
-| Tool | What it does |
-|------|-------------|
-| `team_join` | Join or create a team on the shared Railway instance |
-| `team_share` | Explicitly share a memory with your team |
-| `team_recall` | Search team-shared memories and insights |
-| `log_prompt` | Opt-in: record a prompt pattern (category, outcome, tags) |
-| `team_insights` | View synthesized team practices and anti-patterns |
-| `team_stats` | Aggregate team usage: contributions, top categories |
-| `my_stats` | Your individual contribution and usage summary |
-| `team_sync` | Manually trigger push/pull (also fires at `session_end`) |
-| `team_members` | List all members of your team |
-
-### Example
+### Typical GS workflow
 
 ```
-# Log a prompt pattern after a successful refactoring session
-log_prompt({
-  pattern: "ask Claude to identify all callers before refactoring a function",
-  outcome: "good",
-  category: "refactoring",
-  project: "my-api"
-})
+# 1. Specwright syncs the spec
+axon({ action: "spec_sync", project_dir: "/path/to/repo", project: "my-project" })
+→ Returns spec sections, milestones, TODOs for AI-driven decomposition
 
-# Share a key architectural memory with the team
-team_share({
-  id: "mem-xyz",
-  content: "Railway Postgres resets prepared statements on deploy — always reconnect",
-  memory_type: "architectural",
-  project: "my-api"
-})
+# 2. AI decomposes into ranked work packages
+axon({ action: "decompose", project: "my-project", packages: [
+  { title: "Auth service", role_required: "builder", depends_on: [] },
+  { title: "Auth tests",   role_required: "verifier", depends_on: ["Auth service"] }
+]})
 
-# Your teammates pull this on their next session_end sync
-team_recall({ query: "Railway deploy gotcha" })
-→ "Railway Postgres resets prepared statements on deploy — always reconnect"
-   (shared by alice, 2 hours ago)
+# 3. Each contributor gets their next assignment
+axon({ action: "assign", project: "my-project", role_filter: "builder" })
+→ { workPackage: { title: "Auth service", branchName: "feature/my-project/auth-service" },
+    contributor: { name: "Alice" } }
+
+# 4. Builder completes work, submits with ForgeCraft results
+axon({ action: "request_merge", id: "<pkg-id>", branch_name: "feature/...",
+       contributor_id: "<alice-id>", forgecraft_score: 12, forgecraft_tier: 3, forgecraft_pass: true })
+
+# 5. Merger reviews and approves
+axon({ action: "resolve_merge", id: "<mr-id>", contributor_id: "<merger-id>", approve: true })
+
+# 6. Monitor progress
+axon({ action: "status", project: "my-project" })
+```
+
+### Dashboard
+
+```bash
+chronicle-mcp --dashboard
+```
+
+Opens a local web UI at `http://localhost:4321` with three views: team overview, project queue, and personal assignments.
+
+### Token management
+
+Tokens are stored in the `team_licenses` table on your Railway instance. To revoke a token:
+
+```sql
+UPDATE team_licenses SET revoked = TRUE WHERE token = 'chron_...';
 ```
 
 ---

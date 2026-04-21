@@ -62,7 +62,7 @@ export function createMcpServer(): McpServer {
   const prefSvc = new PreferenceService(prefRepo, idGen);
   const coordSvc = new CoordinationService(db);
 
-  const server = new McpServer({ name: 'chronicle', version: '0.3.0' });
+  const server = new McpServer({ name: 'chronicle', version: '0.3.1' });
 
   // ── chronicle ─────────────────────────────────────────────────────────────
   // Covers: memory CRUD, triggers, preferences, stats, decay.

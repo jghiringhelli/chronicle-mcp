@@ -1,4 +1,4 @@
-<!-- ForgeCraft sentinel: cicd | 2026-03-21 | npx forgecraft-mcp refresh . --apply to update -->
+<!-- ForgeCraft sentinel: cicd | 2026-04-20 | npx forgecraft-mcp refresh . --apply to update -->
 
 ## Dev Environment Hygiene
 
@@ -81,6 +81,44 @@ npx commitlint --edit "$1"
 ```js
 module.exports = { extends: ['@commitlint/config-conventional'] };
 ```
+
+### Linter Config — Emit in P0, Don't Reference
+Linter configuration is infrastructure, not application code. It must be committed to the
+repo root in the **first response** (P0) alongside hooks and CI config — not added post-hoc.
+A linter mentioned only in documentation does not enforce anything.
+
+**TypeScript / JavaScript** — emit `.eslintrc.json` (or `eslint.config.js` for flat config):
+```json
+{
+  "parser": "@typescript-eslint/parser",
+  "plugins": ["@typescript-eslint"],
+  "rules": {
+    "no-unused-vars": "off",
+    "@typescript-eslint/no-unused-vars": "error",
+    "@typescript-eslint/no-explicit-any": "error"
+  }
+}
+```
+
+**Python** — emit `ruff.toml` (or `[tool.ruff]` section in `pyproject.toml`):
+```toml
+[tool.ruff]
+select = ["E", "F", "I"]
+ignore = []
+line-length = 100
+```
+
+**Go** — emit `.golangci.yaml`:
+```yaml
+linters:
+  enable:
+    - unused
+    - govet
+    - errcheck
+```
+
+The correct linter config for **this project's language** must be committed to the repo root
+in the same response that emits hooks and CI. Discovering lint errors at code review is too late.
 
 ### CI Pipeline — Emit, Don't Reference
 `.github/workflows/ci.yml` must be emitted as a fenced code block in the first response.

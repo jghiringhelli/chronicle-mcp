@@ -1,5 +1,5 @@
 # chronicle
-<!-- ForgeCraft sentinel | 2026-03-21 | npx forgecraft-mcp refresh . --apply to update -->
-<!-- FILL: one sentence — what this project is and what it must not become -->
+<!-- ForgeCraft sentinel | 2026-04-20 | npx forgecraft-mcp refresh . --apply to update -->
+A library, cli project. Must not become a monolith.
 
 Read `.claude/index.md` before any task. Navigate to the relevant branch. Load core.md always.

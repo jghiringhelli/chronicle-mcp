@@ -1,12 +1,12 @@
-<!-- ForgeCraft sentinel: architecture | 2026-03-21 | npx forgecraft-mcp refresh . --apply to update -->
+<!-- ForgeCraft sentinel: architecture | 2026-04-20 | npx forgecraft-mcp refresh . --apply to update -->
 
 ## Project Identity
-- **Repo**: {{repo_url}}
+- **Repo**: https://github.com/jghiringhelli/chronicle-mcp
 - **Primary Language**: typescript
 - **Framework**: {{framework}}
 - **Domain**: {{domain}}
 - **Sensitive Data**: NO
-- **Project Tags**: `[UNIVERSAL]`
+- **Project Tags**: `[UNIVERSAL]` `[LIBRARY]` `[CLI]`
 - **Release Phase**: development
 
 ## Code Standards

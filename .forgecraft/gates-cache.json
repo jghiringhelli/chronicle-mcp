@@ -1,572 +1,710 @@
 {
-  "fetchedAt": "2026-03-21T15:38:58.981Z",
+  "fetchedAt": "2026-04-20T03:21:22.703Z",
   "data": {
-    "generatedAt": "2026-03-19T20:42:21.571Z",
+    "generatedAt": "2026-03-31T21:01:11.032Z",
     "version": "1",
-    "gateCount": 22,
+    "gateCount": 42,
     "tags": [
+      "ACADEMIC-PAPER",
+      "ANY",
       "API",
-      "FINTECH",
-      "SIMULATION",
-      "STATE-MACHINE",
-      "UNIVERSAL",
-      "WEB-REACT",
-      "WEB-STATIC",
-      "WEB3"
+      "CONTRACT-TESTING",
+      "DATABASE",
+      "DOCKER",
+      "ESM",
+      "EXPRESS",
+      "FASTIFY",
+      "HURL",
+      "JAVASCRIPT",
+      "JEST",
+      "NODE",
+      "NPM",
+      "PYTHON",
+      "QUALITY",
+      "REST",
+      "SONARQUBE",
+      "STATIC-ANALYSIS",
+      "TYPESCRIPT"
     ],
     "gates": [
       {
-        "id": "codeseeker-duplicate-detection",
-        "title": "Semantic Duplicate Code Detection at End of Cycle",
-        "description": "At the end of each development cycle, run CodeSeeker's duplicate detection scan to identify semantically similar code blocks (similarity > 0.85). Consolidate duplicates into shared utilities before marking the cycle complete. Prevents the progressive accumulation of near-identical logic that diverges over time, making the codebase harder to maintain and test.\n",
-        "domain": "code-quality",
-        "implementation": "mcp",
-        "gsProperty": "composable",
-        "phase": "pre-release",
-        "hook": "close-cycle",
-        "os": "cross-platform",
-        "check": "At end of each development cycle (before close_cycle completes):\n1. Run CodeSeeker duplicate detection scan on the codebase\n2. Review results: any pair with semantic similarity > 0.85 is a candidate for deduplication\n3. For each duplicate pair:\n   - Confirm they solve the same problem (not just syntactically similar)\n   - Consolidate into a shared utility\n   - Update all call sites\n4. Commit the deduplication before marking cycle complete\n",
-        "passCriterion": "No semantically duplicate code blocks with similarity > 0.85 remain in the codebase.",
-        "failureMessage": "Semantically duplicate code detected. Consolidate before closing the cycle.",
-        "fixHint": "Use codeseeker_duplicates to identify pairs. Extract shared logic to a utility. Update call sites.",
-        "tools": [
-          {
-            "name": "codeseeker",
-            "purpose": "Finds semantically similar code blocks using vector embeddings and AST analysis",
-            "installCommand": "npx codeseeker install --vscode",
-            "category": "mcp",
-            "required": true
-          }
-        ],
-        "tags": [
-          "UNIVERSAL"
-        ],
-        "priority": "P1",
-        "likelihood": "medium",
-        "impact": "medium",
-        "confidence": "high",
-        "references": [
-          "https://github.com/jghiringhelli/codeseeker"
-        ],
-        "status": "ready",
-        "source": "registry",
-        "addedAt": "2026-03-19T20:00:00Z",
-        "_path": "gates/code-quality/codeseeker-duplicate-detection.yaml"
-      },
-      {
-        "id": "codeseeker-orphan-detection",
-        "title": "Orphaned Code Detection at End of Cycle",
-        "description": "At the end of each development cycle, run CodeSeeker's orphan detection to find modules and functions with no incoming edges in the dependency graph. Remove confirmed dead exports rather than commenting them out. Keeps the codebase lean, reduces cognitive load on reviewers, and prevents stale code from accumulating across cycles.\n",
-        "domain": "code-quality",
-        "implementation": "mcp",
-        "gsProperty": "composable",
-        "phase": "pre-release",
-        "hook": "close-cycle",
-        "os": "cross-platform",
-        "check": "At end of each development cycle:\n1. Run CodeSeeker orphan detection (isolated subgraph scan)\n2. Review results: modules/functions with no incoming edges in the dependency graph\n3. For each orphaned code unit:\n   - Is it a dead export? Remove it.\n   - Is it test-only? Move to test files or mark clearly.\n   - Is it intentionally standalone? Document why in a comment.\n4. Delete orphaned code. Do not comment it out. Git has history.\n",
-        "passCriterion": "No isolated subgraphs in the dependency graph. All exported symbols have at least one call site.",
-        "failureMessage": "Orphaned code detected -- modules or functions with no callers found.",
-        "fixHint": "Use codeseeker_orphans to identify isolated code. Delete unused exports. Move test helpers to test files.",
-        "tools": [
-          {
-            "name": "codeseeker",
-            "purpose": "Finds isolated subgraphs (orphaned modules) in the dependency graph",
-            "installCommand": "npx codeseeker install --vscode",
-            "category": "mcp",
-            "required": true
-          }
-        ],
-        "tags": [
-          "UNIVERSAL"
-        ],
-        "priority": "P1",
-        "likelihood": "medium",
-        "impact": "low",
-        "confidence": "high",
-        "references": [
-          "https://github.com/jghiringhelli/codeseeker"
-        ],
-        "status": "ready",
-        "source": "registry",
-        "addedAt": "2026-03-19T20:00:00Z",
-        "_path": "gates/code-quality/codeseeker-orphan-detection.yaml"
-      },
-      {
-        "id": "codeseeker-semantic-search-before-grep",
-        "title": "Use Semantic Search Before Grep",
-        "description": "When searching the codebase for existing utilities, patterns, or similar implementations, prefer CodeSeeker's semantic (vector + graph) search over literal grep. Grep misses conceptually identical code with different naming, leading to duplicate utilities and inflated dependency footprints. This gate enforces the habit of semantic-first search in sessions where CodeSeeker is available.\n",
-        "domain": "environment-hygiene",
-        "implementation": "mcp",
-        "gsProperty": "composable",
+        "id": "adr-files-emitted",
+        "title": "ADRs exist as committed files",
+        "description": "Every Architecture Decision Record referenced in the specification or README must exist as a committed file with substantive content — context, options considered, decision, and consequences. An ADR that is referenced in prose (\"see ADR-0001\") but does not exist as a file fails the Auditable gate. An ADR that exists as an empty stub or contains only a title also fails. The decision trail must be readable by a stateless agent with no prior context.",
+        "category": "Auditable",
+        "gsProperty": "Auditable",
         "phase": "development",
-        "hook": "pre-commit",
-        "os": "cross-platform",
-        "check": "When searching the codebase for existing code, utilities, patterns, or similar implementations:\n1. If CodeSeeker MCP tool is available in the session: use codeseeker_search FIRST\n2. Only fall back to grep/glob for exact literal string matches that semantic search won't help with\n3. Before writing any new utility function: search semantically (\"find utility that does X\")\n4. Before adding a new dependency: search semantically (\"existing code that handles X\")\nThis prevents duplicate code proliferation in large codebases.\n",
-        "passCriterion": "CodeSeeker used for conceptual searches. grep reserved for exact string matches.",
-        "failureMessage": "grep used for conceptual search when CodeSeeker is available, risking missed existing utilities.",
-        "fixHint": "Add CodeSeeker MCP to .claude/settings.json. Use codeseeker_search for \"find code that does X\" queries.",
-        "tools": [
-          {
-            "name": "codeseeker",
-            "purpose": "Graph-powered semantic code search with duplicate and orphan detection",
-            "installCommand": "npx codeseeker install --vscode",
-            "category": "mcp",
-            "required": true
-          }
-        ],
+        "hook": "pr",
+        "check": "",
+        "passCriterion": "Every Architecture Decision Record referenced in the specification or README must exist as a committed file with substantive content — context, options considered, decision, and consequences.",
         "tags": [
-          "UNIVERSAL"
+          "ANY"
         ],
-        "priority": "P2",
-        "likelihood": "high",
-        "impact": "low",
-        "confidence": "medium",
-        "references": [
-          "https://github.com/jghiringhelli/codeseeker"
-        ],
-        "status": "ready",
-        "source": "registry",
-        "addedAt": "2026-03-19T20:00:00Z",
-        "_path": "gates/environment-hygiene/codeseeker-semantic-search-before-grep.yaml"
+        "status": "approved"
       },
       {
-        "id": "docker-container-reuse",
-        "title": "Reuse Dev Docker Containers -- No Duplicate Servers",
-        "description": "Before spinning up a new Docker container for a development database or service, check whether a container of that type already exists. If one does, create a new database or namespace inside it rather than running a second container. Prevents resource waste, port collisions, and environment drift caused by multiple parallel instances of the same service type.\n",
-        "domain": "environment-hygiene",
-        "implementation": "cli",
-        "gsProperty": "defended",
+        "id": "api-error-envelope-resource-scoped",
+        "title": "Resource-scoped error envelope",
+        "description": "API validation errors must be returned under a key that names the failing resource, not a generic \"body\" key. The envelope shape must be { \"errors\": { \"<resource>\": [\"message\"] } } where <resource> is the noun being validated (e.g. \"username\", \"email\", \"article\", \"title\"). A generic errors.body[] response makes error attribution ambiguous for clients and fails OpenAPI contract tests. This gate is derived from Hurl RC2: six of thirteen official Conduit contract tests failed solely because the implementation returned errors.body[] instead of resource-scoped keys. Implement a formatError(resource, messages) utility so the pattern is enforced uniformly across all endpoints.",
+        "category": "Verifiable",
+        "gsProperty": "Verifiable",
         "phase": "development",
-        "hook": "pre-commit",
-        "os": "cross-platform",
-        "check": "Before spinning up a new Docker container for development databases or services:\n1. Run: docker ps -a --format \"{{.Names}}\\t{{.Status}}\\t{{.Image}}\"\n2. Check if a container for this service type (postgres, redis, mongo, etc.) already exists\n3. If exists and running: create a new database/namespace WITHIN the existing container\n   - PostgreSQL: CREATE DATABASE {project}_dev within existing postgres container\n   - Redis: use a different DB index (SELECT 1, SELECT 2, etc.) per project\n   - MongoDB: create a new database within existing mongod\n4. If exists but stopped: docker start {container_name}\n5. Only create a new container if no existing container of this type exists\n6. All dev containers should connect to a shared 'forgecraft-dev' Docker network\n7. Document the shared container name and project-specific DB/namespace in docs/dev-environment.md\n",
-        "passCriterion": "No duplicate database/service containers running for development. Projects share containers, separate by database/namespace.",
-        "failureMessage": "New Docker container created when existing container of same type already running.",
-        "fixHint": "Use `docker ps -a` to find existing containers. Create a new database within the existing container instead of a new container.",
-        "tools": [
-          {
-            "name": "docker",
-            "purpose": "Container runtime",
-            "installCommand": "https://docs.docker.com/get-docker/",
-            "category": "binary",
-            "required": true
-          }
-        ],
+        "hook": "pr",
+        "check": "hurl --test --variable host=http://localhost:3000 specs/api/hurl/register.hurl specs/api/hurl/create-article.hurl",
+        "passCriterion": "API validation errors must be returned under a key that names the failing resource, not a generic \"body\" key.",
         "tags": [
-          "UNIVERSAL"
+          "API",
+          "REST",
+          "NODE",
+          "TYPESCRIPT",
+          "JAVASCRIPT"
         ],
-        "priority": "P1",
-        "likelihood": "medium",
-        "impact": "medium",
-        "confidence": "medium",
-        "references": [
-          "https://docs.docker.com/engine/reference/commandline/ps/"
-        ],
-        "status": "ready",
-        "source": "registry",
-        "addedAt": "2026-03-19T20:00:00Z",
-        "_path": "gates/environment-hygiene/docker-container-reuse.yaml"
+        "status": "approved"
       },
       {
-        "id": "package-manager-check-before-install",
-        "title": "Check Before Install -- All Package Managers",
-        "description": "Before installing any package with any package manager, verify it is not already installed or declared. Prevents version conflicts, duplicate entries in manifests, and unnecessary network calls. Applies to npm, pip, brew, choco, apt, go get, and any other package manager in use on the project.\n",
-        "domain": "environment-hygiene",
-        "implementation": "process",
-        "gsProperty": "defended",
+        "id": "api-nullable-field-coercion",
+        "title": "Nullable field coercion on empty strings",
+        "description": "Optional profile fields (bio, image) must be stored and returned as null when the client sends an empty string. Storing \"\" produces a type inconsistency: the API spec declares the field nullable, but an empty string is truthy and semantically different from \"not set\". This gate is derived from Hurl RC1: the Conduit contract test for PUT /api/user sent bio=\"\" and asserted the response contained null — the implementation returned \"\" and the test failed. Apply the coercion at the service layer: bio === '' ? null : bio.",
+        "category": "Verifiable",
+        "gsProperty": "Verifiable",
         "phase": "development",
-        "hook": "pre-commit",
-        "os": "cross-platform",
-        "check": "Before installing any package with any package manager (npm, pip, brew, choco, apt, go get):\n1. Check if the package is already installed/declared:\n   - npm local: check package.json dependencies\n   - npm global: npm list -g {pkg}\n   - pip: pip list | grep {pkg} OR check pyproject.toml/requirements.txt\n   - brew: brew list --versions {pkg}\n   - choco: choco list --local-only {pkg}\n   - apt: dpkg -l {pkg}\n   - go: check go.mod for module\n2. Semver check:\n   - Same major, older minor/patch: update (upgrade command) or skip\n   - Same major, same or newer: skip entirely\n   - Different major: only proceed if project explicitly requires this major version (documented)\n3. Before adding any new runtime dependency: search semantically for existing packages/utilities\n   that already cover the use case (use codeseeker if available, or grep).\n",
-        "passCriterion": "No package is installed without first checking if it already exists. No duplicate major versions unless explicitly justified.",
-        "failureMessage": "Package installed without checking existing installations, or duplicate versions detected.",
-        "fixHint": "Always check before installing. For npm: check package.json. For others: run the list command for that package manager first.",
+        "hook": "commit",
+        "check": "hurl --test --variable host=http://localhost:3000 specs/api/hurl/update-user.hurl",
+        "passCriterion": "Optional profile fields (bio, image) must be stored and returned as null when the client sends an empty string.",
         "tags": [
-          "UNIVERSAL"
+          "API",
+          "REST",
+          "NODE",
+          "TYPESCRIPT",
+          "JAVASCRIPT",
+          "DATABASE"
         ],
-        "priority": "P1",
-        "likelihood": "high",
-        "impact": "low",
-        "confidence": "high",
-        "status": "ready",
-        "source": "registry",
-        "addedAt": "2026-03-19T20:00:00Z",
-        "_path": "gates/environment-hygiene/package-manager-check-before-install.yaml"
+        "status": "approved"
       },
       {
-        "id": "vscode-extension-deduplication",
-        "title": "VS Code Extension Version Hygiene",
-        "description": "Before installing any VS Code extension, check the already-installed list to prevent duplicate major versions and unnecessary re-installs. Keeps the development environment deterministic and avoids conflicting extension behaviour caused by co-existing major versions of the same tool.\n",
-        "domain": "environment-hygiene",
-        "implementation": "cli",
-        "gsProperty": "defended",
+        "id": "claim-scope-calibration",
+        "title": "Evidence scope matches claim scope",
+        "description": "Every claim in the paper must be supported by evidence of equivalent scope. A claim about a general population requires population-level evidence; a claim about a single domain requires domain-level evidence. A case study of N=6 software projects does not support a claim that the methodology \"governs any domain.\" Non-software extensions must be explicitly labeled as hypotheses. Pass: all broad claims are hedged or have matching evidence. Fail: a general claim is supported only by narrow evidence without explicit qualification.",
+        "category": "Bounded",
+        "gsProperty": "Bounded",
+        "phase": "staging",
+        "hook": "pr",
+        "check": "",
+        "passCriterion": "Every claim in the paper must be supported by evidence of equivalent scope.",
+        "tags": [
+          "ACADEMIC-PAPER"
+        ],
+        "status": "approved"
+      },
+      {
+        "id": "conflict-of-interest-disclosure",
+        "title": "Material conflicts of interest disclosed near abstract",
+        "description": "Any material relationship between the author and tools, products, or organizations central to the paper's claims must be disclosed in a dedicated section near the abstract ΓÇö not buried in a single sentence mid-paper. The disclosure must state: (a) the nature of the relationship; (b) which claims depend on the conflicted tool/product and which are independent of it; (c) what a conflict-free replication would require. A single sentence of disclosure in ┬º6 is insufficient when the conflicted tool is used in all case studies and all experiments. Pass: dedicated COI section present, relationship fully characterized, tool-dependent vs tool-independent claims distinguished. Fail: COI buried in body text, or not present at all.",
+        "category": "Auditable",
+        "gsProperty": "Auditable",
+        "phase": "staging",
+        "hook": "pr",
+        "check": "",
+        "passCriterion": "Any material relationship between the author and tools, products, or organizations central to the paper's claims must be disclosed in a dedicated section near the abstract ΓÇö not buried in a single sentence mid-paper.",
+        "tags": [
+          "ACADEMIC-PAPER"
+        ],
+        "status": "approved"
+      },
+      {
+        "id": "container-image-no-critical-cve",
+        "title": "Container image has no critical or high CVEs",
+        "description": "The production container image must pass a CVE scan (Trivy, Grype, or Docker Scout) with no critical or high severity vulnerabilities before deployment. Base image vulnerabilities are inherited attack surface — a clean application layer over a vulnerable base image is not a secure deployment. This gate enforces the Defended property at the infrastructure boundary: the artifact being deployed must be scanned, not just the application dependencies. Gate passes when the scanner exits 0 at --severity CRITICAL,HIGH threshold. Image must be the same artifact that will be deployed (not rebuilt after scan). Use a pinned digest for the base image in the Dockerfile to prevent silent base image changes between scan and deploy.",
+        "category": "Defended",
+        "gsProperty": "Defended",
+        "phase": "staging",
+        "hook": "release",
+        "check": "trivy image --exit-code 1 --severity CRITICAL,HIGH ${IMAGE_TAG:-$(cat .image-tag)}",
+        "passCriterion": "Gate passes when the scanner exits 0 at --severity CRITICAL,HIGH threshold.",
+        "tags": [
+          "DOCKER",
+          "ANY"
+        ],
+        "status": "approved"
+      },
+      {
+        "id": "contract-tests-against-live-env",
+        "title": "API contract tests pass against live environment",
+        "description": "The committed API contract test suite must pass against the live target environment (staging, CAE, or production candidate) before promotion. This is distinct from running contract tests against a local server: the live environment exercises the full deployment stack including authentication middleware, database connections, environment-specific configuration, and any infrastructure-level routing. A service that passes contract tests locally but fails against its own staging environment has an environment configuration gap, not a test gap. Gate passes when the contract test runner (Hurl, Postman/Newman, Pact, or equivalent) exits 0 against the environment URL supplied via DEPLOY_URL. The test suite must be parameterized by URL and must not require production data — it must function against a seeded or empty environment.",
+        "category": "Verifiable",
+        "gsProperty": "Verifiable",
+        "phase": "staging",
+        "hook": "release",
+        "check": "DEPLOY_URL=${DEPLOY_URL} ./scripts/run-contract-tests.sh",
+        "passCriterion": "Gate passes when the contract test runner (Hurl, Postman/Newman, Pact, or equivalent) exits 0 against the environment URL supplied via DEPLOY_URL.",
+        "tags": [
+          "API",
+          "REST",
+          "ANY"
+        ],
+        "status": "approved"
+      },
+      {
+        "id": "conventional-commits",
+        "title": "Conventional commit format",
+        "description": "Commit messages follow the conventional commit format: type(scope): description. Valid types: feat, fix, refactor, docs, test, chore, perf, ci. Conventional commits are not a style preference — they are an auditable trail. A commit log that mixes \"wip\", \"fix stuff\", and \"more changes\" is unreadable to a stateless agent and provides no evidence of what changed and why. The Auditable property requires that every commit is interpretable without external context.",
+        "category": "Auditable",
+        "gsProperty": "Auditable",
         "phase": "development",
-        "hook": "pre-commit",
-        "os": "cross-platform",
-        "check": "Before installing any VS Code extension:\n1. Run: code --list-extensions --show-versions\n2. Parse output as {id}@{semver} map\n3. For each extension to install:\n   a. Same ID, same major version exists → update (code --install-extension {id}) or skip if already latest minor\n   b. Same ID, different major version → only install if .vscode/extensions.json documents the version requirement with a rationale comment\n   c. Multiple copies at same major → deduplicate: keep highest minor, uninstall older ones\n4. Never run code --install-extension without first checking installed list\n",
-        "passCriterion": "No duplicate extension installs exist at the same major version. All installs were checked against existing list first.",
-        "failureMessage": "Duplicate VS Code extensions detected or extensions installed without checking existing list.",
-        "fixHint": "Run `code --list-extensions --show-versions`, remove duplicates with `code --uninstall-extension {id}@{old-version}`, keep highest minor per major.",
-        "tools": [
-          {
-            "name": "vscode-cli",
-            "purpose": "List and manage installed VS Code extensions",
-            "installCommand": "Bundled with VS Code installation",
-            "category": "cli",
-            "required": true
-          }
-        ],
+        "hook": "commit",
+        "check": "echo \\\"$1\\\" | grep -Eq '^(feat|fix|refactor|docs|test|chore|perf|ci)(\\\\(.+\\\\))?: .{1,72}$' || exit 1",
+        "passCriterion": "Commit messages follow the conventional commit format: type(scope): description.",
         "tags": [
-          "UNIVERSAL"
+          "ANY"
         ],
-        "priority": "P1",
-        "likelihood": "high",
-        "impact": "low",
-        "confidence": "high",
-        "references": [
-          "https://code.visualstudio.com/docs/editor/extension-marketplace"
-        ],
-        "status": "ready",
-        "source": "registry",
-        "addedAt": "2026-03-19T20:00:00Z",
-        "_path": "gates/environment-hygiene/vscode-extension-deduplication.yaml"
+        "status": "approved"
       },
       {
-        "id": "aave-health-factor-floor",
-        "title": "AAVE Health Factor Floor — Liquidation Risk and Borrowing Rate Invariants",
-        "description": "During simulation runs, assert that the AAVE health factor never drops below 1.05 and that a non-zero borrowing rate is recorded whenever AAVE debt exists. Enforced at both the tick level during the run and in the post-run summary. Prevents invalid parameter sets from being accepted after a silent liquidation approach or a zero-cost borrow anomaly.\n",
-        "category": "financial-invariants",
-        "gsProperty": "defended",
+        "id": "coverage-threshold-80",
+        "title": "Line coverage ≥ 80%",
+        "description": "Test line coverage is at or above 80% for the entire project. Coverage is not a quality metric — it is a derivability metric. Code that has no tests cannot be verified; behavior that cannot be verified cannot be specified; a specification with unverifiable behavior is incomplete. 80% is the minimum threshold at which the Verifiable property can be claimed. Critical paths (auth, financial calculations, data pipelines) require 95%+ coverage enforced separately. This gate blocks merge when the overall threshold is not met.",
+        "category": "Verifiable",
+        "gsProperty": "Verifiable",
         "phase": "development",
-        "hook": "post-run",
-        "check": "FIN-07: At every simulation tick where AAVE debt > 0, assert health_factor >= 1.05. A breach means the position approached or crossed the liquidation threshold. The assertion must halt the run immediately on first breach and log: timestamp, health_factor observed, collateral value, debt value, and the tick index. This is a tick-level guard, not a post-run aggregate — the run must not continue past a health_factor < 1.05 event. SIM-04: In post-run output, assert that borrowing_rate > 0 for every hour where AAVE debt > 0. A zero borrowing rate when debt exists indicates that borrowing costs were not modeled, making the PnL calculation invalid. Report total hours with debt and hours with zero borrowing_rate on failure. Both checks are mandatory and independent.\n",
-        "passCriterion": "health_factor >= 1.05 at every tick where AAVE debt > 0; run halted immediately on breach. borrowing_rate > 0 for all hours where AAVE debt > 0 in post-run output.\n",
+        "hook": "pr",
+        "check": "jest --coverage --coverageThreshold '{\\\"global\\\":{\\\"lines\\\":80}}'",
+        "passCriterion": "Test line coverage is at or above 80% for the entire project.",
         "tags": [
-          "FINTECH",
-          "SIMULATION"
+          "JAVASCRIPT",
+          "TYPESCRIPT",
+          "JEST"
         ],
-        "generalizable": false,
-        "evidence": "Strategy ran 200 hours before liquidation. The health factor dropped to 1.03 over a 4-hour window — a gradual degradation that no aggregate post-run metric caught because the run appeared to complete normally (it liquidated at hour 200, not hour 204). A tick-level assertion at health_factor < 1.05 would have halted the run at hour 196, flagged the parameter set as unsafe, and prevented it from being accepted as a valid optimization result. The borrowing rate check would have separately caught a 48-hour window where debt existed but zero borrowing cost was recorded, inflating the PnL.\n",
-        "status": "approved",
-        "approvedAt": "2026-03-19",
-        "contributor": "jghiringhelli",
-        "_path": "gates/fintech/aave-health-factor-floor.yaml"
+        "status": "approved"
       },
       {
-        "id": "bootstrap-bypass-detection",
-        "title": "Bootstrap Bypass Detection — Full Position Required for RUNNING State Resume",
-        "description": "Verify that the state machine's position detection logic requires ALL THREE components (LP position + AAVE debt + short hedge) before resuming the RUNNING state. Also verify that crash reinstatement leaves capital in the wallet undeployed, not pre-deployed as collateral. Prevents recovery paths that short-circuit to RUNNING with an incomplete position, causing the engine to run indefinitely with no productive activity.\n",
-        "category": "state-machine-correctness",
-        "gsProperty": "defended",
+        "id": "cyclomatic-complexity-max-10",
+        "title": "Cyclomatic complexity max 10 per function",
+        "description": "No function may have a cyclomatic complexity above 10. Cyclomatic complexity counts the number of linearly independent paths through a function; above 10 the function is statistically harder to test completely and harder to understand in isolation. This gate uses eslint complexity rule at threshold 10. Note that higher complexity in well-specified systems is not always degradation: v4/v5 Ax conditions showed higher complexity than the naive condition because they implemented fuller error handling. The gate catches genuine spaghetti, not intentional coverage. Functions exceeding the threshold must be decomposed into named sub-functions with single responsibilities.",
+        "category": "Bounded",
+        "gsProperty": "Bounded",
         "phase": "development",
-        "hook": "pre-commit",
-        "check": "SM-03: The pre-commit hook verifies that _detect_positions() (or equivalent position detection function) returns False — and does NOT transition to RUNNING — unless ALL THREE conditions are true simultaneously: (1) LP position exists and is in range, (2) AAVE debt > 0, (3) short hedge position exists with size > 0. Partial position detection (e.g., collateral > 0 without LP) must not trigger RUNNING state. The hook enforces that a unit test exists with the following assertion: assert _detect_positions() returns False when LP is missing even if collateral > 0. SM-07: Verify that crash reinstatement logic (the path taken when recovering from an unclean shutdown) leaves capital in the wallet in an undeployed state. Any reinstatement function that pre-deploys collateral or opens positions as part of recovery must be flagged — recovery must restore wallet balance, not replicate a deployed state.\n",
-        "passCriterion": "_detect_positions() returns False when any of LP, debt, or short is missing, regardless of other component states. Unit test for LP-missing-but-collateral-present case exists and passes. Crash reinstatement functions do not deploy capital or open positions.\n",
+        "hook": "commit",
+        "check": "npx eslint --rule '{\\\"complexity\\\": [\\\"error\\\", 10]}' 'src/**/*.{ts,js}'",
+        "passCriterion": "No function may have a cyclomatic complexity above 10.",
         "tags": [
-          "FINTECH",
-          "STATE-MACHINE"
+          "JAVASCRIPT",
+          "TYPESCRIPT",
+          "NODE",
+          "ANY"
         ],
-        "generalizable": false,
-        "evidence": "Recovery path pre-seeded AAVE collateral as part of crash reinstatement. _detect_positions() saw collateral > 0 and short-circuited to RUNNING state with no LP deployed and no hedge. The engine ran for 1 full year emitting zero trades and zero fee income. The bug passed all unit tests because the test fixtures used the same short-circuit: they set collateral > 0 to simulate RUNNING state, masking the fact that LP absence should have prevented that transition. Required test: assert _detect_positions() returns False when LP is missing even if collateral exists.\n",
-        "status": "approved",
-        "approvedAt": "2026-03-19",
-        "contributor": "jghiringhelli",
-        "_path": "gates/fintech/bootstrap-bypass-detection.yaml"
+        "status": "approved"
       },
       {
-        "id": "lp-range-entry-guard",
-        "title": "LP Range Entry Guard — Valid Range at Position Creation and Fee/Width Correlation",
-        "description": "At LP position creation time, assert that the current price is within the specified range (lower < current_price < upper). Also verify that fee income correlates positively with LP range width — a wider range that produces lower fees indicates a broken fee model. Prevents the entire class of \"out-of-range from day 1\" bugs and fee model inversion anomalies.\n",
-        "category": "financial-invariants",
-        "gsProperty": "defended",
+        "id": "db-migrations-reversible",
+        "title": "Database migrations have a rollback path",
+        "description": "Every database migration file must include a rollback or down function alongside the up migration. An irreversible migration is a deployment risk: if a release must be rolled back, schema changes without a rollback path can leave the database in a state incompatible with the previous application version. Applies to all migration systems: Flyway (V and U scripts paired), Knex/TypeORM (exports.down), Alembic (downgrade function), Prisma (migration with shadow database validation). Gate passes when every migration file that has an up path also has a corresponding down/rollback path, or is explicitly annotated as intentionally irreversible with a documented justification. Irreversible gates without justification are a hard block.",
+        "category": "Defended",
+        "gsProperty": "Defended",
+        "phase": "staging",
+        "hook": "pr",
+        "check": "./scripts/check-migration-rollbacks.sh",
+        "passCriterion": "Gate passes when every migration file that has an up path also has a corresponding down/rollback path, or is explicitly annotated as intentionally irreversible with a documented justification.",
+        "tags": [
+          "DATABASE",
+          "ANY"
+        ],
+        "status": "approved"
+      },
+      {
+        "id": "docker-service-boundaries",
+        "title": "Docker service database references are explicitly named",
+        "description": "Each application service in docker-compose.yml that depends on a database must reference an explicitly named database service rather than a generic name (db, database, postgres). Generic shared service names create topological ambiguity: multiple services coupling to the same generic name makes the dependency graph unreadable and the compose file not self-describing. A stateless reader cannot determine service ownership from the file alone. Gate passes when no service in docker-compose.yml declares a depends_on entry whose value is exactly 'db', 'database', or 'postgres' without a service-scoped prefix.",
+        "category": "Self-describing",
+        "gsProperty": "Self-describing",
         "phase": "development",
-        "hook": "pre-commit",
-        "check": "FIN-06: At every LP position creation event (add_liquidity, mint, or equivalent), assert: lower_tick_price < current_price < upper_tick_price. This is a runtime guard executed at position creation time, not post-run. If violated, raise an exception and log: lower_bound, upper_bound, current_price, and the tick at which the position was created. The pre-commit hook verifies that any function that creates an LP position contains this assertion or calls a validator that includes it. FIN-10: In simulation output, verify that fee_income correlates positively with LP range width (upper - lower). If a parameter sweep shows that wider ranges consistently produce lower fee income than narrower ranges at the same price level, the fee model has an inversion bug. Flag any result set where the Pearson correlation between range_width and fee_income is < 0 across >= 5 parameter sweep entries.\n",
-        "passCriterion": "lower_tick_price < current_price < upper_tick_price asserted at every LP position creation. Exception raised and run halted if violated. No negative correlation between LP range width and fee income across parameter sweeps.\n",
+        "hook": "pr",
+        "check": "! grep -E \"^\\s+- (db|database|postgres)$\" docker-compose.yml 2>/dev/null || { echo \"FAIL: Generic DB service name in docker-compose.yml. Use scoped names (api-db, analytics-db).\"; exit 1; }",
+        "passCriterion": "Gate passes when no service in docker-compose.",
         "tags": [
-          "FINTECH",
-          "SIMULATION"
+          "DOCKER",
+          "ANY"
         ],
-        "generalizable": false,
-        "evidence": "LP deployed out of range immediately earned $0 fees for 800 hours. The entry guard is a 2-line check at position creation time — the entire class of \"out-of-range from day 1\" bugs is prevented by a single assertion that takes under a millisecond to evaluate. The fee/width correlation check would have additionally caught a fee model bug where the fee calculation used a fixed range width constant, causing wider ranges to report proportionally less fee income despite identical in-range time.\n",
-        "status": "approved",
-        "approvedAt": "2026-03-19",
-        "contributor": "jghiringhelli",
-        "_path": "gates/fintech/lp-range-entry-guard.yaml"
+        "status": "approved"
       },
       {
-        "id": "monetary-precision-no-float",
-        "title": "Monetary Precision — No Float for On-Chain Financial Math",
-        "description": "Detect and block the use of float literals and float() casts in code that handles on-chain monetary values. All financial calculations involving wei, token amounts, balances, or fee income must use Decimal or integer arithmetic. Float precision loss accumulates silently over long simulation runs and live deployments.\n",
-        "category": "financial-invariants",
-        "gsProperty": "defended",
+        "id": "env-vars-documented",
+        "title": "All environment variables documented",
+        "description": "Every environment variable consumed by the application must appear in a committed documentation file (e.g., .env.example, docs/configuration.md, or a table in the README). Undocumented environment variables are hidden configuration: they cannot be audited, rotated, or reproduced across environments. A stateless reader deploying this application to a new environment must be able to derive the complete configuration surface from the repository alone. Gate passes when a env-doc check script finds no variable references in source code that are absent from the documented file. Applies to all environment types: development, staging, and production.",
+        "category": "Self-describing",
+        "gsProperty": "Self-describing",
         "phase": "development",
-        "hook": "pre-commit",
-        "check": "FIN-01: Pre-commit hook scans files that handle monetary values (identified by any of: imports of web3, eth_account, uniswap, aave, or presence of variable patterns ending in _wei, _amount, _balance, _fee, _income, _cost) for the following patterns: (1) float() calls where the argument is a variable with a monetary suffix\n    — pattern: `float\\(.*(_wei|_amount|_balance|_fee|_income|_cost)\\)`.\n(2) Float literals used in arithmetic with monetary variables\n    — pattern: `(_wei|_amount|_balance)\\s*[\\*\\/\\+\\-]\\s*[0-9]+\\.[0-9]+`.\n(3) Direct float arithmetic on variables named with monetary suffixes\n    — pattern: `[a-z_]*(wei|amount|balance|fee|income|cost)\\s*=\\s*[^D][^e][^c].*[\\*\\/\\+\\-]`.\nReport file, line number, variable name, and the offending expression on failure. Configurable: additional monetary variable suffix patterns in forgecraft.yaml.\n",
-        "passCriterion": "Zero float() casts or float literals in arithmetic expressions involving variables with monetary suffixes in files that import web3, eth_account, uniswap, or aave. All monetary math uses Decimal, int (wei), or an audited fixed-point library.\n",
+        "hook": "pr",
+        "check": "./scripts/check-env-docs.sh",
+        "passCriterion": "Gate passes when a env-doc check script finds no variable references in source code that are absent from the documented file.",
         "tags": [
-          "FINTECH",
-          "WEB3"
+          "ANY"
         ],
-        "generalizable": false,
-        "evidence": "Float precision loss in an LP fee calculation caused a cumulative accounting error of $340 over 1,000 simulation hours. The error was undetectable without explicit decimal precision tracking — each individual tick calculation was off by less than $0.001, well within plausibility checks, but the error compounded consistently across 1,000,000 ticks. The root cause was a single float() cast converting a Decimal fee amount before summing it into the running total.\n",
-        "status": "approved",
-        "approvedAt": "2026-03-19",
-        "contributor": "jghiringhelli",
-        "_path": "gates/fintech/monetary-precision-no-float.yaml"
+        "status": "approved"
       },
       {
-        "id": "optimizer-journal-versioning",
-        "title": "Optimizer Journal Versioning — Commit SHA Tagging and Audit Metadata",
-        "description": "Optimizer journals must be tagged with the engine commit SHA at creation time. Journals produced on a different engine version must not be resumed or merged into the same optimization run. All audit database entries must store commit SHA, config hash, and price data version. Prevents optimization results from accumulating on a buggy engine and being accepted as valid.\n",
-        "category": "data-pipeline",
-        "gsProperty": "accountable",
-        "phase": "continuous",
-        "hook": "pre-release",
-        "check": "SIG-07 / DP-03: Before resuming or extending any optimizer journal (CMA-ES population state, Bayesian prior, or equivalent), verify that the journal's recorded engine_commit_sha matches the current HEAD commit SHA. If they differ, the journal must not be resumed — it must be archived and a new journal started. The pre-release hook scans all journal files in the optimizer output directory and fails if any journal lacks an engine_commit_sha field or if any journal's SHA differs from HEAD. DP-01: Verify that price history data files are versioned and that the version is recorded in each optimizer journal. Journals referencing different price versions are incompatible and must not be merged. DP-02: Verify that the audit database (optimization results store) contains the following fields for every entry: engine_commit_sha, config_hash, price_data_version, run_timestamp. Entries missing any of these fields must be flagged as unauditable and excluded from parameter selection.\n",
-        "passCriterion": "All optimizer journals have engine_commit_sha matching current HEAD. All journals have a price_data_version field. All audit database entries contain engine_commit_sha, config_hash, price_data_version, and run_timestamp. Journals from non-matching SHA are archived, not resumed.\n",
+        "id": "experimental-design-standards",
+        "title": "Experimental claims meet design standards",
+        "description": "Any section presenting experimental results must clearly state: (1) whether conditions were pre-registered or post-hoc; (2) N per condition; (3) whether the auditor/evaluator is independent of the treatment generator (same-family AI auditing same-family AI output is a confound that must be disclosed); (4) whether statistical inference is claimed and if so whether sample size supports it. Post-hoc conditions designed to fix gaps found in prior runs must be labeled as iterative product development, not experimental evidence. Pass: all conditions clearly labeled, confounds disclosed, inference claims calibrated to N. Fail: post-hoc conditions presented as experimental evidence without explicit label.",
+        "category": "Verifiable",
+        "gsProperty": "Verifiable",
+        "phase": "staging",
+        "hook": "pr",
+        "check": "",
+        "passCriterion": "Any section presenting experimental results must clearly state: (1) whether conditions were pre-registered or post-hoc; (2) N per condition; (3) whether the auditor/evaluator is independent of the treatment generator (same-family AI auditing same-family AI output is a confound that must be disclosed); (4) whether statistical inference is claimed and if so whether sample size supports it.",
         "tags": [
-          "FINTECH",
-          "SIMULATION"
+          "ACADEMIC-PAPER"
         ],
-        "generalizable": false,
-        "evidence": "130 CMA-ES optimizer runs accumulated on an engine with a known fee calculation bug. The \"optimal\" parameters discovered by the optimizer were exploiting the bug — they maximized fee income in a model where fees were overcounted by 3x. After the bug was fixed, all 130 journals were invalid but indistinguishable from valid ones without manual inspection. SHA tagging would have automatically invalidated all pre-fix journals on the next run, forcing a fresh optimization on the corrected engine.\n",
-        "status": "approved",
-        "approvedAt": "2026-03-19",
-        "contributor": "jghiringhelli",
-        "_path": "gates/fintech/optimizer-journal-versioning.yaml"
+        "status": "approved"
       },
       {
-        "id": "pnl-decomposition",
-        "title": "P&L Decomposition Invariant — Silent Loss Bug Detection",
-        "description": "After every simulation run, verify that the sum of P&L components equals the total reported P&L. Catches accounting bugs where a component is computed but never wired into the total.\n",
-        "category": "simulation-integrity",
-        "gsProperty": "verifiable",
+        "id": "extension-manifest-committed",
+        "title": "VS Code extension manifest committed",
+        "description": ".vscode/extensions.json must exist and be committed to the repository. Without it, AI agents and developers reinstall extensions session after session: the development environment is underspecified and the toolchain is not reproducible. A committed extensions manifest ensures every contributor and every AI session starts with the same editor toolchain. Gate passes when .vscode/extensions.json exists and contains a non-empty recommendations array.",
+        "category": "Self-describing",
+        "gsProperty": "Self-describing",
         "phase": "development",
-        "hook": "post-run",
-        "check": "After every simulation run, verify: fee_income + price_income + borrowing_cost == total_pnl +/- 1%. This is a Category A silent loss bug check. If the decomposition fails, accounting components are unlinked and the strategy is earning zero while appearing to run normally. Extend to all components present in the strategy's accounting model. The check must name the exact fields it is comparing and report the delta on failure. Also flag runs where total_pnl > 0 but fee_income <= 0 (SIM-08: silent positive return bug — positive total PnL without any fee income indicates unaccounted income source or accounting bypass). borrowing_cost is a required decomposition component alongside fee_income and price_income (FIN-05): it must be present in every run output that involves AAVE debt, and its sign must be negative (it is a cost).\n",
-        "passCriterion": "|fee_income + price_income + borrowing_cost - total_pnl| / |total_pnl| < 0.01. Fails immediately with named components and delta if violated. borrowing_cost must be present and non-zero when debt > 0. Runs where total_pnl > 0 and fee_income <= 0 must be flagged as suspect and reviewed.\n",
+        "hook": "commit",
+        "check": "test -f .vscode/extensions.json && node -e \"const e=JSON.parse(require('fs').readFileSync('.vscode/extensions.json')); if(!e.recommendations||!e.recommendations.length){process.exit(1)}\"",
+        "passCriterion": "Gate passes when .",
         "tags": [
-          "FINTECH",
-          "SIMULATION"
+          "ANY"
         ],
-        "generalizable": false,
-        "evidence": "Real DeFi simulation case: strategy ran for 1,000+ hours reporting zero PnL. Root cause was that fee_income was computed but never added to total_pnl. The strategy appeared healthy (no errors, no crashes) while silently earning nothing. P&L decomposition check would have caught this in the first test run.\n",
-        "status": "approved",
-        "approvedAt": "2026-03-01",
-        "contributor": "jghiringhelli",
-        "_path": "gates/fintech/pnl-decomposition.yaml"
+        "status": "approved"
       },
       {
-        "id": "private-key-log-prevention",
-        "title": "Private Key Log Prevention — No Private Keys in Logs or Exception Tracebacks",
-        "description": "Detect and block code that passes private key variables, mnemonics, or wallet secrets to logging functions, string formatting, or exception messages. Also verifies that .env files containing secrets are included in .gitignore. Prevents credential leakage through log aggregators, error tracking systems, or accidental commits.\n",
-        "category": "operational-security",
-        "gsProperty": "defended",
+        "id": "file-length-max-300",
+        "title": "Source file length does not exceed 300 lines",
+        "description": "No TypeScript or JavaScript source file exceeds 300 lines. File length is a proxy for single-responsibility compliance: a 500-line file almost certainly contains multiple conceptual concerns. At 300 lines, a human reader can hold the entire file in working memory without paging — above that, the cognitive overhead of understanding the module increases non-linearly. The 300-line limit applies to production source only; test files are excluded since comprehensive test suites are legitimately verbose. Files that approach the limit are a signal to split by responsibility: model from service, handler from controller, pure functions from side-effecting orchestration.",
+        "category": "Bounded",
+        "gsProperty": "Bounded",
         "phase": "development",
-        "hook": "pre-commit",
-        "check": "OP-01: Pre-commit hook scans all files that import web3 or eth_account for patterns where secret-named variables are passed to output functions: (1) Logging calls with secret variable names\n    — pattern: `(log\\.|logger\\.|logging\\.)\\w+\\(.*\\b(private_key|pk|secret|mnemonic|seed_phrase)\\b`.\n(2) String formatting of secret variables\n    — pattern: `(str\\(|f\"|f'|\\.format\\().*\\b(private_key|pk|secret|mnemonic)\\b`.\n(3) Exception construction with secret variables\n    — pattern: `(raise|Exception|Error)\\(.*\\b(private_key|pk|secret|mnemonic)\\b`.\n(4) Print statements with secret variables\n    — pattern: `print\\(.*\\b(private_key|pk|secret|mnemonic)\\b`.\nAdditionally, verify that every .env file in the repository root and subdirectories is listed in .gitignore. A missing .gitignore entry for any .env file fails the hook. Report file, line number, and the matched pattern on failure.\n",
-        "passCriterion": "Zero occurrences of secret-named variables passed to log, print, str(), f-string, or exception constructors in files importing web3 or eth_account. All .env files present in the repository are covered by .gitignore entries.\n",
+        "hook": "commit",
+        "check": "node -e \\\"const fs=require('fs'),path=require('path');function walk(dir){return fs.readdirSync(dir,{withFileTypes:true}).flatMap(e=>e.isDirectory()?walk(path.join(dir,e.name)):[path.join(dir,e.name)])}const files=walk('src').filter(f=>/\\\\.(ts|js|tsx|jsx)$/.test(f)&&!/\\\\.(test|spec)\\\\.(ts|js|tsx|jsx)$/.test(f));let fail=false;files.forEach(f=>{const lines=fs.readFileSync(f,'utf8').split('\\\\n').length;if(lines>300){console.error(f+': '+lines+' lines (max 300)');fail=true;}});process.exit(fail?1:0)\\\"",
+        "passCriterion": "No TypeScript or JavaScript source file exceeds 300 lines.",
         "tags": [
-          "FINTECH",
-          "WEB3"
+          "JAVASCRIPT",
+          "TYPESCRIPT",
+          "ANY"
         ],
-        "generalizable": false,
-        "evidence": "An exception handler logged the full account object — including the private key field — to stdout using a generic str(account) call inside an except block. In a containerized deployment, stdout is captured by the log aggregator. The private key was present in Datadog logs for 3 weeks before it was discovered during an unrelated audit. The account had to be rotated and all associated positions transferred. A pre-commit scan for str(.*private and logger patterns would have caught the line before it was ever committed.\n",
-        "status": "approved",
-        "approvedAt": "2026-03-19",
-        "contributor": "jghiringhelli",
-        "_path": "gates/fintech/private-key-log-prevention.yaml"
+        "status": "approved"
       },
       {
-        "id": "simulation-engine-health",
-        "title": "Simulation Engine Health — Error State, Capital Floor, and Activity Check",
-        "description": "After every simulation run, verify that the engine spent the majority of time in productive states, maintained minimum capital throughout, and produced enough state transitions to confirm genuine activity. Catches engines that silently stall, loop in recovery, or lose all capital while reporting a completed run.\n",
-        "category": "simulation-integrity",
-        "gsProperty": "verifiable",
+        "id": "health-endpoint-responds",
+        "title": "Health endpoint returns 200 with status payload",
+        "description": "The application must expose a /health endpoint (or equivalent per platform convention) that returns HTTP 200 with a JSON body containing at minimum: status, version, and uptime. This endpoint is the machine-readable signal that a deployed instance is operational and self-identifying. Without it, deployment pipelines cannot distinguish a running-but-broken instance from a healthy one. Liveness and readiness probes in Kubernetes, Railway health checks, and canary routing all depend on this endpoint. Gate passes when the endpoint returns 200 and the response body parses as JSON with the required fields. The endpoint must not require authentication.",
+        "category": "Executable",
+        "gsProperty": "Executable",
+        "phase": "staging",
+        "hook": "release",
+        "check": "curl -sf ${HEALTH_URL:-http://localhost:3000/health} | jq -e '.status and .version'",
+        "passCriterion": "Gate passes when the endpoint returns 200 and the response body parses as JSON with the required fields.",
+        "tags": [
+          "API",
+          "ANY"
+        ],
+        "status": "approved"
+      },
+      {
+        "id": "hurl-contract-tests-pass",
+        "title": "Hurl contract test suite passes",
+        "description": "The full Hurl test suite for the published API spec must exit 0 against a running server. Hurl tests are authored independently of the implementation — they are the contract between the API and its consumers, not a test of internal structure. A system that passes tsc and Jest but fails Hurl has correctly structured code that violates its own interface. This gate operationalizes the Verifiable property at the HTTP boundary: the specification is executable and the implementation satisfies it. The test files must be committed in specs/api/hurl/ and cover at minimum: registration, login, article CRUD, comments, favorites, follow/unfollow, and pagination. Gate passes when hurl --test exits 0.",
+        "category": "Executable",
+        "gsProperty": "Executable",
+        "phase": "staging",
+        "hook": "pr",
+        "check": "hurl --test --variable host=${API_HOST:-http://localhost:3000} specs/api/hurl/*.hurl",
+        "passCriterion": "Gate passes when hurl --test exits 0.",
+        "tags": [
+          "API",
+          "REST",
+          "HURL",
+          "CONTRACT-TESTING",
+          "ANY"
+        ],
+        "status": "approved"
+      },
+      {
+        "id": "internal-consistency",
+        "title": "No contradictory claims within paper",
+        "description": "No two claims in the paper may be logically incompatible. Common failure modes: a theoretical frame is declared \"analogy only\" in one section but used as load-bearing evidence in another; a term is hedged in a footnote but asserted without hedge in the conclusion; a disclaimer in ┬º1 is violated by reasoning in ┬º10. Pass: all claims are mutually consistent and hedges are honored throughout. Fail: a claim in one section contradicts or undermines a claim in another section without acknowledgment.",
+        "category": "Self-describing",
+        "gsProperty": "Self-describing",
+        "phase": "staging",
+        "hook": "pr",
+        "check": "",
+        "passCriterion": "No two claims in the paper may be logically incompatible.",
+        "tags": [
+          "ACADEMIC-PAPER"
+        ],
+        "status": "approved"
+      },
+      {
+        "id": "jest-no-failed-tests",
+        "title": "All tests pass",
+        "description": "jest --json exits with numFailedTests === 0. A test failure is not a code quality warning — it is a specification violation. The test suite encodes the behavioral contracts; a failing test means the implementation diverges from those contracts. No further implementation work proceeds until the test suite is green. This is the primary evidence artifact for the Executable property.",
+        "category": "Executable",
+        "gsProperty": "Executable",
         "phase": "development",
-        "hook": "post-run",
-        "check": "After every simulation run, assert all three conditions: (1) SIM-02: fraction of ticks spent in ERROR or RECOVERY state must be < 10% of total simulation ticks. Report exact percentage and tick counts on failure. (2) SIM-03: engine capital must never drop below 10% of starting capital at any recorded snapshot. Report the minimum capital observed and the timestamp. (3) SIM-07: for a full-year simulation run (>= 8,000 hours), total state transitions logged by the engine must exceed 100. A run with fewer transitions indicates the state machine was frozen or bypassed. Report exact transition count on failure. All three checks are mandatory — a run that passes two and fails one is a failed run.\n",
-        "passCriterion": "Error/recovery state fraction < 10% of total ticks. Minimum capital >= 10% of starting capital at all snapshots. State transition count > 100 for full-year runs. All three conditions must pass; partial pass is a failure.\n",
+        "hook": "commit",
+        "check": "jest --json --outputFile=evidence/jest-output.json",
+        "passCriterion": "jest --json exits with numFailedTests === 0.",
         "tags": [
-          "FINTECH",
-          "SIMULATION"
+          "JAVASCRIPT",
+          "TYPESCRIPT",
+          "JEST"
         ],
-        "generalizable": false,
-        "evidence": "Engine that spent 60% of simulation time in RECOVERY state emitted zero trades while appearing to complete successfully. No exception was raised; the run output was structurally valid. The capital floor check would have caught total-loss scenarios that silently passed as completed runs. The transition count check would have flagged the frozen state machine that never left RECOVERY on the first post-run validation.\n",
-        "status": "approved",
-        "approvedAt": "2026-03-19",
-        "contributor": "jghiringhelli",
-        "_path": "gates/fintech/simulation-engine-health.yaml"
+        "status": "approved"
       },
       {
-        "id": "simulation-lp-fee-nonzero",
-        "title": "Simulation LP Fee Nonzero — Fee Income and In-Range Percentage Check",
-        "description": "After every simulation run with LP (liquidity provision) enabled, verify that fee_income is greater than zero and that the LP in-range percentage is reported and positive. Catches strategies that deploy LP out of range and silently earn nothing for the entire run duration.\n",
-        "category": "simulation-integrity",
-        "gsProperty": "verifiable",
+        "id": "jsdoc-public-functions",
+        "title": "Public functions have JSDoc",
+        "description": "Every public function and method has a JSDoc comment with a description, typed @param tags, and a @returns tag. A function without a docstring forces the reader to infer its purpose, inputs, and outputs from implementation details. The Self-describing property requires that the specification artifacts are readable without execution context. A public function is part of the module's contract; its documentation is part of the specification. This gate applies to TypeScript and JavaScript. For other languages, use equivalent documentation standards (Python docstrings, Go doc comments, etc.).",
+        "category": "Self-describing",
+        "gsProperty": "Self-describing",
         "phase": "development",
-        "hook": "post-run",
-        "check": "After every simulation run where LP is enabled in the strategy config, assert: (1) SIM-01: fee_income > $0 for the full run. A completed run with LP enabled and zero fee income is a Category A bug indicator. Report total run hours and fee_income on failure. (2) SIM-06: LP in-range percentage must be present in run output and > 0%. A missing or zero in-range percentage means the LP position was never within the active price range and no fees were earnable at any point. Report in-range% and the LP range bounds (lower, upper) versus the price range observed during the run. Both checks must pass. A run with fee_income > 0 but missing in-range% still fails.\n",
-        "passCriterion": "fee_income > 0 for all runs with LP enabled. LP in-range percentage is present in run output and > 0%. Both conditions required; if LP is disabled in config, this gate is skipped.\n",
+        "hook": "pr",
+        "check": "eslint --rule 'jsdoc/require-jsdoc: [error, {publicOnly: true}]' src/**/*.ts",
+        "passCriterion": "Every public function and method has a JSDoc comment with a description, typed @param tags, and a @returns tag.",
         "tags": [
-          "FINTECH",
-          "SIMULATION"
+          "TYPESCRIPT",
+          "JAVASCRIPT"
         ],
-        "generalizable": false,
-        "evidence": "Strategy ran a full year with LP enabled and reported $0 in fees. Root cause: a bootstrap bypass had deployed the LP position out of range from day 1. The LP existed on-chain but the price never crossed into the range, so zero fees accrued. The in-range percentage check would have caught this on the first post-run validation — in-range% was 0% for the entire 8,760-hour run, making the root cause immediately visible without manual inspection of the position bounds.\n",
-        "status": "approved",
-        "approvedAt": "2026-03-19",
-        "contributor": "jghiringhelli",
-        "_path": "gates/fintech/simulation-lp-fee-nonzero.yaml"
+        "status": "approved"
       },
       {
-        "id": "state-direct-mutation-prevention",
-        "title": "State Direct Mutation Prevention — All Transitions Through engine.trigger()",
-        "description": "Detect and block direct assignments to the state field outside of the designated transition method. All state machine transitions must go through engine.trigger() or the equivalent _set_state() method so that transition guards, entry/exit hooks, and audit logging are always executed. Applies to any project using a state machine pattern, not only DeFi simulations.\n",
-        "category": "state-machine-correctness",
-        "gsProperty": "defended",
+        "id": "no-any-type",
+        "title": "No explicit any type in TypeScript source",
+        "description": "No explicit ': any' type annotations appear in non-test TypeScript source files. The 'any' type is a type-system escape hatch that silences the compiler without providing safety. A function typed as returning any, or accepting any as a parameter, cannot be statically verified — its contract is undeclared. This directly violates the Bounded property: a module with any-typed boundaries cannot be fully described by its type signature alone. Use unknown for truly unknown values (forces handling), or a properly defined type or generic. The 'as any' cast in test files is permitted as a last resort for mocking untyped third-party internals, but never in production source.",
+        "category": "Bounded",
+        "gsProperty": "Bounded",
         "phase": "development",
-        "hook": "pre-commit",
-        "check": "SM-02: Pre-commit hook scans all Python/TypeScript files for direct assignment to the state field outside of the transition trigger method. Pattern to detect: `self\\.state\\s*=` (Python) or `this\\.state\\s*=` (TypeScript/JavaScript) appearing in any function other than trigger(), _set_state(), or __init__() / constructor(). The state field name is configurable in forgecraft.yaml (default: \"state\"). The list of permitted setter methods is configurable (default: [\"trigger\", \"_set_state\"]). All matches outside permitted methods must be reported with file, line number, and the surrounding function name. Zero tolerance — any match fails the hook. Also flag direct state assignments in test fixture setup: test files using `self.engine.state =` or `engine.state =` directly are masking the same bug class and must use a test-safe setter or a factory that produces an engine in the desired state.\n",
-        "passCriterion": "Zero occurrences of direct state field assignment outside permitted setter methods in source files. Zero direct state assignments in test fixture setup code.\n",
+        "hook": "commit",
+        "check": "grep -rn --include='*.ts' --include='*.tsx' ': any' src/ | grep -v '\\\\.test\\\\.' | grep -v '\\\\.spec\\\\.' | grep -v '/tests/' && echo 'Explicit :any types found — use a specific type or unknown' && exit 1 || exit 0",
+        "passCriterion": "No explicit ': any' type annotations appear in non-test TypeScript source files.",
         "tags": [
-          "FINTECH",
-          "STATE-MACHINE"
+          "TYPESCRIPT"
         ],
-        "generalizable": true,
-        "evidence": "Direct state assignment in test fixture setup bypassed all transition guards. The engine entered RUNNING state without any position deployed because the test set self.state = \"RUNNING\" directly, skipping the guard that verifies LP + debt + short are all present. All guard conditions in the TRANSITIONS config were skipped. The bug passed all unit tests because the tests used the same anti-pattern in setup — direct state assignment in fixtures masked the broken guard by never invoking it. The fix required both removing the direct assignment from source and replacing direct assignment in all test fixtures with proper factory methods.\n",
-        "status": "approved",
-        "approvedAt": "2026-03-19",
-        "contributor": "jghiringhelli",
-        "_path": "gates/fintech/state-direct-mutation-prevention.yaml"
+        "status": "approved"
       },
       {
-        "id": "vol-unit-confusion",
-        "title": "Volatility Unit Convention Hook — Silent Gain/Loss Bug Prevention",
-        "description": "Detect code that double-scales volatility values by applying a conversion to a field that is already stored in the target unit. Prevents the single most common source of false crash triggers and missed recovery conditions in DeFi strategy simulations.\n",
-        "category": "financial-invariants",
-        "gsProperty": "defended",
+        "id": "no-circular-dependencies",
+        "title": "No circular module dependencies",
+        "description": "The module dependency graph is acyclic. Circular dependencies mean module A's behavior depends on module B, which depends on module A — neither can be understood without the other. A stateless reader cannot correctly derive the behavior of either module from either alone. This is a direct violation of the Composable property: modules must have clean boundaries and be independently derivable. In TypeScript projects, tsc --noEmit catches circular imports. For other languages, use madge (Node) or equivalents.",
+        "category": "Composable",
+        "gsProperty": "Composable",
         "phase": "development",
-        "hook": "pre-commit",
-        "check": "Detect code that applies / sqrt(N) or * 100 to a field already stored as percentage-per-period. Flag any code path where a vol field annotated as pct_per_period is divided by sqrt() or multiplied by 100 without a unit conversion comment. Label the hook with the exact field names used in the codebase. Configurable: provide the list of annotated vol field names in .forgecraft/vol-fields.yaml.\n",
-        "passCriterion": "Zero double-scaling patterns detected on annotated vol fields. All sqrt() divisions on vol fields have a // unit: raw_decimal -> pct_per_period comment.\n",
+        "hook": "commit",
+        "check": "npx madge --circular --extensions ts src/ && exit 0 || exit 1",
+        "passCriterion": "The module dependency graph is acyclic.",
         "tags": [
-          "FINTECH",
-          "SIMULATION"
+          "ANY"
         ],
-        "generalizable": false,
-        "evidence": "Unit confusion in vol calculations is the single most common source of both false crash triggers and missed recovery conditions in DeFi strategies. A strategy that divides an already-annualized vol by sqrt(365) is 19x off on crash detection thresholds. The bug is invisible in unit tests because the wrong value passes all plausibility checks — the check must be semantic, not numeric.\n",
-        "status": "approved",
-        "approvedAt": "2026-03-01",
-        "contributor": "jghiringhelli",
-        "_path": "gates/fintech/vol-unit-confusion.yaml"
+        "status": "approved"
       },
       {
-        "id": "walk-forward-validation",
-        "title": "Walk-Forward Validation — Parameter Generalization Across Time Windows",
-        "description": "Before releasing optimized strategy parameters, verify that they generalize across at least three non-overlapping time windows. Catches parameters that are overfit to a specific market regime and will fail catastrophically when that regime ends.\n",
-        "category": "simulation-integrity",
-        "gsProperty": "verifiable",
-        "phase": "pre-release",
-        "hook": "pre-release",
-        "check": "SIM-10: Before accepting any optimized parameter set as a release candidate, run the strategy with those parameters across at least 3 non-overlapping historical time windows of equal length. Windows must collectively cover distinct market regimes (trending, sideways, volatile). For each window, record: total_pnl, max_drawdown, sharpe_ratio, and liquidation_count. A parameter set passes only if: - It produces positive total_pnl in at least 2 of 3 windows. - It produces zero liquidations in all 3 windows. - The worst-window Sharpe is >= -0.5 (strategy does not catastrophically fail). Report per-window results in the release artifact. Optimizer journals must record the walk-forward result alongside the optimization score.\n",
-        "passCriterion": "Positive total_pnl in >= 2 of 3 non-overlapping time windows. Zero liquidations across all 3 windows. Worst-window Sharpe >= -0.5. Per-window results recorded in release artifact.\n",
-        "tags": [
-          "FINTECH",
-          "SIMULATION"
-        ],
-        "generalizable": false,
-        "evidence": "Optimizer tuned parameters to a 1-year bull market period. The parameter set achieved exceptional Sharpe and drawdown metrics on the training window. When deployed into a sideways market, the strategy catastrophically failed — parameters sized positions assuming sustained directional movement that never materialized. Walk-forward validation across 3 windows (bull, sideways, bear) would have shown a 2/3 failure rate and zero liquidations only in the bull window, blocking release before deployment.\n",
-        "status": "approved",
-        "approvedAt": "2026-03-19",
-        "contributor": "jghiringhelli",
-        "_path": "gates/fintech/walk-forward-validation.yaml"
-      },
-      {
-        "id": "dependency-audit",
-        "title": "Dependency CVE Audit — Pre-Commit Blocking Gate",
-        "description": "Audit all project dependencies for known CVEs before every commit. Block on HIGH or CRITICAL vulnerabilities in direct dependencies.\n",
-        "category": "security",
-        "gsProperty": "defended",
+        "id": "no-console-log-production",
+        "title": "No console.log calls in production source",
+        "description": "No console.log, console.warn, or console.error calls appear in non-test production source files. Console statements are debug artifacts. In production code they leak implementation details, add noise to structured log pipelines, and frequently expose sensitive data (request payloads, user IDs, internal state) that should never appear in stdout. Structured logging through an injected logger abstraction (winston, pino, std/log) is the correct pattern: it is configurable, level-filtered, structured (JSON), and replaceable in tests with a null logger. A console.log that survives to production was never cleaned up — it means the developer was debugging and did not finish. This gate makes that visible at commit time rather than in a production log audit.",
+        "category": "Executable",
+        "gsProperty": "Executable",
         "phase": "development",
-        "hook": "pre-commit",
-        "owasp_asvs_level": 1,
-        "check": "Run the project's ecosystem audit tool before every commit. Block on HIGH or CRITICAL CVEs in direct dependencies. See tools-registry.yaml for ecosystem-specific commands: - Node.js: npm audit --audit-level=high - Python: pip-audit --severity high - Rust: cargo audit --deny warnings - Go: govulncheck ./... - Java: dependency-check --failBuildOnCVSS 7\n",
-        "passCriterion": "Zero HIGH/CRITICAL CVEs in direct dependencies. All transitive CVEs triaged with documented disposition (accepted, remediated, or suppressed with reason).\n",
+        "hook": "commit",
+        "check": "grep -rn --include='*.ts' --include='*.js' --include='*.tsx' --include='*.jsx' 'console\\\\.' src/ | grep -v '\\\\.test\\\\.' | grep -v '\\\\.spec\\\\.' | grep -v '/tests/' | grep -v '/test/' && echo 'console.* calls found in production source — use a structured logger' && exit 1 || exit 0",
+        "passCriterion": "No console.",
         "tags": [
-          "UNIVERSAL"
+          "JAVASCRIPT",
+          "TYPESCRIPT",
+          "ANY"
         ],
-        "generalizable": true,
-        "evidence": "The bcrypt -> @mapbox/node-pre-gyp -> tar CVE chain is a well-known example where a conceptually dev-only dependency introduced a production CVE. Pre-commit audit would have caught this at install time. Supply chain attacks via transitive dependencies are the fastest-growing vulnerability class as of 2025.\n",
-        "status": "approved",
-        "approvedAt": "2026-03-01",
-        "contributor": "jghiringhelli",
-        "_path": "gates/universal/dependency-audit.yaml"
+        "status": "approved"
       },
       {
-        "id": "mutation-testing",
-        "title": "Mutation Testing Gate — Pre-Release Test Quality Verification",
-        "description": "Verify that the test suite actually catches real bugs by injecting synthetic faults into the codebase and confirming that tests fail when the code is broken.\n",
-        "category": "test-quality",
-        "gsProperty": "verifiable",
-        "phase": "pre-release",
-        "hook": "pre-release",
-        "check": "Run mutation testing on changed files. Inject synthetic bugs: operator replacement (== to !=, + to -, < to <=), boundary inversion (off-by-one), and return value mutation (return null, return empty). If tests don't catch the injected bug, the test suite is checking the wrong things. Minimum score 80% on changed files. Tools: Stryker (JS/TS), PITest (Java), mutmut (Python), cargo-mutants (Rust).\n",
-        "passCriterion": "MSI >= 80% on changed files. No surviving mutants in critical path code (auth, permissions, financial calculations).\n",
+        "id": "no-debug-routes-in-production",
+        "title": "No debug or admin routes exposed without authentication",
+        "description": "Routes matching debug, test, internal, or admin path prefixes must either not exist in the production build or require authenticated access with role enforcement. Debug endpoints leak implementation details, enable unauthorized state inspection, and violate the Defended property. A common failure mode is a /debug or /admin route added during development and never guarded before production. Gate passes when a static scan of route registrations finds no unprotected debug-pattern routes, or when all such routes are annotated with an authentication middleware that is verified to run. Static check only — does not require a running server.",
+        "category": "Defended",
+        "gsProperty": "Defended",
+        "phase": "production",
+        "hook": "release",
+        "check": "./scripts/check-debug-routes.sh",
+        "passCriterion": "Gate passes when a static scan of route registrations finds no unprotected debug-pattern routes, or when all such routes are annotated with an authentication middleware that is verified to run.",
         "tags": [
-          "UNIVERSAL"
+          "API",
+          "REST",
+          "ANY"
         ],
-        "generalizable": true,
-        "evidence": "GS experiments found 40-50% MSI on naive agent-generated test suites. Between 1-2 out of 3 agent-generated tests provide no real coverage. Explicit mutation gate consistently raises this to 80%+.\n",
-        "status": "approved",
-        "approvedAt": "2026-03-01",
-        "contributor": "jghiringhelli",
-        "_path": "gates/universal/mutation-testing.yaml"
+        "status": "approved"
       },
       {
-        "id": "owasp-l1-static",
-        "title": "OWASP ASVS Level 1 — Static Security Analysis at Commit Time",
-        "description": "Run static security checks on every commit to catch the most common vulnerability classes before they reach code review.\n",
-        "category": "security",
-        "gsProperty": "defended",
+        "id": "no-direct-db-in-routes",
+        "title": "No direct database calls in route handlers",
+        "description": "Route handlers do not import or call database clients (Prisma, Sequelize, TypeORM, mongoose, raw SQL) directly. All database operations are delegated to a service or repository layer. Route handlers are driving adapters — they translate HTTP requests into service calls and HTTP responses. A route handler that calls the database directly has violated the layer boundary, making the database dependency invisible to the stateless reader reading only the route file. The Bounded property requires that each module's responsibilities and dependencies are derivable from its contents alone.",
+        "category": "Bounded",
+        "gsProperty": "Bounded",
         "phase": "development",
-        "hook": "pre-commit",
-        "owasp_asvs_level": 1,
-        "check": "Run a static security analyzer appropriate for the project's language. Checks must cover: (1) hardcoded secrets and credentials, (2) SQL/command injection patterns via string concatenation, (3) eval() with dynamic input, (4) dependency CVEs. See tools-registry.yaml for language-specific tools. These are LEVEL 1 checks: they run at every commit with no human review required.\n",
-        "passCriterion": "Zero HIGH/CRITICAL findings from static analyzer. All pre-commit hooks exit 0.",
+        "hook": "commit",
+        "check": "! grep -rn 'prisma\\\\.' src/routes/ --include='*.ts' | grep -v '//' && ! grep -rn 'prisma\\\\.' src/controllers/ --include='*.ts' | grep -v '//'",
+        "passCriterion": "Route handlers do not import or call database clients (Prisma, Sequelize, TypeORM, mongoose, raw SQL) directly.",
         "tags": [
-          "UNIVERSAL"
+          "NODE",
+          "TYPESCRIPT",
+          "JAVASCRIPT",
+          "API",
+          "EXPRESS",
+          "FASTIFY"
         ],
-        "generalizable": true,
-        "evidence": "Static analysis at commit time catches ~70% of OWASP Top 10 issues before they reach code review. SQL injection and hardcoded credential patterns are reliably detected statically without running the application.\n",
-        "status": "approved",
-        "approvedAt": "2026-03-01",
-        "contributor": "jghiringhelli",
-        "_path": "gates/universal/owasp-l1-static.yaml"
+        "status": "approved"
       },
       {
-        "id": "playwright-ui-smoke-test",
-        "title": "Playwright UI Smoke Test — Live Page Verification with Screenshot",
-        "description": "After every deploy or significant UI change, navigate to the live URL with Playwright, wait for all async data to load, assert that critical elements are present and non-empty, and save a full-page screenshot as a proof artifact. This catches an entire class of bugs that unit and API tests cannot see: blank pages, broken async fetches, CSS layout collapses, missing data sections, and rendering errors that only appear in a real browser against real infrastructure.\n",
-        "category": "deployment-verification",
-        "gsProperty": "verifiable",
-        "phase": "deployment",
-        "hook": "post-deploy",
-        "check": "Write a Playwright script (scripts/smoke-test.js or tests/smoke/ui.spec.ts) that: 1. Navigates to the live URL with { waitUntil: \"networkidle\" } 2. Waits for async data to resolve (waitForFunction on a data-populated element) 3. Asserts critical elements: page title/heading, primary data section populated,\n   no error messages visible (target specific error elements, not body.textContent\n   which includes script source), navigation present\n4. Takes a full-page screenshot and saves it as an artifact 5. Exits with code 1 on any assertion failure Run against staging before promotion, and against production within 5 minutes of deploy. Add to CI as a post-deploy step. Tool: Playwright (playwright.dev) — language-agnostic, works with any web UI.\n",
-        "passCriterion": "All element assertions pass. Screenshot artifact saved and visually confirms the page renders correctly. Script exits 0. Total run time < 60 seconds. No blank sections, no error messages, no spinner/loading states still active after the wait-for-data step.\n",
+        "id": "no-duplicate-string-literals",
+        "title": "No duplicate string literals",
+        "description": "String values that appear more than three times in the codebase must be extracted into named constants. Duplicate literals are the strongest SonarJS proxy for the Bounded property: a string that appears in nineteen places (observed in the naive Ax condition) means a conceptual boundary is not encoded anywhere — change the string, find the bugs at runtime. The naive Conduit implementation had 19 violations; the v3 treatment had 1. This gate runs eslint-plugin-sonarjs/no-duplicate-string with threshold 3. Named constants make boundaries explicit and statically verifiable.",
+        "category": "Bounded",
+        "gsProperty": "Bounded",
+        "phase": "development",
+        "hook": "commit",
+        "check": "npx eslint --rule '{\\\"sonarjs/no-duplicate-string\\\": [\\\"error\\\", {\\\"threshold\\\": 3}]}' 'src/**/*.{ts,js}'",
+        "passCriterion": "String values that appear more than three times in the codebase must be extracted into named constants.",
         "tags": [
-          "UNIVERSAL",
-          "WEB-REACT",
-          "WEB-STATIC",
-          "API"
+          "JAVASCRIPT",
+          "TYPESCRIPT",
+          "NODE",
+          "ANY"
         ],
-        "generalizable": true,
-        "evidence": "First run on genspec-portal caught two bugs invisible to unit tests: (1) Gates with multiple tags rendered once per tag — the page was visually cluttered with duplicates. Zero unit tests would catch this; it requires seeing the rendered output. (2) A naive body.textContent error check matched the JS source code string 'Failed to load taxonomy.json' — triggering a false positive that masked the real check. Both bugs found and fixed before any user saw the page. Pattern holds: the gap between \"tests pass\" and \"page works\" is exactly what Playwright closes.\n",
-        "status": "approved",
-        "approvedAt": "2026-03-19",
-        "contributor": "jghiringhelli",
-        "_path": "gates/universal/playwright-ui-smoke-test.yaml"
+        "status": "approved"
+      },
+      {
+        "id": "no-hardcoded-secrets",
+        "title": "No hardcoded secrets in source",
+        "description": "No credentials, API keys, JWT secrets, passwords, or connection strings appear as literal values in source files. Secret detection runs on every commit. Hardcoded secrets are not a code smell — they are a security boundary violation. Any secret committed to version control is compromised by definition. Secrets must be injected via environment variables validated at startup, never embedded in code or committed config files.",
+        "category": "Defended",
+        "gsProperty": "Defended",
+        "phase": "development",
+        "hook": "commit",
+        "check": "git diff --staged | grep -qE '(password|secret|api_key|apikey|token|credential)\\s*=\\s*[^$\\s]{5,}' && exit 1 || exit 0",
+        "passCriterion": "No credentials, API keys, JWT secrets, passwords, or connection strings appear as literal values in source files.",
+        "tags": [
+          "ANY"
+        ],
+        "status": "approved"
+      },
+      {
+        "id": "no-redundant-deploy-pipelines",
+        "title": "No Redundant Deploy Pipelines",
+        "description": "Warns when a project has both a platform deploy config (railway.toml, vercel.json, fly.toml, render.yaml) and a .github/workflows/ directory. Both pipelines trigger on push, creating duplicate CI/CD runs and conflicting deployments.",
+        "category": "convergence",
+        "gsProperty": "convergence",
+        "phase": "development",
+        "hook": "pr",
+        "check": "|",
+        "passCriterion": "Warns when a project has both a platform deploy config (railway.",
+        "tags": [],
+        "status": "approved"
+      },
+      {
+        "id": "node-esm-cjs-safe-imports",
+        "title": "ESM-safe CommonJS default import pattern",
+        "description": "CommonJS packages (jsonwebtoken, bcrypt, multer, and similar) do not expose named exports under ESM interop. Importing with named destructuring — import { sign } from 'jsonwebtoken' — compiles cleanly under TypeScript but throws \"Named export not found\" at runtime when the module loader resolves the CommonJS boundary. The safe pattern is: import pkg from 'module'; const { method } = pkg. This gate flags any named import from a known CJS-only package in an ESM or \"type: module\" project. Discovered during v6 server startup: the build passed tsc --noEmit but the server crashed immediately on the first JWT sign operation.",
+        "category": "Executable",
+        "gsProperty": "Executable",
+        "phase": "development",
+        "hook": "commit",
+        "check": "node --input-type=module -e \\\"import('./src/index.js').catch(e => { process.stderr.write(e.message); process.exit(1); })\\\" 2>&1 | grep -v 'Named export' && exit 0 || exit 1",
+        "passCriterion": "CommonJS packages (jsonwebtoken, bcrypt, multer, and similar) do not expose named exports under ESM interop.",
+        "tags": [
+          "NODE",
+          "TYPESCRIPT",
+          "JAVASCRIPT",
+          "ESM"
+        ],
+        "status": "approved"
+      },
+      {
+        "id": "notation-audit",
+        "title": "Mathematical notation has derivation support",
+        "description": "Any formula presented in mathematical notation (LaTeX, symbolic expressions) must be accompanied by either (a) a derivation, (b) a citation to a source containing the derivation, or (c) an explicit label as \"proposed theoretical model, not yet empirically fitted.\" Specific numerical predictions derived from unfitted formulas must be removed or labeled \"illustrative only.\" Two-decimal precision in estimates described as \"order-of-magnitude\" is false precision and must be rounded. Pass: notation level matches derivation level throughout. Fail: LaTeX formula used to make quantitative predictions without derivation or explicit hypothesis labeling.",
+        "category": "Verifiable",
+        "gsProperty": "Verifiable",
+        "phase": "staging",
+        "hook": "pr",
+        "check": "",
+        "passCriterion": "Any formula presented in mathematical notation (LaTeX, symbolic expressions) must be accompanied by either (a) a derivation, (b) a citation to a source containing the derivation, or (c) an explicit label as \"proposed theoretical model, not yet empirically fitted.",
+        "tags": [
+          "ACADEMIC-PAPER"
+        ],
+        "status": "approved"
+      },
+      {
+        "id": "npm-audit-no-high-cve",
+        "title": "No high-severity CVEs",
+        "description": "npm audit --audit-level=high exits 0. A high-severity CVE in a dependency is a security boundary violation that exists regardless of whether it has been exploited. The Defended property requires that security gates are present and passing — not advisory. This gate blocks the commit until the vulnerability is resolved or explicitly overridden with documented justification.",
+        "category": "Defended",
+        "gsProperty": "Defended",
+        "phase": "development",
+        "hook": "commit",
+        "check": "npm audit --audit-level=high",
+        "passCriterion": "npm audit --audit-level=high exits 0.",
+        "tags": [
+          "NODE",
+          "NPM",
+          "JAVASCRIPT",
+          "TYPESCRIPT"
+        ],
+        "status": "approved"
+      },
+      {
+        "id": "python-dependencies-pinned",
+        "title": "Python dependencies are pinned to exact versions",
+        "description": "Python projects must have a locked dependency file with pinned versions. A requirements.txt without version pins, or a pyproject.toml without a lockfile, resolves to whatever is current at install time — producing environment drift across machines, containers, and AI sessions. The exact versions in the lockfile are the specification: they are the versions that passed tests, not a range of versions that might. Gate passes when: requirements.txt exists with all entries pinned (==), OR pyproject.toml exists alongside poetry.lock, uv.lock, or pdm.lock.",
+        "category": "Executable",
+        "gsProperty": "Executable",
+        "phase": "development",
+        "hook": "pr",
+        "check": "if [ -f requirements.txt ]; then grep -vE \"^#|^$|==\" requirements.txt && echo \"FAIL: unpinned deps in requirements.txt\" && exit 1 || exit 0; elif [ -f pyproject.toml ]; then ([ -f poetry.lock ] || [ -f uv.lock ] || [ -f pdm.lock ]) || { echo \"FAIL: no lockfile found\"; exit 1; }; else echo \"FAIL: no Python dependency file\"; exit 1; fi",
+        "passCriterion": "Gate passes when: requirements.",
+        "tags": [
+          "PYTHON",
+          "ANY"
+        ],
+        "status": "approved"
+      },
+      {
+        "id": "register-consistency",
+        "title": "Framing claimed in ┬º1 honored throughout",
+        "description": "If the paper disclaims a theoretical frame in its opening (e.g., \"paradigm carries Martin's sense, not Kuhn's\"), that disclaimer must be honored in every subsequent section. \"Kuhnian drift\" is the failure mode: the paper disclaims revolution-level claims up front, then reasons using revolution-level vocabulary (e.g., \"the revolution is,\" \"becomes necessary,\" \"crisis\") in the body or conclusion. Pass: the register established in the abstract and terminological notes is consistent throughout. Fail: vocabulary that belongs to the disclaimed frame appears in later sections without acknowledgment.",
+        "category": "Self-describing",
+        "gsProperty": "Self-describing",
+        "phase": "staging",
+        "hook": "pr",
+        "check": "grep -n 'revolution\\\\|becomes necessary\\\\|paradigm shift\\\\|Kuhnian' paper.md || true",
+        "passCriterion": "If the paper disclaims a theoretical frame in its opening (e.",
+        "tags": [
+          "ACADEMIC-PAPER"
+        ],
+        "status": "approved"
+      },
+      {
+        "id": "rollback-plan-documented",
+        "title": "Rollback procedure is documented and tested",
+        "description": "A ROLLBACK.md file (or equivalent runbook section) must exist and describe: the rollback command or procedure, the expected rollback time, any data migration considerations, and the person or role responsible for executing it. A deployment without a documented rollback plan is an undeclared gamble on zero defects in production. The rollback procedure must be executable by a team member who was not involved in the release. Gate passes when ROLLBACK.md exists in the repository root or docs/ and contains the required sections: Procedure, Expected Duration, and Data Considerations. For projects using automated rollback (blue/green, canary with automatic revert), the gate passes when the rollback trigger criteria are documented in the same file.",
+        "category": "Auditable",
+        "gsProperty": "Auditable",
+        "phase": "production",
+        "hook": "release",
+        "check": "test -f ROLLBACK.md || test -f docs/ROLLBACK.md && grep -q \"Procedure\" ${ROLLBACK_FILE:-ROLLBACK.md} && grep -q \"Duration\" ${ROLLBACK_FILE:-ROLLBACK.md}",
+        "passCriterion": "Gate passes when ROLLBACK.",
+        "tags": [
+          "ANY"
+        ],
+        "status": "approved"
+      },
+      {
+        "id": "runtime-version-pinned",
+        "title": "Runtime version is pinned via a version file",
+        "description": "A runtime version pin file must exist in the repository root: .nvmrc for Node.js, .python-version for Python, .tool-versions for multi-runtime projects. Without a version pin, the runtime resolves from whatever the local system or CI image provides — different machines produce different outcomes. This is the most common source of works-on-my-machine failures. Gate passes when at least one of .nvmrc, .python-version, .tool-versions, or .ruby-version exists in the root.",
+        "category": "Executable",
+        "gsProperty": "Executable",
+        "phase": "development",
+        "hook": "commit",
+        "check": "test -f .nvmrc || test -f .python-version || test -f .tool-versions || test -f .ruby-version || { echo \"FAIL: No runtime version pin file found (.nvmrc, .python-version, .tool-versions)\"; exit 1; }",
+        "passCriterion": "Gate passes when at least one of .",
+        "tags": [
+          "ANY"
+        ],
+        "status": "approved"
+      },
+      {
+        "id": "smoke-test-passes",
+        "title": "Smoke test suite passes against deployed environment",
+        "description": "A minimal smoke test suite (at minimum: health check, authentication, and one core user journey) must exit 0 against the target environment before promotion is considered complete. Smoke tests verify that the deployment artifact is live and serving expected responses — they are not a substitute for unit or integration tests. A deployment that passes CI but fails its own smoke suite has delivered untested code to a live environment. Gate passes when all smoke tests return expected status codes and response shapes. The suite must be committed to the repository (not run manually) and parameterized by environment URL via an environment variable.",
+        "category": "Executable",
+        "gsProperty": "Executable",
+        "phase": "staging",
+        "hook": "release",
+        "check": "SMOKE_TARGET=${DEPLOY_URL:-http://localhost:3000} ./scripts/smoke-test.sh",
+        "passCriterion": "Gate passes when all smoke tests return expected status codes and response shapes.",
+        "tags": [
+          "ANY"
+        ],
+        "status": "approved"
+      },
+      {
+        "id": "sonarqube-quality-gate-ok",
+        "title": "SonarQube Quality Gate OK",
+        "description": "SonarQube analysis must return Quality Gate: OK — ratings A on reliability, security, and maintainability, with zero bugs and zero vulnerabilities on new code. SonarQube is independent of the GS rubric: it applies its own quality model derived from industry standards. A system that scores 14/14 on the GS rubric but fails SonarQube has passed a self-referential check but failed an independent one. This gate partially closes Layer 3 of the define/build/measure circularity: the measurement tool has no knowledge of GS and cannot have been influenced by it. Requires a running SonarQube server or SonarCloud account and a sonar-project.properties file committed to the repo root.",
+        "category": "Verifiable",
+        "gsProperty": "Verifiable",
+        "phase": "staging",
+        "hook": "pr",
+        "check": "sonar-scanner -Dsonar.qualitygate.wait=true",
+        "passCriterion": "SonarQube analysis must return Quality Gate: OK — ratings A on reliability, security, and maintainability, with zero bugs and zero vulnerabilities on new code.",
+        "tags": [
+          "ANY",
+          "SONARQUBE",
+          "STATIC-ANALYSIS",
+          "QUALITY"
+        ],
+        "status": "approved"
+      },
+      {
+        "id": "tls-enforced",
+        "title": "TLS enforced — no plaintext HTTP accepted in production",
+        "description": "The production deployment must redirect HTTP to HTTPS or refuse HTTP connections entirely. Plaintext HTTP in production exposes credentials, session tokens, and user data to network interception. This gate verifies TLS enforcement at the application or reverse proxy layer — not assumed from the hosting provider. Gate passes when an HTTP request to the production endpoint either returns 301/302 to the HTTPS equivalent or is refused (connection refused or timeout on port 80). Platforms that terminate TLS at the load balancer (Railway, Heroku, Render) satisfy this gate when HTTP-to-HTTPS redirect is confirmed active in platform settings and verified by probe. A comment in the configuration documenting the redirect is required for platforms where redirect is implicit.",
+        "category": "Defended",
+        "gsProperty": "Defended",
+        "phase": "production",
+        "hook": "release",
+        "check": "RESPONSE=$(curl -s -o /dev/null -w \"%{http_code}\" http://${PROD_HOST} --max-time 5) && ([ \"$RESPONSE\" = \"301\" ] || [ \"$RESPONSE\" = \"302\" ] || [ \"$RESPONSE\" = \"000\" ])",
+        "passCriterion": "Gate passes when an HTTP request to the production endpoint either returns 301/302 to the HTTPS equivalent or is refused (connection refused or timeout on port 80).",
+        "tags": [
+          "ANY"
+        ],
+        "status": "approved"
+      },
+      {
+        "id": "tsc-no-emit-exits-zero",
+        "title": "TypeScript type-check passes",
+        "description": "tsc --noEmit exits 0 on every commit. Type errors are not warnings — they are architectural failures visible to a stateless reader. A codebase with type errors cannot be correctly derived from its specification because the derivation has already produced something the type system rejects. This gate enforces that the derivation is valid before any further work proceeds.",
+        "category": "Executable",
+        "gsProperty": "Executable",
+        "phase": "development",
+        "hook": "commit",
+        "check": "tsc --noEmit",
+        "passCriterion": "tsc --noEmit exits 0 on every commit.",
+        "tags": [
+          "TYPESCRIPT"
+        ],
+        "status": "approved"
+      },
+      {
+        "id": "typescript-strict-mode",
+        "title": "TypeScript strict mode enabled",
+        "description": "The project's tsconfig.json has compilerOptions.strict set to true. Strict mode enables a family of compiler checks — noImplicitAny, strictNullChecks, strictFunctionTypes, strictBindCallApply, strictPropertyInitialization, noImplicitThis, and alwaysStrict — that collectively eliminate the most common sources of runtime type errors. A TypeScript codebase without strict mode enabled is structurally equivalent to a JavaScript codebase with optional type hints. The Executable property requires that the artifact compiles under the strongest type constraints the toolchain offers. Turning off strict mode to silence errors defers type unsafety to runtime.",
+        "category": "Executable",
+        "gsProperty": "Executable",
+        "phase": "development",
+        "hook": "commit",
+        "check": "node -e \\\"const c=JSON.parse(require('fs').readFileSync('./tsconfig.json','utf8')); if(!c.compilerOptions || c.compilerOptions.strict !== true){console.error('tsconfig.json must have compilerOptions.strict: true');process.exit(1)}\\\"",
+        "passCriterion": "The project's tsconfig.",
+        "tags": [
+          "TYPESCRIPT"
+        ],
+        "status": "approved"
+      },
+      {
+        "id": "vocabulary-stability",
+        "title": "Technical terms defined once, used consistently",
+        "description": "Every technical term introduced with a definition must be used with that definition throughout. Common failure modes: \"stateless\" defined as \"no prior context\" but the model clearly has vast training knowledge (should be \"no episodic project memory\"); \"paradigm\" defined in Martin's sense but used in Kuhn's sense later; a formula's variable defined abstractly but measured with a different proxy instrument without acknowledging the gap. Pass: each defined term is used consistently with its definition throughout the paper. Fail: a term is defined in one section and used with a shifted meaning in another.",
+        "category": "Self-describing",
+        "gsProperty": "Self-describing",
+        "phase": "staging",
+        "hook": "pr",
+        "check": "",
+        "passCriterion": "Every technical term introduced with a definition must be used with that definition throughout.",
+        "tags": [
+          "ACADEMIC-PAPER"
+        ],
+        "status": "approved"
       }
     ]
   }

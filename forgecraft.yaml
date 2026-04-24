@@ -1,6 +1,8 @@
 projectName: chronicle
 tags:
   - UNIVERSAL
+  - LIBRARY
+  - CLI
 tier: core
 variables: {}
 cascade:
@@ -8,8 +10,8 @@ cascade:
     - step: functional_spec
       required: true
       rationale: >-
-        All projects require a functional specification (docs/PRD.md); it is the axiom set from which all other
-        artifacts are derived.
+        All projects require a functional specification (docs/PRD.md); it is the axiom set from
+        which all other artifacts are derived.
       decidedAt: '2026-03-21'
       decidedBy: scaffold
     - step: architecture_diagrams
@@ -20,20 +22,22 @@ cascade:
     - step: constitution
       required: true
       rationale: >-
-        All projects require an architectural constitution (CLAUDE.md); it is the operative grammar that constrains
-        every AI coding session.
+        All projects require an architectural constitution (CLAUDE.md); it is the operative grammar
+        that constrains every AI coding session.
       decidedAt: '2026-03-21'
       decidedBy: scaffold
     - step: adrs
       required: false
-      rationale: 'ADRs are optional (scope still evolving): decisions are not yet stable. Add them when scope solidifies.'
+      rationale: >-
+        ADRs are optional (scope still evolving): decisions are not yet stable. Add them when scope
+        solidifies.
       decidedAt: '2026-03-21'
       decidedBy: scaffold
     - step: behavioral_contracts
       required: true
       rationale: >-
-        Library consumers depend on stable behavioral contracts (docs/use-cases.md); these are the triple-derivation
-        seed: implementation contract, acceptance test, and user documentation.
+        Library consumers depend on stable behavioral contracts (docs/use-cases.md); these are the
+        triple-derivation seed: implementation contract, acceptance test, and user documentation.
       decidedAt: '2026-03-21'
       decidedBy: scaffold
 releasePhase: development

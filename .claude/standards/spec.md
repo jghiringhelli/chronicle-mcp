@@ -1,4 +1,4 @@
-<!-- ForgeCraft sentinel: spec | 2026-03-21 | npx forgecraft-mcp refresh . --apply to update -->
+<!-- ForgeCraft sentinel: spec | 2026-04-20 | npx forgecraft-mcp refresh . --apply to update -->
 
 ## Active Release Phase: development
 
@@ -35,10 +35,10 @@ incomplete grammar.
 |---|---|---|
 | **Architectural constitution** (`CLAUDE.md` / `AGENTS.md` / `.cursor/rules/` / `.github/copilot-instructions.md`) | Defines what is and is not a valid sentence in this system. Governs every AI interaction. Agent-agnostic concept; filename is agent-specific. | Core |
 | **Architecture Decision Records (ADRs)** | Documents why the grammar evolved. Prevents the AI from "correcting" intentional decisions that appear suboptimal without context. | Core |
-| **C4 diagrams / structural diagrams** (PlantUML, Mermaid) | The parsed structural representation: system context, container topology, component composition. Static structure at a glance for any agent entering the codebase. | Recommended |
-| **Sequence diagrams** | Fix the inter-component protocol: which call, in which order, with which contracts. A sequence diagram specifying that auth precedes data fetch is an unambiguous ordering constraint. The AI has two valid sentences: the one matching the diagram, and deviations from it. | Recommended |
-| **State machine diagrams** | Enumerate every valid state and every valid transition. Directly generate state transition test cases and user-facing modal behavior documentation. | When system has states |
-| **User flow diagrams** | Define the expected journey from entry to outcome. Simultaneously the script for every E2E test in that flow and the user journey narrative for the manual. | Recommended |
+| **C4 diagrams / structural diagrams** (PlantUML, Mermaid) | The parsed structural representation: system context, container topology, component composition. Static structure at a glance for any agent entering the codebase. **Emit as files in P1** — `docs/diagrams/c4-context.md` and `docs/diagrams/c4-container.md`. A diagram referenced in prose but not written to disk provides zero structural constraint. | Recommended |
+| **Sequence diagrams** | Fix the inter-component protocol: which call, in which order, with which contracts. A sequence diagram specifying that auth precedes data fetch is an unambiguous ordering constraint. The AI has two valid sentences: the one matching the diagram, and deviations from it. **Emit as `docs/diagrams/sequence-[feature].md` in P1** with real `participant` declarations and message arrows — not an empty file. | Recommended |
+| **State machine diagrams** | Enumerate every valid state and every valid transition. Directly generate state transition test cases and user-facing modal behavior documentation. **Emit as `docs/diagrams/state-[entity].md` in P1** with real `stateDiagram-v2` states and transitions — these become the source of truth for state transition tests. | When system has states |
+| **User flow diagrams** | Define the expected journey from entry to outcome. Simultaneously the script for every E2E test in that flow and the user journey narrative for the manual. **Emit as `docs/diagrams/flow-[usecase].md` in P1** with real `flowchart` Start/End nodes and decision diamonds. | Recommended |
 | **Use cases** | Single, precise descriptions of an interaction. One use case seeds three artifacts: implementation contract, acceptance test, user documentation. See `use-case-triple-derivation`. | Recommended |
 | **Schema definitions** (DB, API, events) | The vocabulary of the system with constraints formally stated. Types, relations, validation rules, value ranges. | Core |
 | **Living documentation** (derived) | OpenAPI from decorators/schemas; TypeDoc/JSDoc auto-published; Storybook from component specs; README sections from centralized specs. Documentation maintained separately from code drifts — documentation derived from the same artifacts cannot be wrong in a way the code is right. | Recommended |
@@ -49,6 +49,13 @@ incomplete grammar.
 | **Commit hooks and quality gates** | Malformed input is structurally rejected before entering the system. Certain classes of mistake are architecturally unreachable. | Core |
 | **Status.md** | Session bridge: current implementation state, what was completed, where the session stopped, what was tried. The Auditable property requires both that the record exists and that the next session begins by reading it. | Core |
 | **MCP tools and environment tooling** | The tools available to the agent define what operations are possible. Bounded tool access is bounded agency. Specification governs not just code but the system that can act. | Optional |
+
+> **Emit, Don't Reference.** Every diagram type above that is marked "Recommended" or
+> higher must be written as a file on disk with real, parseable content. A spec that
+> says "a sequence diagram should be created later" is not a grammar production rule — it
+> is a forward reference. Forward references do not constrain the AI. Only emitted files
+> do. If a diagram file exists but still contains `<!-- UNFILLED -->`, it is a known gap.
+> Known gaps must be on the cascade backlog; they are not acceptable as a final state.
 
 ### The Six Properties (self-test)
 A generative specification satisfies all six. Use as an inspection checklist:

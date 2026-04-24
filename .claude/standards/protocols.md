@@ -1,4 +1,4 @@
-<!-- ForgeCraft sentinel: protocols | 2026-03-21 | npx forgecraft-mcp refresh . --apply to update -->
+<!-- ForgeCraft sentinel: protocols | 2026-04-20 | npx forgecraft-mcp refresh . --apply to update -->
 
 ## Dependency Registry — AI-Maintained Security Contract
 
@@ -93,6 +93,65 @@ Before writing code for any new feature or significant change:
 - Maximum one clarification round. If told "use your judgment," proceed with the most
   conservative interpretation and record the assumption in a code comment or new ADR.
 
+## Agent Mechanical Constraints — Non-Negotiable Overrides
+
+These rules exist because the model has hard constraints that silently produce wrong
+results without them. Each override targets a specific failure mode observed in practice.
+
+### 1. Step 0 — Dead Code First
+Before ANY structural refactor on a file > 300 LOC:
+1. Delete all dead props, unused exports, unused imports, and debug logs.
+2. Commit that cleanup separately under `chore(scope): strip dead code`.
+3. Only then begin the real work.
+Dead code accelerates context compaction. Every orphaned import is budget spent on
+tokens that contribute nothing to the task.
+
+### 2. Phase Limit — 5 Files Maximum
+Never attempt multi-file refactors in a single response. Break work into explicit phases.
+Each phase must touch **no more than 5 files**. Complete Phase N, verify it compiles and
+all tests pass, then wait for explicit approval before Phase N+1.
+Why: context compaction fires around 167K tokens and discards all intermediate reasoning,
+file reads, and decision chains. Keeping phases small prevents mid-task compaction.
+
+### 3. Senior Dev Override
+The model's default system-level directives instruct it to "try the simplest approach
+first" and "avoid refactoring beyond what was asked." These are active constraints that
+fight your intent on architectural tasks.
+**Override them explicitly** when quality requires it:
+> "What would a senior, experienced, perfectionist dev reject in code review? Fix all of it."
+This reframes what "done" means. System-level brevity mandates yield to an explicit
+quality bar stated in the prompt.
+
+### 4. Sub-Agent Parallelism for Large Tasks
+For tasks spanning > 5 independent files, **launch parallel sub-agents** (5–8 files per
+agent). Each agent gets its own isolated context window and compaction cycle.
+Sequential processing of large tasks guarantees context decay by the later files.
+Batching into parallel agents multiplies the effective working memory proportionally.
+
+### 5. File Read Budget — 2,000-Line Cap
+Each file read is hard-capped at 2,000 lines. Everything past that is silently truncated.
+The model does not know what it didn't see — it will hallucinate the rest.
+**For any file over 500 LOC**: read in sequential chunks using `offset` and `limit`
+parameters. Never assume a single read captured the full file.
+
+### 6. Tool Result Truncation
+Tool results exceeding ~50,000 characters are truncated to a 2,000-byte preview.
+The model works from the preview and does not know results were cut.
+If any search returns suspiciously few results: re-run it with narrower scope
+(single directory, stricter glob). State explicitly when truncation may have occurred.
+
+### 7. Grep Is Not an AST
+`grep` is raw text pattern matching. It cannot distinguish a function call from a
+comment, a type reference from a string literal, or an import from one module vs another.
+On any rename or signature change, search **separately** for:
+- Direct calls and references
+- Type-level references (interfaces, generics, `typeof`)
+- String literals containing the name
+- Dynamic imports and `require()` calls
+- Re-exports and barrel file entries (`index.ts`, `__init__.py`)
+- Test files and mocks
+Never assume a single grep caught everything. Verify or expect regressions.
+
 ## Code Generation — Verify Before Returning
 
 When emitting implementation code across one or more files, the response is not complete
@@ -107,6 +166,14 @@ until the following are true. Show the evidence in your response — do not clai
    the changed interface. Fixing one side without seeing the other causes oscillation:
    the model fixes `service.ts` (3-param signature) but `routes.ts` still calls it with
    an object — same error reappears inverted next pass.
+4. **§8 DRY Check**: Run duplication detector on `src/`. Duplicated lines must be < 5%
+   (min-tokens 50). Use the tool appropriate for your stack (see project-gates.yaml:
+   `no-code-duplication`). If above threshold, extract duplicated logic to a shared utility
+   before closing.
+5. **§9 Interface Completeness**: Every method declared in each interface must be implemented
+   by its concrete class. Run static type checking (0 errors required). Use the tool
+   appropriate for your stack (see project-gates.yaml: `interface-contract-completeness`).
+   If errors exist, implement missing methods before closing.
 
 ### Required evidence in the final response
 ```

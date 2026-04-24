@@ -1,0 +1,15 @@
+id: no-redundant-deploy-pipelines
+title: No Redundant Deploy Pipelines
+description: >-
+  Warns when a project has both a platform deploy config (railway.toml,
+  vercel.json, fly.toml, render.yaml) and a .github/workflows/ directory. Both
+  pipelines trigger on push, creating duplicate CI/CD runs and conflicting
+  deployments.
+category: convergence
+gsProperty: convergence
+phase: development
+hook: pr
+check: '|'
+passCriterion: Warns when a project has both a platform deploy config (railway.
+tags: []
+status: approved

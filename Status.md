@@ -1,7 +1,12 @@
 # Status.md
 
-## Last Updated: 2026-04-07
-## Session Summary
+## Last Updated: 2026-05-08
+
+## Session Summary — GS Lifecycle Onboarding (2026-05-08)
+
+Adopted the canonical GS document taxonomy (per forgecraft's `templates/docs-manifest.yaml`). Added `docs/manifest.yaml` referencing the canonical schema. Created the standard directory structure (`docs/{specs,adrs/{active,done},use-cases,roadmaps/{active,done},schemas,decisions,contracts}/`). Migrated ADRs into `docs/adrs/active/` and `docs/session-prompt-initial.md` → `docs/session-prompts/initial.md`. Singleton specs (`docs/PRD.md`, `docs/use-cases.md`, etc.) remain in legacy locations — manifest maps them in for compat; physical migration is a follow-up.
+
+## Session Summary — Phase p6-deploy (2026-04-07)
 Phase p6-deploy blockers resolved. Chronicle MCP server fully implemented and tested.
 
 ## Build Status

@@ -1,7 +1,7 @@
 {
   "name": "chronicle-mcp",
-  "version": "0.3.1",
-  "description": "Cross-project AI memory MCP server with five cognitive memory types",
+  "version": "0.3.2",
+  "description": "Cross-project AI memory MCP server with six cognitive memory types and agent-instructive tool descriptions",
   "type": "module",
   "main": "dist/index.js",
   "bin": {

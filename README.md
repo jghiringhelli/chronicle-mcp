@@ -23,7 +23,7 @@ Chronicle is a [Model Context Protocol](https://modelcontextprotocol.io) server 
 
 ## Memory model
 
-Chronicle uses five cognitive memory types, each with its own decay rate and default tier:
+Chronicle uses six cognitive memory types, each with its own decay rate and default tier:
 
 | Type | What it stores | Decay | Default tier |
 |------|---------------|-------|-------------|
@@ -31,7 +31,10 @@ Chronicle uses five cognitive memory types, each with its own decay rate and def
 | **Episodic** | Events, what happened, past decisions | Fast | Buffer |
 | **Procedural** | How to do things, sequences, commands | None | Core |
 | **Architectural** | Why it was built this way, ADRs, tradeoffs | None | Core |
-| **Preference** | Your style, habits, tooling choices | Slow | Working |
+| **Insight** | Patterns spotted across sessions, recurring lessons | Slow | Working |
+| **Coordination** | Team state, hand-offs, who-is-doing-what | Medium | Working |
+
+Developer **preferences** (style, habits, tooling choices) are stored separately via the `pref` action — they live in their own table with no decay.
 
 ### Three tiers
 
@@ -124,6 +127,8 @@ Full config with all features:
 ---
 
 ## MCP tools
+
+> **Designed to be invoked at the right moments.** Tool descriptions are written as agent-instructive guidance, not mechanical one-liners — they tell the AI assistant *when* to recall (at the start of any substantive block, decision point, returning to a topic) and *when* to remember (after every architectural decision worth inheriting in the next session). The result: chronicle is used as the structural memory backbone, not as an occasional note-taking tool. See `src/mcp/server.ts` for the canonical descriptions.
 
 ### `chronicle` — memory, triggers, preferences
 

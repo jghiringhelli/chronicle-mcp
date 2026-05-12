@@ -69,7 +69,17 @@ export function createMcpServer(): McpServer {
 
   server.tool(
     'chronicle',
-    'Manage memories, triggers and preferences.',
+    [
+      'Persistent memory across Claude Code sessions.',
+      '',
+      'RECALL at the start of any substantive block — a new domain conversation, a decision point, returning to a topic from a prior session. Recall is cheap (~1s) and the value is high: prior context informs current work instead of being re-derived. Skipping recall means losing inherited context.',
+      '',
+      'REMEMBER after any architectural decision — technology choices, pricing decisions, customer-facing positioning, infrastructure setup, methodology pivots, anything you would want the NEXT session to inherit without re-deriving. The cost is ~1s; the value compounds across every future session that touches the same domain.',
+      '',
+      'Six memory types: episodic (it happened), semantic (it is true), procedural (how-to), architectural (why), insight (pattern), coordination (team-state). Set confirmed=true for decisions that should never decay (Core tier).',
+      '',
+      'Tag with project + descriptive keywords so future recall finds the memory. Use stats periodically to confirm the system is healthy; use decay sparingly (it runs automatically on session end).',
+    ].join('\n'),
     {
       action: z.enum([
         'remember', 'recall', 'forget',
@@ -77,7 +87,7 @@ export function createMcpServer(): McpServer {
         'pref', 'prefs',
         'stats', 'decay',
       ]).describe(
-        'remember=store | recall=search | forget=delete | ' +
+        'remember=store-decision | recall=load-prior-context | forget=delete | ' +
         'trigger=set-guard | check=fire-triggers | ' +
         'pref=set-preference | prefs=get-preferences | ' +
         'stats=summary | decay=run-decay',
@@ -210,9 +220,17 @@ export function createMcpServer(): McpServer {
 
   server.tool(
     'session',
-    'Manage Chronicle sessions.',
+    [
+      'Manage Chronicle session boundaries.',
+      '',
+      'Call session START at the beginning of substantive multi-turn work — this automatically injects the project\'s core memories (confirmed=true entries) into context, so the session begins with prior knowledge instead of an empty slate.',
+      '',
+      'Call session END at session close — applies memory decay + tier promotions, keeps the memory store from sprawling, and persists any session summary you pass.',
+      '',
+      'Call session RECOVER to resume an active session by ID or project name — useful when work was interrupted.',
+    ].join('\n'),
     {
-      action:  z.enum(['start', 'end', 'recover']).describe('start | end | recover'),
+      action:  z.enum(['start', 'end', 'recover']).describe('start=load-core-memories | end=decay-and-promote | recover=resume-interrupted-session'),
       project: z.string().optional(),
       device:  z.string().optional(),
       id:      z.string().optional(),

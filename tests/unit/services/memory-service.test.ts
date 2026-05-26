@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { MemoryService } from '../../../src/services/memory-service.js';
 import type { MemoryRepository, RecallQuery, MemorySearchResult } from '../../../src/ports/repositories/memory-repository.js';
 import type { IdGenerator } from '../../../src/ports/gateways/id-generator.js';

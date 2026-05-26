@@ -501,7 +501,7 @@ pnpm run test:coverage
 
 [PolyForm Small Business License 1.0.0](LICENSE) © Juan Carlos Ghiringhelli (PragmaWorks).
 
-Free for individuals, prototypes, research, and small businesses (under 100 people **and** under $1M/yr revenue). Larger companies need a commercial (per-seat) license — contact [PragmaWorks](https://github.com/jghiringhelli). Personal local-only use is always free.
+Free for individuals, prototypes, research, and small businesses (under 100 people **and** under $1M/yr revenue). Larger companies need a commercial (per-seat) license — see [COMMERCIAL-LICENSE.md](COMMERCIAL-LICENSE.md) and contact [PragmaWorks](https://github.com/jghiringhelli). Personal local-only use is always free.
 
 ---
 

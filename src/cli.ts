@@ -26,8 +26,7 @@ if (args[0] === 'generate-token') {
   }
 
   const { getConfig } = await import('./shared/config/index.js');
-  const { TEAM_SCHEMA_SQL } = await import('./infrastructure/db/team-schema.js');
-  const { randomBytes } = await import('node:crypto');
+  const { TeamService } = await import('./services/team-service.js');
 
   const config = getConfig();
   if (!config.railwayUrl) {
@@ -35,24 +34,10 @@ if (args[0] === 'generate-token') {
     process.exit(1);
   }
 
-  const { default: postgres } = await import('postgres');
-  const sql = postgres(config.railwayUrl, { ssl: 'require', max: 1 });
-
-  await sql.unsafe(TEAM_SCHEMA_SQL);
-  await sql`INSERT INTO teams (id, name) VALUES (${teamSlug}, ${teamSlug}) ON CONFLICT DO NOTHING`;
-
-  const token = `chron_${randomBytes(32).toString('hex')}`;
-  await sql`
-    INSERT INTO team_licenses (token, team_id, created_by)
-    VALUES (${token}, ${teamSlug}, ${config.userId})
-  `;
+  const teamSvc = new TeamService();
+  const { token } = await teamSvc.mintToken(teamSlug);
   // The token issuer owns the team: they can curate insights and assign roles.
-  await sql`
-    INSERT INTO team_members (user_id, team_id, role)
-    VALUES (${config.userId}, ${teamSlug}, 'owner')
-    ON CONFLICT (user_id, team_id) DO UPDATE SET role = 'owner'
-  `;
-  await sql.end();
+  await teamSvc.assignRole(teamSlug, config.userId, 'owner');
 
   console.log(`\nChronicle Team token generated for team: ${teamSlug}\n`);
   console.log(`  token: ${token}\n`);

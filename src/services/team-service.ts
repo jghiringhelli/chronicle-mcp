@@ -5,9 +5,11 @@
  * teamId is not configured (guarded at the MCP tool layer).
  */
 
+import { randomBytes } from 'node:crypto';
 import { getConfig } from '../shared/config/index.js';
 import type { Team, TeamMember, TeamRole } from '../domain/entities/team.js';
 import { createTeam, createTeamMember } from '../domain/entities/team.js';
+import { TEAM_SCHEMA_SQL } from '../infrastructure/db/team-schema.js';
 import { StorageError } from '../shared/exceptions/index.js';
 
 export class TeamService {
@@ -130,6 +132,37 @@ export class TeamService {
       return { userId: targetUserId, teamId, role, joinedAt };
     } catch (err) {
       throw new StorageError('Failed to assign role', err);
+    } finally {
+      await sql.end();
+    }
+  }
+
+  /**
+   * Mint a new license token for a team, creating the team if needed.
+   * The reusable primitive behind both the `generate-token` CLI and the
+   * owner-gated `team mint_token` action. Does NOT assign roles — ownership is
+   * set separately (the CLI bootstraps the issuer as owner via assignRole).
+   *
+   * @param teamSlug - Team identifier/slug
+   * @returns The team id and the freshly minted token
+   */
+  async mintToken(teamSlug: string): Promise<{ teamId: string; token: string }> {
+    const config = getConfig();
+    if (!config.railwayUrl) throw new StorageError('railwayUrl not configured - cannot mint token');
+
+    const { default: postgres } = await import('postgres');
+    const sql = postgres(config.railwayUrl, { ssl: 'require', max: 1 });
+    try {
+      await sql.unsafe(TEAM_SCHEMA_SQL);
+      await sql`INSERT INTO teams (id, name) VALUES (${teamSlug}, ${teamSlug}) ON CONFLICT DO NOTHING`;
+      const token = `chron_${randomBytes(32).toString('hex')}`;
+      await sql`
+        INSERT INTO team_licenses (token, team_id, created_by)
+        VALUES (${token}, ${teamSlug}, ${config.userId})
+      `;
+      return { teamId: teamSlug, token };
+    } catch (err) {
+      throw new StorageError('Failed to mint team token', err);
     } finally {
       await sql.end();
     }

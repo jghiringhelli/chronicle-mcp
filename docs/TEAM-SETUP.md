@@ -53,9 +53,14 @@ Coordination and knowledge are **gated by one team token** and share **one** clo
    ```
    Chronicle connects with TLS (`sslmode=require`) automatically.
 3. Keep this string secret. It is the `railwayUrl` everyone on the team will use.
+4. Apply the schema once (idempotent — `CREATE TABLE IF NOT EXISTS`):
+   ```bash
+   DB_URL="postgresql://...public-url..." npx tsx scripts/init-cloud-db.ts
+   ```
 
-> Schemas are created automatically on first use (`CREATE TABLE IF NOT EXISTS`). A fresh
-> database needs no migration step.
+> The **team** tables auto-create on first team action, but the **individual sync**
+> tables (`users`, `memories`, `insights`, `session_summaries`, `sync_cursor`) do not —
+> run the init script once so personal cross-PC sync works on a fresh database.
 
 ---
 

@@ -55,8 +55,8 @@ export function registerTeamTools(
       'Memories in the shared pool stay attributed to their author; INSIGHTS are team-level syntheses curated by owners/leads.',
     ].join('\n'),
     {
-      action: z.enum(['join', 'share', 'promote', 'recall', 'log', 'insights', 'stats', 'sync', 'members', 'assign_role', 'curate_insight'])
-        .describe('join=register-membership | share=push-memory-by-id | promote=auto-share-worthy-memories(deduped) | recall=search-team-pool | log=record-prompt-pattern | insights=team-practices | stats=usage(scope:me|team) | sync=push-pull | members=list | assign_role=set-member-role(owner/lead) | curate_insight=create/reinforce-team-insight(owner/lead)'),
+      action: z.enum(['join', 'share', 'promote', 'recall', 'log', 'insights', 'stats', 'sync', 'members', 'assign_role', 'curate_insight', 'mint_token'])
+        .describe('join=register-membership | share=push-memory-by-id | promote=auto-share-worthy-memories(deduped) | recall=search-team-pool | log=record-prompt-pattern | insights=team-practices | stats=usage(scope:me|team) | sync=push-pull | members=list | assign_role=set-member-role(owner/lead) | curate_insight=create/reinforce-team-insight(owner/lead) | mint_token=issue-a-new-team-token(owner)'),
       // shared
       id:      z.string().optional().describe('Memory ID — used with share'),
       project: z.string().optional(),
@@ -189,6 +189,19 @@ export function registerTeamTools(
           if (!args.insight_type || !args.content) return reply({ error: 'insight_type and content are required.' });
           const insight = await teamSyncSvc.pushInsight({ insightType: args.insight_type, content: args.content, project: args.project });
           return reply({ message: 'Team insight curated.', insight });
+        }
+
+        case 'mint_token': {
+          const role = await teamSvc.getMemberRole(teamId);
+          if (role !== 'owner') {
+            return reply({ error: `Minting tokens requires the owner role. Your role: ${role ?? 'not a member'}.` });
+          }
+          const minted = await teamSvc.mintToken(teamId);
+          return reply({
+            message: `New token minted for team ${teamId}. Share railwayUrl + teamId + this token with a teammate; they join as a member.`,
+            teamId: minted.teamId,
+            token: minted.token,
+          });
         }
 
         default:

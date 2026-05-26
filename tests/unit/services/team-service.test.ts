@@ -31,6 +31,10 @@ describe('TeamService (offline / no railwayUrl)', () => {
   it('assignRole throws a clear configuration error', async () => {
     await expect(svc.assignRole('t1', 'u2', 'lead')).rejects.toThrow('railwayUrl not configured');
   });
+
+  it('mintToken throws a clear configuration error', async () => {
+    await expect(svc.mintToken('t1')).rejects.toThrow('railwayUrl not configured');
+  });
 });
 
 describe('canCurate', () => {

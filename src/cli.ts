@@ -46,6 +46,12 @@ if (args[0] === 'generate-token') {
     INSERT INTO team_licenses (token, team_id, created_by)
     VALUES (${token}, ${teamSlug}, ${config.userId})
   `;
+  // The token issuer owns the team: they can curate insights and assign roles.
+  await sql`
+    INSERT INTO team_members (user_id, team_id, role)
+    VALUES (${config.userId}, ${teamSlug}, 'owner')
+    ON CONFLICT (user_id, team_id) DO UPDATE SET role = 'owner'
+  `;
   await sql.end();
 
   console.log(`\nChronicle Team token generated for team: ${teamSlug}\n`);

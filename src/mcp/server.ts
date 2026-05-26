@@ -6,11 +6,11 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { getDatabase } from '../infrastructure/db/database.js';
 import { getConfig } from '../shared/config/index.js';
-import { TEAM_SCHEMA_SQL } from '../infrastructure/db/team-schema.js';
 import {
   SqliteMemoryRepository,
   SqliteSessionRepository,
   SqlitePreferenceRepository,
+  SqliteTeamRepository,
 } from '../adapters/repositories/index.js';
 import { MemoryService } from '../services/memory-service.js';
 import { SessionService } from '../services/session-service.js';
@@ -19,34 +19,18 @@ import { PreferenceService } from '../services/preference-service.js';
 import { CoordinationService } from '../services/coordination-service.js';
 import type { ContributorRole } from '../services/coordination-service.js';
 import { syncCoordination } from '../services/sync.js';
+import { TeamService } from '../services/team-service.js';
+import { PromptLogService } from '../services/prompt-log-service.js';
+import { TeamSyncService } from '../services/team-sync-service.js';
+import { PatternService } from '../services/pattern-service.js';
+import { TeamPromotionService } from '../services/team-promotion-service.js';
+import { FastEmbedGateway } from '../infrastructure/gateways/fastembed-gateway.js';
+import { registerTeamTools } from './team-tools.js';
+import { validateTeamToken } from './team-gate.js';
 import { NodeIdGenerator } from '../infrastructure/gateways/node-id-generator.js';
 import { NodeClock } from '../infrastructure/gateways/node-clock.js';
 import type { MemoryType } from '../domain/types.js';
 import { REINFORCEMENT_BOOSTS } from '../domain/types.js';
-
-// Cache token validation for process lifetime — one Railway round-trip max.
-let _tokenValid: boolean | null = null;
-
-async function validateTeamToken(token: string, railwayUrl: string | undefined, teamId: string): Promise<boolean> {
-  if (_tokenValid !== null) return _tokenValid;
-  if (!railwayUrl) { _tokenValid = true; return true; } // local-only mode — trust presence
-  try {
-    const { default: postgres } = await import('postgres');
-    const sql = postgres(railwayUrl, { ssl: 'require', max: 1 });
-    await sql.unsafe(TEAM_SCHEMA_SQL);
-    const rows = await sql<{ token: string }[]>`
-      SELECT token FROM team_licenses
-      WHERE token = ${token} AND team_id = ${teamId}
-        AND revoked = FALSE
-        AND (expires_at IS NULL OR expires_at > NOW())
-    `;
-    await sql.end();
-    _tokenValid = rows.length > 0;
-  } catch {
-    _tokenValid = true; // Railway down — fail open so offline work is not blocked
-  }
-  return _tokenValid;
-}
 
 /** Wire up all services and register MCP tools. */
 export function createMcpServer(): McpServer {
@@ -61,8 +45,14 @@ export function createMcpServer(): McpServer {
   const trigSvc = new TriggerService(db);
   const prefSvc = new PreferenceService(prefRepo, idGen);
   const coordSvc = new CoordinationService(db);
+  const teamRepo = new SqliteTeamRepository(db);
+  const teamSvc = new TeamService();
+  const promptLogSvc = new PromptLogService(teamRepo, idGen);
+  const teamSyncSvc = new TeamSyncService(teamRepo, promptLogSvc);
+  const patternSvc = new PatternService(teamRepo);
+  const promotionSvc = new TeamPromotionService(db, teamRepo, teamSyncSvc, new FastEmbedGateway());
 
-  const server = new McpServer({ name: 'chronicle', version: '0.3.1' });
+  const server = new McpServer({ name: 'chronicle', version: '0.4.0' });
 
   // ── chronicle ─────────────────────────────────────────────────────────────
   // Covers: memory CRUD, triggers, preferences, stats, decay.
@@ -257,6 +247,9 @@ export function createMcpServer(): McpServer {
           const sess     = sessSvc.endSession(args.id ?? '', args.summary);
           const decayed  = memSvc.applyDecay();
           const promoted = memSvc.evaluateTierPromotions();
+          // Opportunistic team-knowledge sync at session close (non-fatal, offline-safe).
+          const cfg = getConfig();
+          if (cfg.teamToken && cfg.teamId) teamSyncSvc.sync().catch(() => { /* offline — non-fatal */ });
           return {
             content: [{ type: 'text', text: JSON.stringify({
               id: sess.id, status: sess.status, endedAt: sess.endedAt,
@@ -521,6 +514,10 @@ export function createMcpServer(): McpServer {
       }
     },
   );
+
+  // ── team ────────────────────────────────────────────────────────────────────
+  // Team knowledge: shared memories, prompt logs, insights, analytics.
+  registerTeamTools(server, { teamSvc, promptLogSvc, teamSyncSvc, patternSvc, promotionSvc, teamRepo, memRepo });
 
   return server;
 }

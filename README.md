@@ -109,8 +109,8 @@ Optional fields:
 | Field | Purpose |
 |-------|---------|
 | `railwayUrl` | PostgreSQL connection string — enables cross-PC sync |
-| `teamId` | Team slug — enables Axon team coordination |
-| `teamToken` | Team license token — required to use Axon tools |
+| `teamId` | Team slug — enables the `axon` and `team` tools |
+| `teamToken` | Team license token — required for the `axon` and `team` tools |
 
 Full config with all features:
 ```json
@@ -167,6 +167,24 @@ Full config with all features:
 | `merges` | List merge requests filtered by status |
 | `status` | Full team dashboard: contributors, queue, merge queue |
 | `queue` | Ranked work queue for the project |
+
+### `team` — shared knowledge *(requires teamToken)*
+
+Coordination (`axon`) and knowledge (`team`) share **one** license token and one Railway instance. Shared memories stay attributed to their author; insights are team-level syntheses curated by owners/leads.
+
+| Action | What it does |
+|--------|-------------|
+| `join` | Register your membership in the team (role defaults to `member`) |
+| `share` | Push a specific local memory (by ID) into the team pool |
+| `promote` | Assistant-driven: scan high-value local memories, dedupe against the pool, push the novel ones |
+| `recall` | Search the team pool plus synthesized team insights |
+| `log` | Record what a prompt was trying to do (pattern only; raw text stays local unless you opt in) |
+| `insights` | List team practices / antipatterns / lessons |
+| `stats` | Usage analytics (`scope: me \| team`) |
+| `sync` | Push the prompt buffer and pull team knowledge (also fires at `session end`) |
+| `members` | List team members and roles |
+| `assign_role` | *(owner/lead)* Set a member's role: `owner \| lead \| member` |
+| `curate_insight` | *(owner/lead)* Create or reinforce a team insight |
 
 ---
 
@@ -298,12 +316,17 @@ MCP Client (Claude / Copilot / Cursor)
        │     └── PreferenceService — set / get
        ├── session tool
        │     └── SessionService    — start / end / recover
-       └── axon tool  (teamToken required)
-             ├── CoordinationService — contributors, work packages, assignments, merges
-             └── syncCoordination    — Railway push / pull (team state)
+       ├── axon tool  (teamToken required)
+       │     ├── CoordinationService — contributors, work packages, assignments, merges
+       │     └── syncCoordination    — Railway push / pull (team state)
+       └── team tool  (teamToken required)
+             ├── TeamService          — membership + roles (owner/lead/member)
+             ├── TeamSyncService      — shared memories, insights, prompt logs
+             ├── TeamPromotionService — assistant-driven promote + dedup
+             └── PatternService       — usage analytics
                     │
-             SQLite (better-sqlite3, local-first)
-             Railway Postgres (optional — cross-PC sync + team coordination)
+             SQLite (better-sqlite3, local-first + team cache)
+             Railway Postgres (optional — cross-PC sync + team coordination & knowledge)
 ```
 
 Domain is pure TypeScript with zero external imports. All repositories are synchronous (better-sqlite3). The MCP layer is async. Sync to Railway uses the `postgres` package with dynamic import.
@@ -407,6 +430,42 @@ Tokens are stored in the `team_licenses` table on your Railway instance. To revo
 ```sql
 UPDATE team_licenses SET revoked = TRUE WHERE token = 'chron_...';
 ```
+
+The user who runs `generate-token` is recorded as the team **owner** in `team_members`. A single team token authorises both the `axon` and `team` tools; what a member may do is governed by their DB role, not by holding a different token.
+
+---
+
+## Team knowledge & promotion
+
+Beyond coordinating *work*, the `team` tool shares *knowledge*. Each member's memories stay private by default; knowledge reaches the team in one of two ways:
+
+- **`share`** — push a specific memory you choose, by ID.
+- **`promote`** — the assistant scans your durable memories (confirmed truths and working/core-tier entries), de-duplicates them against what the team already holds, and pushes only the novel ones. Shared memories remain attributed to their author, so the same Railway instance can host several teams without mixing authorship.
+
+```
+# Assistant decides recent durable knowledge is worth sharing
+team({ action: "promote", project: "my-project" })
+→ { scanned: 8, promoted: [...], skipped: [{ id, reason: "duplicate", similarTo }] }
+
+# Anyone pulls the team pool + synthesized insights
+team({ action: "recall", query: "auth", project: "my-project" })
+
+# Owner/lead distils a recurring pattern into a team insight
+team({ action: "curate_insight", insight_type: "practice",
+       content: "Validate all inbound DTOs at the service boundary", project: "my-project" })
+```
+
+> De-duplication is currently **lexical** (token overlap). A semantic upgrade is a drop-in once a concrete embedding gateway populates memory embeddings — the threshold and comparison seam in `TeamPromotionService` are built for that swap.
+
+### Roles & curation
+
+`team_members.role` is one of `owner`, `lead`, or `member`. Owners and leads may `assign_role` and `curate_insight`; members may share, promote, recall, and log. Override a member's role with `team({ action: "assign_role", target_user_id, role })`.
+
+### Licensing
+
+The same model as PragmaWorks' other MCP tools: **free** for individuals, prototypes, and small research teams; **per-seat** for companies. `team_licenses` carries `tier` (`free`/`team`/`company`) and `seats` for this purpose.
+
+> **Migration note:** the standalone `chronicle-team` package is superseded by this release ([ADR-002](docs/adrs/ADR-002-fold-team-into-core.md)). Its features now ship inside `chronicle-mcp` behind the team token — install `chronicle-mcp` and add `teamId` + `teamToken` instead of running a second binary.
 
 ---
 

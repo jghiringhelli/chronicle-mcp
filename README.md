@@ -506,3 +506,14 @@ Free for individuals, prototypes, research, and small businesses (under 100 peop
 ---
 
 *Built as part of the [PragmaWorks](https://github.com/jghiringhelli) suite of developer tools.*
+
+
+---
+
+## Part of Generative Specification
+
+A free tool behind **Generative Specification (GS)** — the discipline for building software with AI that doesn't drift: you author a specification precise enough that a stateless AI derives correct code from it, and a harness verifies it against a live system.
+
+- 📄 **White paper** (open access): https://doi.org/10.5281/zenodo.21726017
+- 🧭 **Start here** — method, tools, testimonials: https://pragmaworks.dev
+- 🔨 **The Forge** — 2-day hands-on GS workshop for your team: https://forgeworkshop.dev

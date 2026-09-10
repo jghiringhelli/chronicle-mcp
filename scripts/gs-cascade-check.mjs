@@ -360,6 +360,27 @@ function stepFrontmatterSchema() {
   }
 }
 
+// ── Step 6a — an executable gate carries no unrendered template hole ─────────
+
+/**
+ * A `{{placeholder}}` left in a shell script is worse than one left in prose: bash parses it as
+ * a command, the variable ends up empty, the comparison never fires, and the script exits 0.
+ * Four hook scripts here shipped that way — the function-length, file-length and coverage gates
+ * were silently disabled for months while appearing to pass. Prose holes are caught by step 1;
+ * this is the executable case, and it is why the check is separate.
+ */
+function stepGatesRendered() {
+  const scripts = [...walk('.claude/hooks', /\.(sh|ps1|cmd|bash)$/), ...walk('.githooks', /.*/)];
+  for (const path of scripts) {
+    const text = read(path);
+    const holes = [...text.matchAll(/\{\{[^}\n]{0,120}\}\}/g)].map((m) => m[0]);
+    if (holes.length > 0) {
+      error(6, 'gate-scripts-rendered',
+        `${path} is executable and still carries template placeholders (${[...new Set(holes)].join(', ')}) — bash treats these as commands, so the gate exits 0 without checking anything`);
+    }
+  }
+}
+
 // ── Step 6 — the harness is wired, not merely described ─────────────────────
 
 function stepHarnessWired() {
@@ -386,6 +407,7 @@ stepSpecAdr();
 stepNoStubs();
 stepNoOrphanReferences();
 stepFrontmatterSchema();
+stepGatesRendered();
 stepHarnessWired();
 
 const errors = findings.filter((f) => f.severity === 'error');

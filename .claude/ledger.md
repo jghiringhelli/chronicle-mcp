@@ -51,6 +51,9 @@ When the user says *"don't do that"* about a pattern produced here, append a lin
   `Session not found: ` on an empty id. One run of `scripts/smoke-mcp.mjs` did.
 - `[2026-09-10]` — Do not retype uncovered code to satisfy a new lint rule. Characterise it with
   tests first, then type it. A scoped, expiring waiver is the correct interim (exc-009).
+- `[2026-09-10]` — Prove a gate blocks by making it block. Committing a deliberate violation is the
+  only evidence that a hook is wired; it is also how the four silently-disabled hook scripts below
+  were found, after the hook had already been declared working.
 
 ---
 
@@ -81,6 +84,28 @@ failed in a way that reads exactly like a code bug.
 
 **How to tell which kind a package is:** `ls node_modules/<pkg>/prebuilds`. Names like
 `win32-x64.node` are NAPI; names like `better_sqlite3-v11.10.0-node-v137-win32-x64` are per-ABI.
+
+### An unrendered template placeholder in a shell script silently disables the gate
+
+**What goes wrong.** A scaffolded hook script shipped with `MAX_LENGTH={{max_function_length |
+default: 50}}` still in it. Bash does not fail on that — it tries to *run* `default:` as a command,
+prints `command not found` to stderr, leaves `MAX_LENGTH` empty, and the later
+`[ "$LEN" -gt "$MAX_LENGTH" ]` never fires. **The script exits 0.** Four hooks were affected, so the
+function-length, file-length and two coverage gates had been passing without checking anything since
+the day they were generated, while the dispatcher dutifully printed `ok`.
+
+This is strictly worse than the same hole in prose. In a document an unrendered placeholder is
+visible to a reader; in an executable gate it produces a green check over no check at all.
+
+- **Wrong:** trusting a generated hook because it is present and exits 0.
+- **Right:** `grep -rn '{{' .claude/hooks/` after any scaffold or refresh, and run each script once
+  with `bash -n` (syntax) and once for real, watching **stderr**, not just the exit code.
+- **Now enforced:** `scripts/gs-cascade-check.mjs` step 6 `gate-scripts-rendered` fails the build on
+  any template hole under `.claude/hooks/` or `.githooks/`. The class is unreachable rather than
+  merely documented.
+
+**The general rule:** an exit code of 0 from a gate you have never seen fail is not evidence. Make it
+fail on purpose once.
 
 ### tsconfig `rootDir` — including `tests/**` breaks the typecheck, not the build
 

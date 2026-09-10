@@ -1,5 +1,5 @@
 #!/bin/bash
-COVERAGE_MIN={{coverage_minimum | default: 80}}
+COVERAGE_MIN=80
 echo "🧪 Running tests with coverage..."
 if [ -f "package.json" ]; then
   if grep -q '"vitest"' package.json 2>/dev/null; then

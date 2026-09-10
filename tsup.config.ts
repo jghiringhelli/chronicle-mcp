@@ -1,6 +1,9 @@
 import { defineConfig } from 'tsup';
 
 export default defineConfig({
+  // Emit uses tsconfig.build.json (src only, rootDir set). The root tsconfig.json is the
+  // typecheck config and carries no rootDir — see .claude/ledger.md, Known Pitfalls.
+  tsconfig: 'tsconfig.build.json',
   entry: ['src/index.ts', 'src/cli.ts'],
   format: ['esm'],
   dts: true,

@@ -1,3 +1,11 @@
+---
+node: project-specific
+type: sentinel-node
+scope: chronicle tier model, sync semantics, dashboard contracts
+load: on-demand
+categories: [constraints]
+routes_to: [root]
+---
 # Project-Specific Rules
 <!-- Migrated from monolithic CLAUDE.md by ForgeCraft sentinel upgrade -->
 <!-- Review and clean up — some content below may have been incorrectly classified as custom -->

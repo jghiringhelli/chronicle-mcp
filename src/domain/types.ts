@@ -1,7 +1,13 @@
 /**
  * Chronicle Domain Types
  *
- * Core type definitions for the five-memory model.
+ * Core type definitions for the six-memory model (ADR-012).
+ * This file is the SINGLE SOURCE for the shape of the model: `MemoryType` and `StorageTier`
+ * are closed unions of persisted strings. Prose elsewhere enumerates these names rather than
+ * asserting a count — "five", "six" and "three-tier" were all in circulation at once before
+ * ADR-012 closed the set. Adding or removing a member requires an ADR superseding ADR-012 and
+ * a migration for rows holding the old value.
+ *
  * Domain layer has zero external imports.
  */
 

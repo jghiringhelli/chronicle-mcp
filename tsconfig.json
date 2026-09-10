@@ -1,4 +1,8 @@
 {
+  // Typecheck config: the whole repository, tests included, nothing emitted.
+  // `rootDir` is deliberately absent — setting it here makes `tsc --noEmit` fail with
+  // TS6059 on every file under tests/ (see .claude/ledger.md, Known Pitfalls).
+  // Emit settings live in tsconfig.build.json, which extends this file.
   "compilerOptions": {
     "target": "ES2022",
     "module": "NodeNext",
@@ -8,19 +12,15 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "declaration": true,
-    "declarationMap": true,
-    "sourceMap": true,
-    "outDir": "dist",
-    "rootDir": "src",
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
-    "noUncheckedIndexedAccess": true
+    "noUncheckedIndexedAccess": true,
+    "noEmit": true
   },
-  "include": ["src/**/*", "tests/**/*"],
+  "include": ["src/**/*", "tests/**/*", "scripts/**/*.ts"],
   "exclude": ["node_modules", "dist"]
 }

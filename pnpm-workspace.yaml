@@ -1,3 +1,18 @@
+# Single-package repository: no `packages:` globs. This file exists only for
+# onlyBuiltDependencies, which is how pnpm 10 is told which packages may run build scripts.
+# Note: pnpm 9 rejects this file without a `packages:` key — the pnpm major is pinned in
+# package.json `packageManager` for exactly that reason (.claude/ledger.md).
+
 onlyBuiltDependencies:
-  - better-sqlite3
   - esbuild
+
+# better-sqlite3 is deliberately ABSENT from the list above.
+#
+# Since v13 it ships Node-API prebuilds inside the npm tarball (prebuilds/<platform>.node,
+# no Node version in the filename — NAPI is ABI-stable across Node majors). But the package
+# still carries a binding.gyp, and pnpm runs `node-gyp rebuild` by default for any approved
+# package that has one. On a machine with no Visual Studio C++ toolchain that rebuild fails,
+# and before v13 it also failed on any Node major without a matching per-ABI prebuild.
+#
+# Leaving it unapproved means pnpm skips the rebuild and the shipped NAPI binary is used as-is:
+# no compiler, no per-Node-version prebuild, no pin to a Node major. See ADR-015.

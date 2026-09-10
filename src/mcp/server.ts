@@ -254,7 +254,19 @@ export function createMcpServer(): McpServer {
         }
 
         case 'end': {
-          const sess     = sessSvc.endSession(args.id ?? '', args.summary);
+          // Resolve the same way `recover` does: an id if given, otherwise the project's active
+          // session. Without this fallback the documented F7 flow is impossible — an agent that
+          // called `start` with a project and did not retain the returned id could never end it,
+          // and got `Session not found: ` with an empty id. Found by scripts/smoke-mcp.mjs.
+          const sessionId = args.id ?? (args.project ? sessSvc.getActiveSession(args.project)?.id : undefined);
+          if (!sessionId) {
+            return { content: [{ type: 'text', text: JSON.stringify({
+              error: args.project
+                ? `No active session for project "${args.project}". Pass an id, or call session start first.`
+                : 'Pass either id or project to end a session.',
+            }) }] };
+          }
+          const sess     = sessSvc.endSession(sessionId, args.summary);
           const decayed  = memSvc.applyDecay();
           const promoted = memSvc.evaluateTierPromotions();
           return {

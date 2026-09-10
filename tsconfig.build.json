@@ -1,0 +1,15 @@
+{
+  // Emit config: src/ only, declarations on. Consumed by tsup (see tsup.config.ts).
+  // Extends the typecheck config so the two can never disagree about strictness.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "outDir": "dist",
+    "rootDir": "src"
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist", "tests", "scripts"]
+}

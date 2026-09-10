@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "_comment": "Hook false-positive exceptions and audit-check exemptions. Each entry: {id, hook, pattern, reason, addedAt, addedBy, adr?}. Use hook='audit/<check>' for anti-pattern/cnt-health exemptions.",
+  "_comment": "Hook false-positive exceptions and audit-check exemptions. Each entry: {id, hook, pattern, reason, addedAt, addedBy, expiresAt, reviewNote, adr?}. Use hook='audit/<check>' for anti-pattern/cnt-health exemptions, 'lint/<rule>' for a scoped lint waiver. An exemption without expiresAt is a bypass, not a waiver (repository-discipline.md §9) — scripts/gs-cascade-check.mjs enforces it.",
   "exceptions": [
     {
       "id": "exc-001",
@@ -9,7 +9,9 @@
       "reason": "Chronicle dashboard is a local-only service. The localhost URLs are (a) the startup-message log telling the user where to navigate and (b) the API base URL in the embedded frontend template — both correct for a local dashboard.",
       "addedAt": "2026-05-08",
       "addedBy": "Claude Opus",
-      "adr": null
+      "adr": null,
+      "expiresAt": "2027-03-31",
+      "reviewNote": "Permanent by design, reviewed annually: a local-only dashboard must print the URL the user navigates to. Re-confirm at the next review or convert to an ADR."
     },
     {
       "id": "exc-002",
@@ -18,7 +20,9 @@
       "reason": "Dashboard server: HTTP routing + embedded HTML template + chart bootstrap. 488 lines. Refactor candidate — extract HTML template to a separate file in a follow-up.",
       "addedAt": "2026-05-08",
       "addedBy": "Claude Opus",
-      "adr": null
+      "adr": null,
+      "expiresAt": "2026-12-31",
+      "reviewNote": "Expires when the embedded HTML template is extracted from src/dashboard/server.ts."
     },
     {
       "id": "exc-003",
@@ -27,7 +31,9 @@
       "reason": "MCP server: tool registrations + handlers in one file. 509 lines. Cohesive surface — splitting would scatter the MCP tool definitions.",
       "addedAt": "2026-05-08",
       "addedBy": "Claude Opus",
-      "adr": null
+      "adr": null,
+      "expiresAt": "2027-03-31",
+      "reviewNote": "Cohesion, not debt: the three MCP tool registrations belong together (ADR-011). Annual re-confirmation."
     },
     {
       "id": "exc-004",
@@ -36,7 +42,9 @@
       "reason": "Coordination service: work-package decomposition + priority ranking + assignment. 771 lines. STRONG REFACTOR CANDIDATE — extract priority-ranking and assignment into separate modules in a follow-up.",
       "addedAt": "2026-05-08",
       "addedBy": "Claude Opus",
-      "adr": null
+      "adr": null,
+      "expiresAt": "2026-12-31",
+      "reviewNote": "Expires with RM-401, which splits the service at the four seams named in EDR-004. Blocked on RM-103 (tests first)."
     },
     {
       "id": "exc-005",
@@ -45,7 +53,9 @@
       "reason": "Sync service: cloud<->local sync logic + conflict resolution. 523 lines. Refactor candidate — extract per-table sync handlers in a follow-up.",
       "addedAt": "2026-05-08",
       "addedBy": "Claude Opus",
-      "adr": null
+      "adr": null,
+      "expiresAt": "2026-12-31",
+      "reviewNote": "Expires when per-table sync handlers are extracted. Blocked on RM-102 (tests first)."
     },
     {
       "id": "exc-006",
@@ -54,7 +64,9 @@
       "reason": "5 lines (limit 3). Includes ForgeCraft sentinel comment + description.",
       "addedAt": "2026-05-08",
       "addedBy": "Claude Opus",
-      "adr": null
+      "adr": null,
+      "expiresAt": "2027-03-31",
+      "reviewNote": "Permanent by design: the CNT root is 3 lines plus the sentinel comment (ADR-000). Annual re-confirmation."
     },
     {
       "id": "exc-007",
@@ -63,7 +75,9 @@
       "reason": "52 lines (limit 50). 2 lines over for chronicle's tier-memory model description, which is core to navigating the codebase.",
       "addedAt": "2026-05-08",
       "addedBy": "Claude Opus",
-      "adr": null
+      "adr": null,
+      "expiresAt": "2027-03-31",
+      "reviewNote": "Permanent by design: core.md is the always-loaded identity node. Now 38 lines, within the 50-line bound — candidate for removal at the next review."
     },
     {
       "id": "exc-008",
@@ -72,6 +86,19 @@
       "reason": "Chronicle-specific standards: 180 lines. Tier-memory model + sync semantics + dashboard contracts are interlinked — splitting would scatter the knowledge.",
       "addedAt": "2026-05-08",
       "addedBy": "Claude Opus",
+      "adr": null,
+      "expiresAt": "2026-12-31",
+      "reviewNote": "Expires when chronicle-specific standards are split by concern (tier model / sync semantics / dashboard contracts)."
+    },
+    {
+      "id": "exc-009",
+      "hook": "lint/@typescript-eslint/no-explicit-any",
+      "pattern": "src/services/sync.ts, src/services/coordination-service.ts",
+      "reason": "33 `as any[]` casts on SQL row results in the only two units with zero tests (522 and 771 lines). The rule is correct and protocols.md forbids `any` casts; the waiver exists because retyping uncovered code before characterising it is the wrong order. Typed row interfaces land with the tests in RM-102 and RM-103. Scoped in eslint.config.js to these two paths, so `any` anywhere else still fails the build.",
+      "addedAt": "2026-09-10",
+      "addedBy": "Claude Opus 5",
+      "expiresAt": "2026-12-31",
+      "reviewNote": "Expires with RM-102 and RM-103. Downgrade is warn, not off, so the count stays visible.",
       "adr": null
     }
   ]

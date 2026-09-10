@@ -1,0 +1,161 @@
+name: CI
+
+# The Defended property scores 0 until gates actually run. This file is the gate.
+#
+# The test job runs a Node MATRIX (20 and 24) rather than a single pinned version. That is not
+# thoroughness for its own sake: `engines.node` claims `>=20`, and since ADR-015 the claim is
+# honest only because better-sqlite3@13 ships Node-API binaries that work across majors. The
+# matrix is what turns that claim into a tested one — under the previous per-ABI driver, Node 24
+# failed at runtime with a bindings error that reads like a code bug (.claude/ledger.md).
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  # Dependency-free and fast: fails a broken specification surface before anything installs.
+  cascade:
+    name: Cascade and sentinel integrity
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: GS cascade check
+        run: node scripts/gs-cascade-check.mjs
+      - name: Record evidence
+        if: always()
+        run: |
+          mkdir -p reports
+          node scripts/gs-cascade-check.mjs --json > reports/cascade-check.json || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cascade-check
+          path: reports/cascade-check.json
+
+  verify:
+    name: Types, lint, tests (Node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['20', '24']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      - name: Native binding loads (ADR-015 — the NAPI claim, not an assumption)
+        run: node -e "const D=require('better-sqlite3'); new D(':memory:').exec('create table t(a)'); console.log('better-sqlite3 ok on', process.version)"
+
+      - name: Typecheck
+        run: pnpm run typecheck
+
+      - name: Lint (includes the import-cycle and layer-boundary gates)
+        run: pnpm run lint
+
+      - name: Tests with coverage (ratchet floor, see vitest.config.ts)
+        run: pnpm run test:coverage
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-node${{ matrix.node }}
+          path: coverage/
+
+  # Generative execution: drive the BUILT server as a real MCP client over stdio, including two
+  # concurrent instances on one database (ADR-016). This is the Executable property — contracts
+  # run against a live runtime rather than inferred from a clean compile. It caught a defect the
+  # 119-test unit suite did not: `session end` ignored its `project` argument.
+  generative-execution:
+    name: MCP smoke against the built server
+    runs-on: ubuntu-latest
+    needs: verify
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run build
+      - name: Configure a throwaway home so the run never touches a real ~/.chronicle
+        run: |
+          git config --global user.email "ci@example.com"
+      - run: pnpm run smoke
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: mcp-smoke
+          path: docs/evidence/mcp-smoke.json
+
+  # Separate job: mutation is slow, and its verdict is independent of the rest.
+  # Coverage measures what executed; mutation measures what was caught.
+  mutation:
+    name: Mutation gate (ratchet floor, see stryker.config.json)
+    runs-on: ubuntu-latest
+    needs: verify
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Stryker
+        run: pnpm run test:mutation
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: mutation-report
+          path: reports/mutation/
+
+  # Architectural correctness and supply-chain safety are orthogonal: a repo can score full
+  # marks on every structural property and still ship high-severity CVEs pulled in by an
+  # unconstrained dependency chain. So the dependency policy is gated separately.
+  supply-chain:
+    name: Supply chain (zero HIGH/CRITICAL)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Audit production dependencies
+        run: pnpm audit --prod --audit-level=high
+      - name: Approved-library check
+        run: node scripts/check-dependency-policy.mjs
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: verify
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run build

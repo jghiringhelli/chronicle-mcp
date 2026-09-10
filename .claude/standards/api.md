@@ -1,3 +1,11 @@
+---
+node: api
+type: sentinel-node
+scope: public surface rules and approved API dependencies
+load: on-demand
+categories: [standards, constraints]
+routes_to: [root]
+---
 <!-- ForgeCraft sentinel: api | 2026-03-21 | npx forgecraft-mcp refresh . --apply to update -->
 
 ## API Stack Constraints — Approved Dependency Choices

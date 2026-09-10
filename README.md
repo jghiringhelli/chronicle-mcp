@@ -25,14 +25,18 @@ Chronicle is a [Model Context Protocol](https://modelcontextprotocol.io) server 
 
 Chronicle uses six cognitive memory types, each with its own decay rate and default tier:
 
-| Type | What it stores | Decay | Default tier |
-|------|---------------|-------|-------------|
-| **Semantic** | Facts, concepts, how things work | Medium | Buffer |
-| **Episodic** | Events, what happened, past decisions | Fast | Buffer |
-| **Procedural** | How to do things, sequences, commands | None | Core |
-| **Architectural** | Why it was built this way, ADRs, tradeoffs | None | Core |
-| **Insight** | Patterns spotted across sessions, recurring lessons | Slow | Working |
-| **Coordination** | Team state, hand-offs, who-is-doing-what | Medium | Working |
+| Type | What it stores | Decay rate | Half-life | Default tier |
+|------|---------------|-----------|-----------|--------------|
+| **Episodic** | Events, what happened, past decisions | 0.10 | ~6.9 days | Buffer |
+| **Semantic** | Facts, concepts, how things work | 0.02 | ~34.7 days | Working |
+| **Coordination** | Team state, hand-offs, who-is-doing-what | 0.01 | ~69.3 days | Working |
+| **Procedural** | How to do things, sequences, commands | 0.00 | never | Core |
+| **Architectural** | Why it was built this way, ADRs, tradeoffs | 0.00 | never | Core |
+| **Insight** | Patterns spotted across sessions, recurring lessons | 0.00 | never | Core |
+
+The rates are the values in `src/domain/types.ts`, which is the single source for the model's
+shape; the half-lives are derived (`ln 2 / rate`). `confirmed: true` on any type sets decay to 0
+and places the memory in Core.
 
 Developer **preferences** (style, habits, tooling choices) are stored separately via the `pref` action — they live in their own table with no decay.
 
@@ -40,9 +44,12 @@ Developer **preferences** (style, habits, tooling choices) are stored separately
 
 ```
 Buffer (ephemeral)  →  Working (session-relevant)  →  Core (permanent)
-weight decays fast      accessed 3+ times               accessed 10+ times
-                                                         never decays
+weight decays fast      promoted at 3+ accesses          promoted at 10+ accesses
+                                                          never decays
 ```
+
+Promotion is evaluated at session end. A type's *default* tier is where it starts (table above);
+`procedural`, `architectural` and `insight` start in Core and so never need promoting.
 
 Memories promote automatically as you access them. Architectural and Procedural memories start in Core and never decay.
 
@@ -174,12 +181,12 @@ Full config with all features:
 
 ```
 You: start a session for this project
-AI: [calls session_start({project: "my-app"})]
+AI: [calls session({action: "start", project: "my-app"})]
     → "3 core memories loaded: auth uses Lucia v3, Postgres on Railway,
        prefer functional patterns over classes. 1 trigger active: deploy"
 
 You: let's add Redis for caching
-AI: [calls check_triggers({action: "deploy", project: "my-app"})]
+AI: [calls chronicle({action: "check", trigger: "deploy", project: "my-app"})]
     → ⚠️  CRITICAL: Redis eviction policy resets on Railway deploy.
        Pin config in deploy hook. (last seen 12 days ago)
 ```
@@ -187,7 +194,8 @@ AI: [calls check_triggers({action: "deploy", project: "my-app"})]
 ```
 You: remember that we chose Zod over Valibot because Zod has better
      ecosystem support and our team already knows it
-AI: [calls remember({
+AI: [calls chronicle({
+      action: "remember",
       content: "chose Zod over Valibot — better ecosystem, team familiarity",
       memory_type: "architectural",
       project: "my-app",
@@ -219,7 +227,7 @@ When you set `railwayUrl`, Chronicle syncs your Working and Core tier memories p
 
 ```
 Machine A (home laptop)  →  Railway Postgres  →  Machine B (work laptop)
-  remembers + writes              ↑ sync                pulls on session_start
+  remembers + writes              ↑ sync                pulls on session start
 ```
 
 Only Working+Core memories sync (not ephemeral Buffer). Your local SQLite always has the full picture.
@@ -242,7 +250,7 @@ Only Working+Core memories sync (not ephemeral Buffer). Your local SQLite always
    psql "postgresql://..." -f path/to/chronicle-mcp/src/infrastructure/db/cloud-schema.sql
    ```
 
-Sync activates automatically on the next `session_start`. No restart needed.
+Sync activates automatically on the next `session({action: "start"})`. No restart needed.
 
 > **Tip:** If you use an AI assistant (Copilot, Claude) to do this setup, ask it to look up your Railway project, find the Postgres connection string, and write it into `~/.chronicle/config.json` directly.
 

@@ -1,3 +1,11 @@
+---
+node: cicd
+type: sentinel-node
+scope: pipeline emission, hook emission, commit hygiene
+load: on-demand
+categories: [standards, tool-sequencing]
+routes_to: [root]
+---
 <!-- ForgeCraft sentinel: cicd | 2026-04-20 | npx forgecraft-mcp refresh . --apply to update -->
 
 ## Dev Environment Hygiene

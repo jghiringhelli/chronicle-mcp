@@ -1,10 +1,18 @@
+---
+node: architecture
+type: sentinel-node
+scope: layer rules, dependency direction, SOLID, code standards
+load: on-demand
+categories: [architectural-identity, standards]
+routes_to: [root]
+---
 <!-- ForgeCraft sentinel: architecture | 2026-04-20 | npx forgecraft-mcp refresh . --apply to update -->
 
 ## Project Identity
 - **Repo**: https://github.com/jghiringhelli/chronicle-mcp
 - **Primary Language**: typescript
-- **Framework**: {{framework}}
-- **Domain**: {{domain}}
+- **Framework**: none (MCP server on `@modelcontextprotocol/sdk`; no web/app framework)
+- **Domain**: developer-tooling — persistent cross-project memory for AI coding assistants
 - **Sensitive Data**: NO
 - **Project Tags**: `[UNIVERSAL]` `[LIBRARY]` `[CLI]`
 - **Release Phase**: development

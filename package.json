@@ -22,13 +22,23 @@
     "dev": "tsx watch src/cli.ts",
     "dashboard": "tsx src/cli.ts --dashboard",
     "test": "vitest",
-    "test:coverage": "vitest --coverage",
+    "test:coverage": "vitest run --coverage",
+    "test:mutation": "stryker run",
+    "smoke": "node scripts/smoke-mcp.mjs",
     "lint": "eslint src tests",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "cascade": "node scripts/gs-cascade-check.mjs",
+    "deps:policy": "node scripts/check-dependency-policy.mjs",
+    "audit:supply-chain": "pnpm audit --prod --audit-level=high",
+    "hooks:install": "git config core.hooksPath .githooks",
+    "gates": "pnpm run cascade && pnpm run typecheck && pnpm run lint && pnpm run test:coverage && pnpm run deps:policy",
+    "prepare": "git config core.hooksPath .githooks || true"
   },
   "files": [
     "dist",
-    "README.md"
+    "README.md",
+    "CHANGELOG.md",
+    "server.json"
   ],
   "keywords": [
     "mcp",
@@ -53,18 +63,25 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",
-    "better-sqlite3": "^11.0.0",
+    "better-sqlite3": "^13.0.3",
     "postgres": "^3.4.9",
     "zod": "^4.0.0"
   },
   "devDependencies": {
-    "@types/better-sqlite3": "^7.6.0",
+    "@eslint/js": "^9.0.0",
+    "@stryker-mutator/core": "^8.7.1",
+    "@stryker-mutator/vitest-runner": "^8.7.1",
+    "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^20.0.0",
-    "@vitest/coverage-v8": "^4.1.0",
+    "@vitest/coverage-v8": "^2.1.9",
     "eslint": "^9.0.0",
+    "eslint-import-resolver-typescript": "^4.3.4",
+    "eslint-plugin-import": "^2.31.0",
     "tsup": "^8.0.0",
     "tsx": "^4.0.0",
     "typescript": "^5.4.0",
+    "typescript-eslint": "^8.0.0",
     "vitest": "^2.0.0"
-  }
+  },
+  "packageManager": "pnpm@10.15.0"
 }

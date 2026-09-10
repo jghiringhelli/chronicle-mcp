@@ -20,6 +20,13 @@ import { parse as parseUrl } from 'node:url';
 import { getDatabase } from '../infrastructure/db/database.js';
 import { CoordinationService } from '../services/coordination-service.js';
 
+/**
+ * A database row as the dashboard uses it: serialised straight to JSON, never field-accessed.
+ * `Record<string, unknown>` rather than `any` — the dashboard does not need to know the columns,
+ * but it must not be allowed to invent them either.
+ */
+type DbRow = Record<string, unknown>;
+
 export function startDashboard(port = 4321): void {
   const db = getDatabase();
   const coord = new CoordinationService(db);
@@ -38,7 +45,7 @@ export function startDashboard(port = 4321): void {
             `SELECT DISTINCT project FROM work_packages
              UNION SELECT DISTINCT project FROM contributors
              ORDER BY project`,
-          ).all() as any[];
+          ).all() as Array<{ project: string }>;
           json(res, rows.map(r => r.project));
 
         } else if (pathname === '/api/status') {
@@ -53,24 +60,24 @@ export function startDashboard(port = 4321): void {
         } else if (pathname === '/api/contributor') {
           const id = query['id'] as string;
           if (!id) { json(res, { error: 'id required' }, 400); return; }
-          const rows = db.prepare(`SELECT * FROM contributors WHERE id = ?`).get(id) as any;
+          const rows = db.prepare(`SELECT * FROM contributors WHERE id = ?`).get(id) as DbRow | undefined;
           if (!rows) { json(res, { error: 'not found' }, 404); return; }
           const active = db.prepare(
             `SELECT * FROM work_packages WHERE assigned_to = ? AND status = 'active'`,
-          ).all(id) as any[];
+          ).all(id) as DbRow[];
           const history = db.prepare(
             `SELECT wp.* FROM work_packages wp
              JOIN assignments a ON a.work_package_id = wp.id
              WHERE a.contributor_id = ? AND wp.status = 'complete'
              ORDER BY wp.completed_at DESC LIMIT 20`,
-          ).all(id) as any[];
+          ).all(id) as DbRow[];
           json(res, { contributor: rows, activeWork: active, history });
 
         } else {
           json(res, { error: 'unknown endpoint' }, 404);
         }
-      } catch (err: any) {
-        json(res, { error: err?.message ?? 'internal error' }, 500);
+      } catch (err) {
+        json(res, { error: err instanceof Error ? err.message : 'internal error' }, 500);
       }
       return;
     }

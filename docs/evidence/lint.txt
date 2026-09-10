@@ -1,0 +1,46 @@
+﻿command: node node_modules/eslint/bin/eslint.js src tests
+exit code: 0
+run: 2026-09-10T16:52:50.8550931-05:00
+node: v24.18.0
+platform: win32-x64
+
+
+C:\workspace\PragmaWorks\mcp\chronicle\src\services\coordination-service.ts
+  162:23  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  187:61  warning  Forbidden non-null assertion              @typescript-eslint/no-non-null-assertion
+  191:11  warning  Forbidden non-null assertion              @typescript-eslint/no-non-null-assertion
+  239:9   warning  Forbidden non-null assertion              @typescript-eslint/no-non-null-assertion
+  249:21  warning  Forbidden non-null assertion              @typescript-eslint/no-non-null-assertion
+  359:23  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  367:25  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  468:23  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  474:31  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  475:53  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  604:35  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  607:27  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  624:31  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  632:23  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  650:23  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  661:33  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  665:27  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  675:30  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  680:87  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  691:88  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  696:33  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  711:33  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  736:89  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  741:34  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\workspace\PragmaWorks\mcp\chronicle\src\services\sync.ts
+  287:10  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  314:10  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  320:10  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  360:10  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  365:10  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  402:38  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  423:38  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  452:33  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+✖ 32 problems (0 errors, 32 warnings)
+
+

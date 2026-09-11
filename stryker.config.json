@@ -29,11 +29,11 @@
   ],
   "thresholds": {
     "high": 65,
-    "low": 24,
-    "break": 24
+    "low": 25,
+    "break": 25
   },
   "timeoutMS": 20000,
   "concurrency": 4,
   "ignoreStatic": true,
-  "_thresholds_comment": "RATCHET, not the target. break=24 is the floor measured on 2026-09-10 after the v0.4.0 merge (MSI 24.19%); it was 20.67% before the merge and 9.14% at the first run ever. The TARGET is 65% overall and 70% on changed code (.claude/standards/testing.md) — raise `break` toward it as tests land, and NEVER lower it. A threshold nobody can pass is a disabled gate; a floor at the measured value blocks regressions from today forward, which is what a ratchet is. Biggest remaining block: src/mcp/server.ts, the largest single share of mutants with no unit coverage — deliberately still mutated, because the session-end defect found by scripts/smoke-mcp.mjs lived exactly there."
+  "_thresholds_comment": "RATCHET, not the target. break=25 is the floor measured on 2026-09-10 after the cloud-verification fixes (MSI 25.37%); it was 24.19% after the v0.4.0 merge, 20.67% before it, and 9.14% at the first run ever. The TARGET is 65% overall and 70% on changed code (.claude/standards/testing.md) — raise `break` toward it as tests land, and NEVER lower it. A threshold nobody can pass is a disabled gate; a floor at the measured value blocks regressions from today forward, which is what a ratchet is. Biggest remaining block: src/mcp/server.ts, the largest single share of mutants with no unit coverage — deliberately still mutated, because the session-end defect found by scripts/smoke-mcp.mjs lived exactly there."
 }

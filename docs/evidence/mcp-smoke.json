@@ -1,13 +1,13 @@
 {
-  "ran_at": "2026-09-11T02:10:43.069Z",
+  "ran_at": "2026-09-11T03:02:34.036Z",
   "command": "node scripts/smoke-mcp.mjs",
   "node": "v24.18.0",
   "platform": "win32-x64",
   "server": "dist/cli.js",
   "chronicle_home": "throwaway temp directory (CHRONICLE_HOME) — the real ~/.chronicle is untouched",
   "handshake_ms": {
-    "instanceA": 260,
-    "instanceB": 227
+    "instanceA": 244,
+    "instanceB": 229
   },
   "passed": 12,
   "failed": 0,
@@ -15,7 +15,7 @@
     {
       "name": "UC-008 server starts over stdio with no configuration",
       "ok": true,
-      "detail": "connect+handshake 260ms"
+      "detail": "connect+handshake 244ms"
     },
     {
       "name": "ADR-011 exactly 4 tools are registered",
@@ -30,7 +30,7 @@
     {
       "name": "UC-001 step 1 remember succeeds",
       "ok": true,
-      "detail": "{\"id\":\"mem_2f71b89f-3b46-4659-a2d2-3ce92b1c8e52\",\"tier\":\"working\",\"weight\":0.5}"
+      "detail": "{\"id\":\"mem_f1436b35-6307-445c-8d00-373e23a67790\",\"tier\":\"working\",\"weight\":0.5}"
     },
     {
       "name": "UC-001 semantic memory lands in the working tier (not buffer)",
@@ -55,12 +55,12 @@
     {
       "name": "F7 session start returns context",
       "ok": true,
-      "detail": "{\"id\":\"sess_4724023e-82df-4226-a650-24eb89bd7130\",\"project\":\"chronicle-smoke\",\"status\":\"active\",\"sta"
+      "detail": "{\"id\":\"sess_9a7473c1-3ebe-4ccd-8d66-8a5ac7dc3bbb\",\"project\":\"chronicle-smoke\",\"status\":\"active\",\"sta"
     },
     {
       "name": "F7 session end applies decay and promotion",
       "ok": true,
-      "detail": "{\"id\":\"sess_4724023e-82df-4226-a650-24eb89bd7130\",\"status\":\"ended\",\"endedAt\":\"2026-09-11T02:10:43.02"
+      "detail": "{\"id\":\"sess_9a7473c1-3ebe-4ccd-8d66-8a5ac7dc3bbb\",\"status\":\"ended\",\"endedAt\":\"2026-09-11T03:02:34.00"
     },
     {
       "name": "ADR-010 axon answers without a team configured instead of throwing",

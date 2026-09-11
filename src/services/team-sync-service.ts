@@ -13,6 +13,7 @@ import type { PromptLogService } from './prompt-log-service.js';
 import type { TeamInsight, TeamInsightType } from '../domain/entities/team-insight.js';
 import type { TeamPattern } from '../domain/entities/team-pattern.js';
 import { StorageError } from '../shared/exceptions/index.js';
+import { toIsoString, toTagsJson } from '../shared/time.js';
 
 /** Confidence assigned to a freshly curated team insight. */
 const CURATED_INSIGHT_BASE_CONFIDENCE = 0.6;
@@ -181,7 +182,7 @@ export class TeamSyncService {
           insightType: ri['insight_type'] as TeamInsight['insightType'],
           content: ri['content'] as string, confidence: ri['confidence'] as number,
           sourceCount: ri['source_count'] as number, version: ri['version'] as number,
-          updatedAt: ri['updated_at'] as string,
+          updatedAt: toIsoString(ri['updated_at']),
         });
       }
 
@@ -196,13 +197,15 @@ export class TeamSyncService {
         LIMIT 200
       `;
       for (const rs of remoteShared) {
-        const tags = Array.isArray(rs['tags']) ? (rs['tags'] as string[]) : [];
+        // `text[]` arrives as a JS array and `timestamptz` as a JS Date; neither binds to
+        // SQLite. Normalising here is what fixed `team sync` against the real Postgres.
+        const tags = JSON.parse(toTagsJson(rs['tags'])) as string[];
         this.teamRepo.upsertSharedCache({
           id: rs['id'] as string, userId: rs['user_id'] as string,
           teamId: rs['team_id'] as string, project: rs['project'] as string | undefined,
           content: rs['content'] as string, memoryType: rs['memory_type'] as string,
           tags: Object.freeze(tags), category: rs['category'] as string | undefined,
-          sharedAt: rs['shared_at'] as string, updatedAt: rs['updated_at'] as string,
+          sharedAt: toIsoString(rs['shared_at']), updatedAt: toIsoString(rs['updated_at']),
         });
       }
 
@@ -220,7 +223,7 @@ export class TeamSyncService {
           patternType: rp['pattern_type'] as TeamPattern['patternType'],
           metric: rp['metric'] as string, value: rp['value'] as number,
           period: rp['period'] as TeamPattern['period'],
-          computedAt: rp['computed_at'] as string,
+          computedAt: toIsoString(rp['computed_at']),
         });
       }
 

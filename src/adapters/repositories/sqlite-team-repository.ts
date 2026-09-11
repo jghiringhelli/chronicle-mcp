@@ -120,14 +120,37 @@ export class SqliteTeamRepository implements TeamRepository {
    * @param limit - Max results
    * @returns Matching shared memories
    */
+  /**
+   * Search the team's shared cache.
+   *
+   * Word-wise, ORed across content and tags — the same shape core `recall` uses (EDR-002), and
+   * deliberately so. It previously bound the whole query as ONE `LIKE '%the entire string%'`, which
+   * made it a **phrase** match: a teammate's memory reading "GS Audit Report completed for
+   * SafetyCore Pro" was unfindable by "GS audit SafetyCore" because that exact substring does not
+   * occur. Found by running the real pull against the real mirror — the row was cached and still
+   * invisible.
+   *
+   * Matching is lexical and ranking is recency, not relevance: a row matching one word of five
+   * ranks the same as one matching all five. Same limitation as core recall (ADR-014).
+   *
+   * @param teamId - Team whose pool to search
+   * @param query - Whitespace-separated words; an empty query matches everything in the team
+   * @param project - Optional project filter
+   * @param limit - Maximum rows
+   */
   searchSharedCache(teamId: string, query: string, project?: string, limit = 20): SharedCacheEntry[] {
     try {
-      const params: unknown[] = [`%${query}%`, `%${query}%`, teamId];
-      let sql = `
-        SELECT * FROM team_shared_cache
-        WHERE (content LIKE ? OR tags LIKE ?) AND team_id = ?
-      `;
+      const words = query.trim().split(/\s+/).filter(Boolean);
+      const params: unknown[] = [];
+      let sql = 'SELECT * FROM team_shared_cache WHERE team_id = ?';
+      params.push(teamId);
+
+      if (words.length > 0) {
+        sql += ' AND (' + words.map(() => '(content LIKE ? OR tags LIKE ?)').join(' OR ') + ')';
+        for (const word of words) params.push(`%${word}%`, `%${word}%`);
+      }
       if (project) { sql += ' AND project = ?'; params.push(project); }
+
       sql += ' ORDER BY updated_at DESC LIMIT ?';
       params.push(limit);
       return (this.db.prepare(sql).all(...params) as SharedCacheRow[]).map(rowToSharedCache);

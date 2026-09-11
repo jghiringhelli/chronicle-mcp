@@ -21,6 +21,7 @@ import { getConfig } from '../shared/config/index.js';
 import { SyncError } from '../shared/exceptions/index.js';
 import { getDatabase } from '../infrastructure/db/database.js';
 import { TEAM_SCHEMA_SQL } from '../infrastructure/db/team-schema.js';
+import { toIsoString, toTagsJson } from '../shared/time.js';
 
 export interface SyncResult {
   pushed: number;
@@ -115,9 +116,13 @@ export async function syncMemories(): Promise<SyncResult> {
     for (const rm of remote) {
       const existing = db.prepare(`SELECT last_accessed_at FROM memories WHERE id = ?`)
         .get(rm['id'] as string) as { last_accessed_at: string } | undefined;
-      if (existing && existing.last_accessed_at >= (rm['last_accessed_at'] as string)) continue;
+      // Normalise BEFORE comparing: the driver returns a Date, and `'2026-09-10T…' >= Date`
+      // coerces the Date to a locale string, so the conflict policy was comparing two different
+      // formats (EDR-003 invariant 4).
+      const remoteLastAccessed = toIsoString(rm['last_accessed_at']);
+      if (existing && existing.last_accessed_at >= remoteLastAccessed) continue;
 
-      const tags = Array.isArray(rm['tags']) ? JSON.stringify(rm['tags']) : '[]';
+      const tags = toTagsJson(rm['tags']);
       db.prepare(`
         INSERT OR REPLACE INTO memories
           (id, content, memory_type, tier, weight, decay_rate, access_count,
@@ -127,7 +132,7 @@ export async function syncMemories(): Promise<SyncResult> {
       `).run(
         rm['id'], rm['content'], rm['memory_type'], rm['tier'],
         rm['weight'], rm['decay_rate'], rm['access_count'],
-        rm['created_at'], rm['last_accessed_at'], rm['project'],
+        toIsoString(rm['created_at']), remoteLastAccessed, rm['project'],
         rm['category'], tags, rm['source'], rm['confirmed'] ? 1 : 0,
         rm['source_device'], new Date().toISOString()
       );
@@ -203,7 +208,7 @@ export async function syncInsights(): Promise<SyncResult> {
         INSERT OR REPLACE INTO insights (id, insight_type, project, content, confidence, source_count, version, updated_at)
         VALUES (?,?,?,?,?,?,?,?)
       `).run(ri['id'], ri['insight_type'], ri['project'], ri['content'],
-             ri['confidence'], ri['source_count'], ri['version'], ri['updated_at']);
+             ri['confidence'], ri['source_count'], ri['version'], toIsoString(ri['updated_at']));
       pulled++;
     }
 
@@ -414,7 +419,7 @@ export async function syncCoordination(project?: string): Promise<SyncResult> {
       `).run(
         rc.id, rc.project, rc.name, rc.email ?? null,
         JSON.stringify(rc.skills ?? []), rc.role, rc.bandwidth_hours_per_week,
-        rc.availability, rc.last_active_at, rc.created_at,
+        rc.availability, toIsoString(rc.last_active_at), toIsoString(rc.created_at),
       );
       pulled++;
     }
@@ -442,8 +447,8 @@ export async function syncCoordination(project?: string): Promise<SyncResult> {
         rp.branch_name ?? null, rp.forgecraft_score ?? null,
         rp.forgecraft_tier ?? null,
         rp.forgecraft_pass != null ? (rp.forgecraft_pass ? 1 : 0) : null,
-        rp.assigned_to ?? null, rp.assigned_at ?? null,
-        rp.completed_at ?? null, rp.created_at,
+        rp.assigned_to ?? null, rp.assigned_at ? toIsoString(rp.assigned_at) : null,
+        rp.completed_at ? toIsoString(rp.completed_at) : null, toIsoString(rp.created_at),
       );
       pulled++;
     }

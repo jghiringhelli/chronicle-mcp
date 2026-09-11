@@ -1,6 +1,6 @@
 ﻿command: node node_modules/tsup/dist/cli-default.js
 exit code: 0
-run: 2026-09-10T21:08:23.2536596-05:00
+run: 2026-09-10T22:02:33.2424760-05:00
 node: v24.18.0
 
 CLI Building entry: src/cli.ts, src/index.ts
@@ -10,13 +10,13 @@ CLI Using tsup config: C:\workspace\PragmaWorks\mcp\chronicle\tsup.config.ts
 CLI Target: node20
 CLI Cleaning output folder
 ESM Build start
-ESM dist\index.js     143.18 KB
-ESM dist\cli.js       172.07 KB
-ESM dist\index.js.map 293.41 KB
-ESM dist\cli.js.map   317.71 KB
+ESM dist\cli.js       175.22 KB
+ESM dist\index.js     146.05 KB
+ESM dist\cli.js.map   324.73 KB
+ESM dist\index.js.map 300.35 KB
 ESM ⚡️ Build success in 31ms
 DTS Build start
-DTS ⚡️ Build success in 1538ms
+DTS ⚡️ Build success in 1492ms
 DTS dist\cli.d.ts   20.00 B
-DTS dist\index.d.ts 39.87 KB
+DTS dist\index.d.ts 40.56 KB
 

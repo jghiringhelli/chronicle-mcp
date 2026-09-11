@@ -15,7 +15,7 @@ export default defineConfig({
       // once evaluated). The TARGET is 80% (.claude/standards/testing.md): raise
       // this toward it as tests land, and never lower it. A threshold nobody can pass is a
       // disabled gate; a floor at the measured value blocks regressions from today forward.
-      thresholds: { lines: 42 },
+      thresholds: { lines: 43 },
     },
   },
 });

@@ -1,0 +1,67 @@
+{
+  "ran_at": "2026-09-11T02:58:56.662Z",
+  "command": "node scripts/verify-team-cloud.mjs",
+  "node": "v24.18.0",
+  "target": "crossover.proxy.rlwy.net:28455/railway",
+  "team": "argoscode",
+  "members": [
+    {
+      "user_id": "jghiringhelli",
+      "role": "owner"
+    },
+    {
+      "user_id": "gabo",
+      "role": "member"
+    }
+  ],
+  "mode": "read-only",
+  "passed": 9,
+  "failed": 0,
+  "results": [
+    {
+      "name": "the licence gate accepts a real token from the mirror",
+      "ok": true,
+      "detail": "server started with teamId + teamToken configured"
+    },
+    {
+      "name": "team members lists the real roster",
+      "ok": true,
+      "detail": "[{\"userId\":\"jghiringhelli\",\"role\":\"owner\",\"joinedAt\":\"2026-05-26T14:29:53.622Z\"},{\"userId\":\"gabo\",\"role\":\"member\",\"joinedAt\":\"2026"
+    },
+    {
+      "name": "team recall on a fresh store is empty before any pull",
+      "ok": true,
+      "detail": "{\"sharedMemories\":[],\"teamInsights\":[]}"
+    },
+    {
+      "name": "team sync pulls from the mirror",
+      "ok": true,
+      "detail": "{\"sharedMemoriesPushed\":0,\"promptLogsPushed\":0,\"insightsPulled\":0,\"sharedMemoriesPulled\":1,\"patternsPulled\":0,\"skipped\":false,\"mes"
+    },
+    {
+      "name": "the pull wrote nothing into the shared pool",
+      "ok": true,
+      "detail": "team_shared_memories 1 -> 1, prompt_logs 1 -> 1"
+    },
+    {
+      "name": "a teammate's shared memory is recallable after the pull",
+      "ok": true,
+      "detail": "{\"sharedMemories\":[{\"id\":\"mem_c9f93a6a-2bd3-4cbf-bcd6-463a4eef88b8\",\"userId\":\"gabo\",\"teamId\":\"argoscode\",\"project\":\"SafetyCore\",\"c"
+    },
+    {
+      "name": "team insights answers",
+      "ok": true,
+      "detail": "[]"
+    },
+    {
+      "name": "team stats answers for the team scope",
+      "ok": true,
+      "detail": "{\"teamId\":\"argoscode\",\"totalSharedMemories\":1,\"memberPatterns\":[{\"userId\":\"gabo\",\"contribution\":1}],\"topCategories\":[],\"insights\":"
+    },
+    {
+      "name": "team stats answers for the personal scope",
+      "ok": true,
+      "detail": "{\"userId\":\"jghiringhelli\",\"teamId\":\"argoscode\",\"totalLogged\":0,\"byOutcome\":{},\"byCategory\":{},\"sharedMemoriesCount\":0,\"goodRate\":0"
+    }
+  ]
+}

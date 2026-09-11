@@ -51,6 +51,9 @@ When the user says *"don't do that"* about a pattern produced here, append a lin
   `Session not found: ` on an empty id. One run of `scripts/smoke-mcp.mjs` did.
 - `[2026-09-10]` — Do not retype uncovered code to satisfy a new lint rule. Characterise it with
   tests first, then type it. A scoped, expiring waiver is the correct interim (exc-009).
+- `[2026-09-10]` — An error that cannot say why it failed is an error nobody can act on.
+  `StorageError` stashed its cause in `context` and nothing printed it, so a real cloud failure
+  reached the user as `Error: Team sync failed`. The cause now goes in the message.
 - `[2026-09-10]` — A test that writes to the real store is a test nobody runs twice. Point
   `CHRONICLE_HOME` at a temp directory for any run that touches a database. The first
   `scripts/smoke-mcp.mjs` left rows in `~/.chronicle/chronicle.db`, which also meant its
@@ -92,6 +95,30 @@ failed in a way that reads exactly like a code bug.
 
 **How to tell which kind a package is:** `ls node_modules/<pkg>/prebuilds`. Names like
 `win32-x64.node` are NAPI; names like `better_sqlite3-v11.10.0-node-v137-win32-x64` are per-ABI.
+
+### A test double that is more convenient than reality tests the double
+
+**What goes wrong.** `postgres.js` maps a `timestamptz` column to a JavaScript **`Date`**, and a
+`text[]` column to a JavaScript **array**. The cloud pull cast both `as string` — a cast the
+compiler accepts and reality does not — and better-sqlite3 refused the bind with *"SQLite3 can only
+bind numbers, strings, bigints, buffers, and null"*. `team sync` failed against the real Railway
+database while all 168 unit tests passed, because the suite's fake `sql` client hands back strings.
+
+The second bug in the same path was invisible for the same reason: `searchSharedCache` bound the
+whole query as ONE `LIKE '%entire string%'`, so a teammate's memory was pulled into the local cache
+and still unfindable — "GS audit SafetyCore" does not occur as a contiguous substring of
+"GS Audit Report completed for SafetyCore Pro".
+
+- **Wrong:** `row['shared_at'] as string` on a Postgres row. A cast is an assertion, not a conversion.
+- **Wrong:** a fake client that returns the shapes your code *wants*. It verifies your assumptions
+  against themselves.
+- **Right:** normalise at the boundary — `toIsoString` / `toTagsJson` in `src/shared/time.ts` — and
+  verify the path against the real engine at least once (`scripts/verify-team-cloud.mjs`). Unit tests
+  with a double are still worth having; they are not evidence that the integration works.
+
+**The general rule:** for anything that crosses a driver boundary, ask what JavaScript type the
+driver actually returns, and check it rather than assert it.
+`node scripts/inspect-cloud-db.mjs` prints those types, and flags the ones SQLite cannot bind.
 
 ### An unrendered template placeholder in a shell script silently disables the gate
 

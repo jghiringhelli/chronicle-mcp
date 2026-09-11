@@ -1,19 +1,7 @@
 ﻿command: node scripts/check-dependency-policy.mjs
-exit code: 1
-run: 2026-09-10T16:53:23.3721895-05:00
+exit code: 0
+run: 2026-09-10T21:08:23.3197485-05:00
 node: v24.18.0
-platform: win32-x64
 
-node : dependency-policy: VIOLATIONS
-At line:1 char:1
-+ node scripts/check-dependency-policy.mjs
-+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    + CategoryInfo          : NotSpecified: (dependency-policy: VIOLATIONS:String) [], RemoteException
-    + FullyQualifiedErrorId : NativeCommandError
- 
-
-  rule 7: engines.node ">=20" is open-ended: better-sqlite3 publishes prebuilds per Node ABI, so an open range promises support that does not exist (see 
-.claude/ledger.md)
-
-1 violation(s). See docs/dependency-policy.md.
+dependency-policy: ok
 

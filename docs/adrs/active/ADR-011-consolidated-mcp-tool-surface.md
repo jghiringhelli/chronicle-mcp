@@ -8,7 +8,14 @@ obligations: 5
 depends_on: [ADR-010]
 ---
 
-# ADR-011: Expose three action-dispatching MCP tools, not twenty flat ones
+# ADR-011: Expose a few action-dispatching MCP tools, not twenty flat ones
+
+> **Amended 2026-09-10 by the v0.4.0 merge: the surface is now FOUR tools, not three.**
+> `team` was added by @docs/adrs/active/ADR-002-fold-team-into-core.md — a separate actor (a
+> licensed team, gated on `teamToken`) with its own lifecycle, which is the one justification §1
+> below allows. The rule is unchanged and still binding: a fifth root tool needs its own ADR.
+> `scripts/smoke-mcp.mjs` asserts the count against the live server, and it is what caught this
+> document contradicting the code within minutes of the merge.
 
 **Date:** 2026-09-10 (recorded retroactively — shipped in v0.3.0)
 **Status:** Accepted
@@ -43,9 +50,13 @@ Register exactly **three** tools, each dispatching on an `action` argument:
 | `chronicle` | `remember` `recall` `forget` `trigger` `check` `pref` `prefs` `stats` `decay` | memory, triggers, preferences |
 | `session` | session lifecycle | session continuity |
 | `axon` | `contributor_add` `spec_sync` `milestone_add` `decompose` `assign` `complete` `request_merge` `resolve_merge` `merges` `status` `queue` | team coordination (ADR-010) |
+| `team` | `join` `share` `promote` `recall` `log` `insights` `stats` `sync` `members` `assign_role` `curate_insight` `mint_token` | shared team knowledge, licence-gated (ADR-002) |
 
 1. A new capability MUST be added as an action on an existing tool unless it introduces a
-   genuinely new actor — adding a fourth root tool requires an ADR superseding this one.
+   genuinely new actor. Adding a root tool requires its own ADR — `team` met that bar (ADR-002):
+   its actor is a licensed team rather than the local developer, and it is inert without a
+   `teamToken`, so bundling it into `chronicle` would hand every single-user install a surface it
+   can never call.
 2. Each tool's description MUST be agent-instructive: it tells the agent *when* to call the
    action, not merely what it does. The description is the only specification the host reads.
 3. Action names MUST be stable. They are a public surface under

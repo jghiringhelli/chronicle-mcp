@@ -1,7 +1,7 @@
 {
   "name": "chronicle-mcp",
-  "version": "0.3.2",
-  "description": "Cross-project AI memory MCP server with six cognitive memory types and agent-instructive tool descriptions",
+  "version": "0.4.0",
+  "description": "Cross-project AI memory MCP server with six cognitive memory types, a team knowledge layer, and agent-instructive tool descriptions",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
@@ -38,7 +38,9 @@
     "dist",
     "README.md",
     "CHANGELOG.md",
-    "server.json"
+    "server.json",
+    "LICENSE",
+    "COMMERCIAL-LICENSE.md"
   ],
   "keywords": [
     "mcp",
@@ -49,7 +51,7 @@
     "cursor"
   ],
   "author": "Juan Carlos Ghiringhelli",
-  "license": "MIT",
+  "license": "SEE LICENSE IN LICENSE",
   "homepage": "https://github.com/jghiringhelli/chronicle-mcp#readme",
   "repository": {
     "type": "git",
@@ -58,11 +60,12 @@
   "bugs": {
     "url": "https://github.com/jghiringhelli/chronicle-mcp/issues"
   },
+  "packageManager": "pnpm@10.15.0",
   "engines": {
     "node": ">=20"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.0.0",
+    "@modelcontextprotocol/sdk": "^1.30.0",
     "better-sqlite3": "^13.0.3",
     "postgres": "^3.4.9",
     "zod": "^4.0.0"
@@ -83,5 +86,21 @@
     "typescript-eslint": "^8.0.0",
     "vitest": "^2.0.0"
   },
-  "packageManager": "pnpm@10.15.0"
+  "pnpm": {
+    "auditConfig": {
+      "_comment": "Accepted advisories, each recorded in ADR-017. This is an allowlist, not a disabled gate: `pnpm audit --prod --audit-level=high` still fails on any advisory not listed here. Every entry is transitive through @modelcontextprotocol/sdk and unfixable from this repository — the SDK bundles express, hono and ajv for its HTTP transports. Re-check on every SDK bump and delete the ids that clear.",
+      "ignoreGhsas": [
+        "GHSA-j3q9-mxjg-w52f",
+        "GHSA-88fw-hqm2-52qc",
+        "GHSA-v2hh-gcrm-f6hx",
+        "GHSA-7p8r-x3mc-p8w7",
+        "GHSA-mwp4-54f8-5fhr",
+        "GHSA-q3j6-qgpj-74h6",
+        "GHSA-v39h-62p7-jpjc",
+        "GHSA-f65p-4m7j-42xc",
+        "GHSA-jqff-g426-hqxp",
+        "GHSA-4c8g-83qw-93j6"
+      ]
+    }
+  }
 }

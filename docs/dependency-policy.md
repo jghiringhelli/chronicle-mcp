@@ -23,8 +23,14 @@ depends_on: [ADR-001]
 
 ## Normative rules
 
-1. `pnpm audit --prod --audit-level=high` MUST report zero HIGH or CRITICAL advisories.
-   A HIGH advisory blocks the build; it is not triaged into a backlog.
+1. `pnpm audit --prod --audit-level=high` MUST report zero **unignored** HIGH or CRITICAL
+   advisories. A new HIGH blocks the build; it is not triaged into a backlog.
+   The only accepted exceptions are the ids listed in `package.json` →
+   `pnpm.auditConfig.ignoreGhsas`, every one of which MUST be (a) transitive through a dependency
+   this project cannot replace, (b) annotated with its path, and (c) recorded in an ADR. Today that
+   is ten advisories reached through `@modelcontextprotocol/sdk` (ADR-017).
+   **An allowlist that only grows is a blindfold:** every SDK bump MUST re-run the audit and delete
+   the ids that have cleared.
 2. Every runtime dependency MUST appear in the Approved Runtime table below. Adding one
    requires adding its row — name, why, what it replaces — in the same commit.
 3. Nothing in the Forbidden table may be introduced, at any version.
@@ -66,6 +72,17 @@ depends_on: [ADR-001]
 **Note on `postgres`.** It is carried by every install and executed by almost none
 (ADR-010, Consequences). If the cloud mirror stays rare, move it to an optional
 peer dependency — tracked as a treatment item, not a rule.
+
+**`fastembed` is deliberately NOT here.** It was an `optionalDependency`, which installs by default
+and brought nine `tar` advisories (one critical) into every consumer's tree for a promote-time
+de-duplication nicety. Removed in ADR-017. Semantic de-duplication remains available opt-in:
+
+```bash
+pnpm add fastembed      # then `team promote` de-duplicates semantically instead of lexically
+```
+
+`FastEmbedGateway` dynamic-imports it and `available()` returns false when it is absent, so nothing
+breaks either way. The optional module is typed by `src/types/fastembed.d.ts`.
 
 ## Approved development dependencies
 

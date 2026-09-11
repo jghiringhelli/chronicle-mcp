@@ -99,7 +99,7 @@ pushes. **Sync happens only here** — never inside a recall path (ADR-010 §4).
 
 ### MCP surface
 
-Three registered tools dispatching on `action` (ADR-011). The tool name, the action names, and
+Four registered tools dispatching on `action` (ADR-011, amended by ADR-002 for `team`). The tool name, the action names, and
 the argument names are a **public surface**: changing one is a breaking change requiring the
 public-surface diff in `.claude/standards/api.md`.
 
@@ -108,6 +108,7 @@ public-surface diff in `.claude/standards/api.md`.
 | `chronicle` | `remember` `recall` `forget` `trigger` `check` `pref` `prefs` `stats` `decay` |
 | `session` | `start` `end` `recover` |
 | `axon` | `contributor_add` `spec_sync` `milestone_add` `decompose` `assign` `complete` `request_merge` `resolve_merge` `merges` `status` `queue` |
+| `team` | `join` `share` `promote` `recall` `log` `insights` `stats` `sync` `members` `assign_role` `curate_insight` `mint_token` |
 
 Arguments are validated by `zod` schemas at the tool boundary. Because dispatch is on a string,
 an unknown `action` fails in the handler rather than at schema validation — the handler MUST

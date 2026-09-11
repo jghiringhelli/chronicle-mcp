@@ -1,12 +1,12 @@
 {
-  "ran_at": "2026-09-10T22:07:16.806Z",
+  "ran_at": "2026-09-11T02:03:24.327Z",
   "command": "node scripts/smoke-mcp.mjs",
   "node": "v24.18.0",
   "platform": "win32-x64",
   "server": "dist/cli.js",
   "handshake_ms": {
-    "instanceA": 245,
-    "instanceB": 209
+    "instanceA": 884,
+    "instanceB": 617
   },
   "passed": 12,
   "failed": 0,
@@ -14,12 +14,12 @@
     {
       "name": "UC-008 server starts over stdio with no configuration",
       "ok": true,
-      "detail": "connect+handshake 245ms"
+      "detail": "connect+handshake 884ms"
     },
     {
-      "name": "ADR-011 exactly three tools are registered",
+      "name": "ADR-011 exactly 4 tools are registered",
       "ok": true,
-      "detail": "axon, chronicle, session"
+      "detail": "axon, chronicle, session, team"
     },
     {
       "name": "ADR-011 chronicle dispatches on an action enum",
@@ -29,7 +29,7 @@
     {
       "name": "UC-001 step 1 remember succeeds",
       "ok": true,
-      "detail": "{\"id\":\"mem_3e991138-ce43-4157-8d9e-72ad05ce8913\",\"tier\":\"working\",\"weight\":0.5}"
+      "detail": "{\"id\":\"mem_54b1d567-7736-4b30-aebe-ab4b6232fef8\",\"tier\":\"working\",\"weight\":0.5}"
     },
     {
       "name": "UC-001 semantic memory lands in the working tier (not buffer)",
@@ -54,12 +54,12 @@
     {
       "name": "F7 session start returns context",
       "ok": true,
-      "detail": "{\"id\":\"sess_b5bd4ab1-1c80-41a1-8d17-7a75785b3005\",\"project\":\"chronicle-smoke\",\"status\":\"active\",\"sta"
+      "detail": "{\"id\":\"sess_53f65431-2e5e-4f53-a3a7-5a18c057f222\",\"project\":\"chronicle-smoke\",\"status\":\"active\",\"sta"
     },
     {
       "name": "F7 session end applies decay and promotion",
       "ok": true,
-      "detail": "{\"id\":\"sess_b5bd4ab1-1c80-41a1-8d17-7a75785b3005\",\"status\":\"ended\",\"endedAt\":\"2026-09-10T22:07:16.77"
+      "detail": "{\"id\":\"sess_53f65431-2e5e-4f53-a3a7-5a18c057f222\",\"status\":\"ended\",\"endedAt\":\"2026-09-11T02:03:24.26"
     },
     {
       "name": "ADR-010 axon answers without a team configured instead of throwing",

@@ -59,11 +59,17 @@ async function main() {
   record('UC-008 server starts over stdio with no configuration', true,
     `connect+handshake ${a.startMs}ms`);
 
-  // ── ADR-011: the surface is three action-dispatching tools, not twenty flat ones ─────────
+  // ── ADR-011: a small action-dispatching surface, not twenty flat tools ───────────────────
+  //
+  // Four since the v0.4.0 merge added `team` (ADR-002). The assertion is exact on purpose: every
+  // registered tool costs its whole JSON schema in the host's context on every turn, so the count
+  // is a budget. A fifth tool appearing here without an ADR is the drift this catches — and it did
+  // catch it, within minutes of the merge, when ADR-011 still said "three".
+  const EXPECTED_TOOLS = ['axon', 'chronicle', 'session', 'team'];
   const { tools } = await a.client.listTools();
   const names = tools.map((t) => t.name).sort();
-  record('ADR-011 exactly three tools are registered',
-    names.length === 3 && ['axon', 'chronicle', 'session'].every((n) => names.includes(n)),
+  record(`ADR-011 exactly ${EXPECTED_TOOLS.length} tools are registered`,
+    names.length === EXPECTED_TOOLS.length && EXPECTED_TOOLS.every((n) => names.includes(n)),
     names.join(', '));
 
   const chronicleTool = tools.find((t) => t.name === 'chronicle');

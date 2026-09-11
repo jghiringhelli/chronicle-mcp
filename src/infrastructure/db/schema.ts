@@ -156,6 +156,69 @@ CREATE TABLE IF NOT EXISTS assignments (
   status TEXT NOT NULL DEFAULT 'active'
 );
 
+-- ── Team knowledge cache (Axon team layer) ──────────────────────────────────
+-- Local mirror of the team-shared knowledge that lives in Railway. Populated by
+-- TeamSyncService on pull; read by the team tool so recall works offline.
+
+CREATE TABLE IF NOT EXISTS team_shared_cache (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  team_id TEXT NOT NULL,
+  project TEXT,
+  content TEXT NOT NULL,
+  memory_type TEXT NOT NULL,
+  tags TEXT NOT NULL DEFAULT '[]',
+  category TEXT,
+  shared_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS team_insights_cache (
+  id TEXT PRIMARY KEY,
+  team_id TEXT NOT NULL,
+  project TEXT,
+  insight_type TEXT NOT NULL,
+  content TEXT NOT NULL,
+  confidence REAL NOT NULL DEFAULT 0.5,
+  source_count INTEGER NOT NULL DEFAULT 1,
+  version INTEGER NOT NULL DEFAULT 1,
+  updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS team_patterns_cache (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  team_id TEXT NOT NULL,
+  project TEXT,
+  pattern_type TEXT NOT NULL,
+  metric TEXT NOT NULL,
+  value REAL NOT NULL,
+  period TEXT NOT NULL DEFAULT 'monthly',
+  computed_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS prompt_log_buffer (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  team_id TEXT NOT NULL,
+  project TEXT,
+  pattern TEXT NOT NULL,
+  outcome TEXT NOT NULL DEFAULT 'neutral',
+  category TEXT NOT NULL DEFAULT 'general',
+  tags TEXT NOT NULL DEFAULT '[]',
+  share_content INTEGER NOT NULL DEFAULT 0,
+  raw_content TEXT,
+  logged_at TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'pending'
+);
+
+CREATE TABLE IF NOT EXISTS team_sync_cursor (
+  user_id TEXT NOT NULL,
+  team_id TEXT NOT NULL,
+  last_pull_at TEXT,
+  PRIMARY KEY (user_id, team_id)
+);
+
 CREATE INDEX IF NOT EXISTS idx_memories_type ON memories(memory_type);
 CREATE INDEX IF NOT EXISTS idx_memories_tier ON memories(tier);
 CREATE INDEX IF NOT EXISTS idx_memories_project ON memories(project);
@@ -168,4 +231,8 @@ CREATE INDEX IF NOT EXISTS idx_assignments_package ON assignments(work_package_i
 CREATE INDEX IF NOT EXISTS idx_work_packages_parent ON work_packages(parent_id);
 CREATE INDEX IF NOT EXISTS idx_merge_requests_project ON merge_requests(project);
 CREATE INDEX IF NOT EXISTS idx_merge_requests_status ON merge_requests(status);
+CREATE INDEX IF NOT EXISTS idx_team_shared_cache_team ON team_shared_cache(team_id);
+CREATE INDEX IF NOT EXISTS idx_team_shared_cache_project ON team_shared_cache(team_id, project);
+CREATE INDEX IF NOT EXISTS idx_team_insights_cache_team ON team_insights_cache(team_id);
+CREATE INDEX IF NOT EXISTS idx_prompt_log_buffer_status ON prompt_log_buffer(status);
 `;

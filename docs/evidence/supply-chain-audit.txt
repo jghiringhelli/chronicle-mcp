@@ -1,0 +1,8 @@
+﻿command: npx -y pnpm@10 audit --prod --audit-level=high
+exit code: 0
+run: 2026-09-10T21:08:31.8385088-05:00
+node: v24.18.0
+
+47 vulnerabilities found
+Severity: 3 low | 34 moderate | 10 high (10 ignored)
+

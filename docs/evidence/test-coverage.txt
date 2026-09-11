@@ -1,67 +1,80 @@
 ﻿command: node node_modules/vitest/vitest.mjs run --coverage
 exit code: 0
-run: 2026-09-10T16:52:52.9666986-05:00
+run: 2026-09-10T21:07:00.2305101-05:00
 node: v24.18.0
-platform: win32-x64
 
 
  RUN  v2.1.9 C:/workspace/PragmaWorks/mcp/chronicle
       Coverage enabled with v8
 
- ✓ tests/unit/domain/session.test.ts (7 tests) 4ms
- ✓ tests/unit/services/memory-service.test.ts (9 tests) 6ms
+ ✓ tests/unit/domain/session.test.ts (7 tests) 7ms
+ ✓ tests/unit/infrastructure/fastembed-gateway.test.ts (5 tests) 2ms
  ✓ tests/unit/domain/memory.test.ts (14 tests) 6ms
- ✓ tests/unit/services/sync.test.ts (15 tests) 30ms
- ✓ tests/unit/adapters/sqlite-memory-repository.test.ts (11 tests) 16ms
- ✓ tests/unit/services/session-service.test.ts (11 tests) 17ms
- ✓ tests/unit/services/coordination-service.test.ts (45 tests) 77ms
- ✓ tests/unit/infrastructure/database-concurrency.test.ts (7 tests) 76ms
+ ✓ tests/unit/services/memory-service.test.ts (9 tests) 6ms
+ ✓ tests/unit/services/team-promotion-service.test.ts (15 tests) 20ms
+ ✓ tests/unit/services/coordination-service.test.ts (45 tests) 111ms
+ ✓ tests/unit/adapters/sqlite-memory-repository.test.ts (11 tests) 23ms
+ ✓ tests/unit/services/pattern-service.test.ts (4 tests) 10ms
+ ✓ tests/unit/infrastructure/database-concurrency.test.ts (7 tests) 65ms
+ ✓ tests/unit/services/prompt-log-service.test.ts (4 tests) 12ms
+ ✓ tests/unit/services/team-service.test.ts (8 tests) 4ms
+ ✓ tests/unit/adapters/sqlite-team-repository.test.ts (13 tests) 21ms
+ ✓ tests/unit/services/sync.test.ts (15 tests) 27ms
+ ✓ tests/unit/services/session-service.test.ts (11 tests) 16ms
 
- Test Files  8 passed (8)
-      Tests  119 passed (119)
-   Start at  16:52:52
-   Duration  651ms (transform 308ms, setup 0ms, collect 580ms, tests 232ms, environment 1ms, prepare 941ms)
+ Test Files  14 passed (14)
+      Tests  168 passed (168)
+   Start at  21:06:57
+   Duration  2.56s (transform 10.17s, setup 0ms, collect 12.22s, tests 330ms, environment 2ms, prepare 1.74s)
 
  % Coverage report from v8
 -------------------|---------|----------|---------|---------|-------------------
 File               | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s 
 -------------------|---------|----------|---------|---------|-------------------
-All files          |   41.17 |     72.2 |   72.03 |   41.17 |                   
- ...s/repositories |   53.36 |    54.68 |   72.72 |   53.36 |                   
+All files          |   42.85 |       73 |   75.42 |   42.85 |                   
+ ...s/repositories |   62.78 |    60.36 |   82.92 |   62.78 |                   
   index.ts         |       0 |        0 |       0 |       0 | 1                 
   ...repository.ts |   74.05 |    52.17 |    90.9 |   74.05 | ...35-236,240-246 
   ...repository.ts |       0 |        0 |       0 |       0 | 1-138             
   ...repository.ts |   65.09 |    68.75 |   66.66 |   65.09 | ...37-138,142-150 
+  ...repository.ts |   82.01 |    68.08 |   94.73 |   82.01 | ...45-346,363-364 
  dashboard         |       0 |        0 |       0 |       0 |                   
   server.ts        |       0 |        0 |       0 |       0 | 1-494             
  domain            |   88.46 |        0 |       0 |   88.46 |                   
   index.ts         |       0 |        0 |       0 |       0 | 1-9               
   types.ts         |     100 |      100 |     100 |     100 |                   
- domain/entities   |   55.68 |    96.15 |   92.85 |   55.68 |                   
+ domain/entities   |   58.25 |    97.14 |      85 |   58.25 |                   
   decision.ts      |       0 |      100 |     100 |       0 | 65-76             
-  index.ts         |       0 |        0 |       0 |       0 | 1-12              
+  index.ts         |       0 |        0 |       0 |       0 | 1-16              
   memory.ts        |     100 |      100 |     100 |     100 |                   
   preference.ts    |       0 |      100 |     100 |       0 | 48-79             
+  prompt-log.ts    |     100 |      100 |     100 |     100 |                   
   session.ts       |     100 |      100 |     100 |     100 |                   
   solution.ts      |       0 |      100 |     100 |       0 | 49-75             
+  team-insight.ts  |       0 |        0 |       0 |       0 |                   
+  team-pattern.ts  |       0 |        0 |       0 |       0 |                   
+  team.ts          |      60 |      100 |   33.33 |      60 | 52-53,64-65       
   trigger.ts       |       0 |      100 |     100 |       0 | 43-65             
  infrastructure/db |   41.93 |      100 |   33.33 |   41.93 |                   
   database.ts      |   37.93 |      100 |   33.33 |   37.93 | 60-74,80-84       
   schema.ts        |     100 |      100 |     100 |     100 |                   
   team-schema.ts   |     100 |      100 |     100 |     100 |                   
- ...cture/gateways |   65.21 |      100 |   33.33 |   65.21 |                   
+ ...cture/gateways |   48.83 |      100 |   30.76 |   48.83 |                   
+  ...ed-gateway.ts |   42.85 |      100 |   28.57 |   42.85 | ...08-117,122-133 
   node-clock.ts    |   63.63 |      100 |   33.33 |   63.63 | 16-17,27-28       
   ...-generator.ts |   66.66 |      100 |   33.33 |   66.66 | 12-13,17-18       
  lib               |       0 |      100 |     100 |       0 |                   
   index.ts         |       0 |      100 |     100 |       0 | 49-126            
  mcp               |       0 |        0 |       0 |       0 |                   
-  server.ts        |       0 |        0 |       0 |       0 | 1-538             
+  server.ts        |       0 |        0 |       0 |       0 | 1-535             
+  team-gate.ts     |       0 |        0 |       0 |       0 | 1-50              
+  team-tools.ts    |       0 |        0 |       0 |       0 | 1-212             
  ports/gateways    |       0 |       75 |      75 |       0 |                   
   clock.ts         |       0 |        0 |       0 |       0 |                   
   ...ng-gateway.ts |       0 |        0 |       0 |       0 |                   
   id-generator.ts  |       0 |        0 |       0 |       0 |                   
   index.ts         |       0 |        0 |       0 |       0 | 1-9               
- ...s/repositories |       0 |    85.71 |   85.71 |       0 |                   
+ ...s/repositories |       0 |     87.5 |    87.5 |       0 |                   
   ...repository.ts |       0 |        0 |       0 |       0 |                   
   index.ts         |       0 |        0 |       0 |       0 | 1-12              
   ...repository.ts |       0 |        0 |       0 |       0 |                   
@@ -69,17 +82,25 @@ All files          |   41.17 |     72.2 |   72.03 |   41.17 |
   ...repository.ts |       0 |        0 |       0 |       0 |                   
   ...repository.ts |       0 |        0 |       0 |       0 |                   
   ...repository.ts |       0 |        0 |       0 |       0 |                   
- services          |   56.47 |    74.59 |   87.23 |   56.47 |                   
+  ...repository.ts |       0 |        0 |       0 |       0 |                   
+ services          |   53.37 |    74.16 |    89.7 |   53.37 |                   
   ...on-service.ts |   83.97 |    86.55 |   92.59 |   83.97 | ...05-607,658-661 
   distill.ts       |       0 |        0 |       0 |       0 | 1-118             
   ...ry-service.ts |      94 |    83.33 |     100 |      94 | 99-101            
+  ...rn-service.ts |      95 |    85.71 |     100 |      95 | 110-112           
   ...ce-service.ts |       0 |      100 |     100 |       0 | 10-63             
+  ...og-service.ts |   53.19 |    71.42 |     100 |   53.19 | 54-83             
   ...on-service.ts |     100 |      100 |     100 |     100 |                   
   sync.ts          |   27.96 |    35.71 |      60 |   27.96 | ...59-492,499-522 
+  ...on-service.ts |   96.49 |    81.63 |     100 |   96.49 | 160-161,181-182   
+  team-service.ts  |    28.7 |       40 |     100 |    28.7 | ...53-168,181-193 
+  ...nc-service.ts |       0 |        0 |       0 |       0 | 1-244             
   ...er-service.ts |       0 |        0 |       0 |       0 | 1-98              
  shared/config     |   11.76 |      100 |       0 |   11.76 |                   
   index.ts         |   11.76 |      100 |       0 |   11.76 | 29-39,49-85,95-99 
- shared/exceptions |   67.39 |      100 |   28.57 |   67.39 |                   
-  index.ts         |   67.39 |      100 |   28.57 |   67.39 | ...41,46-48,53-55 
+ shared/exceptions |   73.91 |      100 |   42.85 |   73.91 |                   
+  index.ts         |   73.91 |      100 |   42.85 |   73.91 | ...41,46-48,53-55 
+ types             |       0 |        0 |       0 |       0 |                   
+  fastembed.d.ts   |       0 |        0 |       0 |       0 |                   
 -------------------|---------|----------|---------|---------|-------------------
 

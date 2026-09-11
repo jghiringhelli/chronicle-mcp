@@ -204,7 +204,7 @@ Raw memories are distilled into three YAML artifacts (updated every 12h):
 ### The real MCP surface — read this before any F-section
 
 The feature sections below were authored against a flat surface of ~25 separately registered
-MCP tools. **That is not what ships.** ADR-011 consolidated the surface into **three** tools
+MCP tools. **That is not what ships.** ADR-011 consolidated the surface into **four** tools
 that dispatch on an `action` argument, because every registered tool carries its name,
 description and full JSON schema into the host agent's context on every turn:
 
@@ -212,7 +212,8 @@ description and full JSON schema into the host agent's context on every turn:
 |---|---|---|
 | `chronicle` | `remember` `recall` `forget` `trigger` `check` `pref` `prefs` `stats` `decay` | F1, F2, F3 |
 | `session` | `start` `end` `recover` | F7 |
-| `axon` | `contributor_add` `spec_sync` `milestone_add` `decompose` `assign` `complete` `request_merge` `resolve_merge` `merges` `status` `queue` | the team layer (ADR-010) |
+| `axon` | `contributor_add` `spec_sync` `milestone_add` `decompose` `assign` `complete` `request_merge` `resolve_merge` `merges` `status` `queue` | team coordination (ADR-010) |
+| `team` | `join` `share` `promote` `recall` `log` `insights` `stats` `sync` `members` `assign_role` `curate_insight` `mint_token` | shared team knowledge — **licence-gated**, inert without `teamToken` + `teamId` (ADR-002) |
 
 So `remember(...)` below is `chronicle(action: 'remember', ...)`. A function name in an
 F-section names a *capability*, never a registered tool. The action names are a public surface

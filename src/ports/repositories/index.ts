@@ -10,3 +10,4 @@ export * from './session-repository.js';
 export * from './solution-repository.js';
 export * from './preference-repository.js';
 export * from './decision-repository.js';
+export type { TeamRepository, SharedCacheEntry } from './team-repository.js';

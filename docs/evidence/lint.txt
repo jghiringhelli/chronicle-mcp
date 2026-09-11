@@ -1,9 +1,12 @@
 ﻿command: node node_modules/eslint/bin/eslint.js src tests
 exit code: 0
-run: 2026-09-10T16:52:50.8550931-05:00
+run: 2026-09-10T21:06:55.8610329-05:00
 node: v24.18.0
-platform: win32-x64
 
+
+C:\workspace\PragmaWorks\mcp\chronicle\src\infrastructure\gateways\fastembed-gateway.ts
+  96:17  warning  Forbidden non-null assertion  @typescript-eslint/no-non-null-assertion
+  97:17  warning  Forbidden non-null assertion  @typescript-eslint/no-non-null-assertion
 
 C:\workspace\PragmaWorks\mcp\chronicle\src\services\coordination-service.ts
   162:23  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
@@ -41,6 +44,21 @@ C:\workspace\PragmaWorks\mcp\chronicle\src\services\sync.ts
   423:38  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
   452:33  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
 
-✖ 32 problems (0 errors, 32 warnings)
+C:\workspace\PragmaWorks\mcp\chronicle\src\services\team-promotion-service.ts
+  118:20  warning  Forbidden non-null assertion  @typescript-eslint/no-non-null-assertion
+  126:32  warning  Forbidden non-null assertion  @typescript-eslint/no-non-null-assertion
+  193:21  warning  Forbidden non-null assertion  @typescript-eslint/no-non-null-assertion
+  193:66  warning  Forbidden non-null assertion  @typescript-eslint/no-non-null-assertion
+  194:53  warning  Forbidden non-null assertion  @typescript-eslint/no-non-null-assertion
+
+C:\workspace\PragmaWorks\mcp\chronicle\src\services\team-service.ts
+  188:20  warning  Forbidden non-null assertion  @typescript-eslint/no-non-null-assertion
+  188:39  warning  Forbidden non-null assertion  @typescript-eslint/no-non-null-assertion
+  188:65  warning  Forbidden non-null assertion  @typescript-eslint/no-non-null-assertion
+
+C:\workspace\PragmaWorks\mcp\chronicle\src\services\team-sync-service.ts
+  119:21  warning  Forbidden non-null assertion  @typescript-eslint/no-non-null-assertion
+
+✖ 43 problems (0 errors, 43 warnings)
 
 

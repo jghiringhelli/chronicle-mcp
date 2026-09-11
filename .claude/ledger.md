@@ -51,6 +51,14 @@ When the user says *"don't do that"* about a pattern produced here, append a lin
   `Session not found: ` on an empty id. One run of `scripts/smoke-mcp.mjs` did.
 - `[2026-09-10]` — Do not retype uncovered code to satisfy a new lint rule. Characterise it with
   tests first, then type it. A scoped, expiring waiver is the correct interim (exc-009).
+- `[2026-09-10]` — A test that writes to the real store is a test nobody runs twice. Point
+  `CHRONICLE_HOME` at a temp directory for any run that touches a database. The first
+  `scripts/smoke-mcp.mjs` left rows in `~/.chronicle/chronicle.db`, which also meant its
+  concurrency checks were racing whatever the real store happened to hold.
+- `[2026-09-10]` — "Optional dependency" does not mean "not installed". `optionalDependencies`
+  install by default; the flag only says "do not fail the install if it cannot be built". An
+  accepted risk premised on a package being absent is an accepted risk premised on nothing
+  (ADR-017 supersedes ADR-003 on exactly this).
 - `[2026-09-10]` — Prove a gate blocks by making it block. Committing a deliberate violation is the
   only evidence that a hook is wired; it is also how the four silently-disabled hook scripts below
   were found, after the hook had already been declared working.

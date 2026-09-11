@@ -1,12 +1,13 @@
 {
-  "ran_at": "2026-09-11T02:03:24.327Z",
+  "ran_at": "2026-09-11T02:10:43.069Z",
   "command": "node scripts/smoke-mcp.mjs",
   "node": "v24.18.0",
   "platform": "win32-x64",
   "server": "dist/cli.js",
+  "chronicle_home": "throwaway temp directory (CHRONICLE_HOME) — the real ~/.chronicle is untouched",
   "handshake_ms": {
-    "instanceA": 884,
-    "instanceB": 617
+    "instanceA": 260,
+    "instanceB": 227
   },
   "passed": 12,
   "failed": 0,
@@ -14,7 +15,7 @@
     {
       "name": "UC-008 server starts over stdio with no configuration",
       "ok": true,
-      "detail": "connect+handshake 884ms"
+      "detail": "connect+handshake 260ms"
     },
     {
       "name": "ADR-011 exactly 4 tools are registered",
@@ -29,7 +30,7 @@
     {
       "name": "UC-001 step 1 remember succeeds",
       "ok": true,
-      "detail": "{\"id\":\"mem_54b1d567-7736-4b30-aebe-ab4b6232fef8\",\"tier\":\"working\",\"weight\":0.5}"
+      "detail": "{\"id\":\"mem_2f71b89f-3b46-4659-a2d2-3ce92b1c8e52\",\"tier\":\"working\",\"weight\":0.5}"
     },
     {
       "name": "UC-001 semantic memory lands in the working tier (not buffer)",
@@ -54,12 +55,12 @@
     {
       "name": "F7 session start returns context",
       "ok": true,
-      "detail": "{\"id\":\"sess_53f65431-2e5e-4f53-a3a7-5a18c057f222\",\"project\":\"chronicle-smoke\",\"status\":\"active\",\"sta"
+      "detail": "{\"id\":\"sess_4724023e-82df-4226-a650-24eb89bd7130\",\"project\":\"chronicle-smoke\",\"status\":\"active\",\"sta"
     },
     {
       "name": "F7 session end applies decay and promotion",
       "ok": true,
-      "detail": "{\"id\":\"sess_53f65431-2e5e-4f53-a3a7-5a18c057f222\",\"status\":\"ended\",\"endedAt\":\"2026-09-11T02:03:24.26"
+      "detail": "{\"id\":\"sess_4724023e-82df-4226-a650-24eb89bd7130\",\"status\":\"ended\",\"endedAt\":\"2026-09-11T02:10:43.02"
     },
     {
       "name": "ADR-010 axon answers without a team configured instead of throwing",
@@ -67,7 +68,7 @@
       "detail": "{\"error\":\"Axon requires a Chronicle Team license. Add teamToken to ~/.chronicle/config.json. Generat"
     },
     {
-      "name": "cleanup removed the smoke-test memories",
+      "name": "forget removes a memory it wrote",
       "ok": true,
       "detail": "3 forgotten"
     }

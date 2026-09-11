@@ -11,8 +11,9 @@
 
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
-import { writeFileSync, mkdirSync, existsSync } from 'node:fs';
+import { writeFileSync, mkdirSync, existsSync, mkdtempSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
+import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = join(fileURLToPath(new URL('.', import.meta.url)), '..');
@@ -20,6 +21,18 @@ const SERVER = join(ROOT, 'dist', 'cli.js');
 const KEEP = process.argv.includes('--keep');
 const TAG = `smoke-${Date.now()}`;
 const PROJECT = 'chronicle-smoke';
+
+/**
+ * A throwaway store for the run, via CHRONICLE_HOME.
+ *
+ * The first version of this script wrote into the developer's real ~/.chronicle and left rows
+ * behind. A verification that pollutes the data it is verifying is one nobody runs twice — and it
+ * also meant the concurrency checks below were racing against whatever the real store held. Both
+ * spawned servers inherit this directory, so "two instances on one database" is still exactly what
+ * is tested, just not on the production one.
+ */
+const SMOKE_HOME = mkdtempSync(join(tmpdir(), 'chronicle-smoke-'));
+const cleanupHome = () => { if (!KEEP) rmSync(SMOKE_HOME, { recursive: true, force: true }); };
 
 if (!existsSync(SERVER)) {
   console.error(`dist/cli.js is absent — run the build first.\n  expected: ${SERVER}`);
@@ -38,6 +51,9 @@ async function connect(label) {
     command: process.execPath,
     args: [SERVER],
     stderr: 'pipe',
+    // Both instances share ONE throwaway store: the multi-instance contract (ADR-016) is the
+    // point, the developer's real database is not.
+    env: { ...process.env, CHRONICLE_HOME: SMOKE_HOME },
   });
   const client = new Client({ name: `smoke-${label}`, version: '1.0.0' });
   const started = Date.now();
@@ -144,7 +160,9 @@ async function main() {
     for (const id of new Set(ids)) {
       try { await call(a.client, 'chronicle', { action: 'forget', id }); forgotten++; } catch { /* already gone */ }
     }
-    record('cleanup removed the smoke-test memories', true, `${forgotten} forgotten`);
+    // Redundant now that the whole store is a temp directory — kept because it exercises
+    // `forget`, which is a contract worth running rather than assuming.
+    record('forget removes a memory it wrote', forgotten > 0, `${forgotten} forgotten`);
   }
 
   await a.client.close();
@@ -158,6 +176,7 @@ async function main() {
     node: process.version,
     platform: `${process.platform}-${process.arch}`,
     server: 'dist/cli.js',
+    chronicle_home: 'throwaway temp directory (CHRONICLE_HOME) — the real ~/.chronicle is untouched',
     handshake_ms: { instanceA: a.startMs, instanceB: b.startMs },
     passed: results.length - failed.length,
     failed: failed.length,
@@ -173,5 +192,6 @@ async function main() {
 
 main().catch((err) => {
   console.error('smoke run aborted:', err);
+  cleanupHome();
   process.exit(1);
 });

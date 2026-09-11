@@ -54,6 +54,9 @@ starting mid-build will fail to spawn. Rebuild when no session is starting, or r
 pnpm run smoke     # node scripts/smoke-mcp.mjs
 ```
 
+It runs against a **throwaway store** (`CHRONICLE_HOME` pointed at a temp directory), so your real
+`~/.chronicle` is never touched. Pass `--keep` to leave the temp store in place for inspection.
+
 Twelve checks against the **built** server as a real MCP client: the three-tool surface (ADR-011),
 a memory surviving a round trip, **two concurrent instances** on one database (ADR-016), the session
 lifecycle, and `axon` answering without a team configured. It writes
@@ -92,6 +95,9 @@ resolution (EDR-003).
 ## Configuration
 
 Everything lives in `~/.chronicle/config.json`, created on first run from `git config user.email`.
+
+`CHRONICLE_HOME` overrides the directory itself — set it to run against a separate store (a test
+run, a second profile, a scratch experiment) without touching `~/.chronicle`.
 
 | Key | Effect when absent |
 |---|---|

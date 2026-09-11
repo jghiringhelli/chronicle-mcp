@@ -23,8 +23,30 @@ export interface ChronicleConfig {
   teamToken?: string;
 }
 
-const CONFIG_DIR = path.join(os.homedir(), '.chronicle');
+/**
+ * Where Chronicle keeps everything: the config file, the database, the intelligence artifacts.
+ *
+ * Defaults to `~/.chronicle`, and is overridable with `CHRONICLE_HOME`. The override is not a
+ * convenience — without it the package is untestable against a real database without writing into
+ * the developer's own memory store, which is exactly what happened: the first run of
+ * `scripts/smoke-mcp.mjs` left rows in `~/.chronicle/chronicle.db`. A test that pollutes production
+ * data is a test nobody runs twice.
+ *
+ * It also makes a throwaway store trivial, which is what the cloud-sync verification needs before
+ * real memories are pointed at a shared Postgres.
+ *
+ * Read once at module load: a process serves one store for its lifetime, and re-reading would let
+ * the database path change under an open handle.
+ */
+const CONFIG_DIR = process.env['CHRONICLE_HOME']
+  ? path.resolve(process.env['CHRONICLE_HOME'])
+  : path.join(os.homedir(), '.chronicle');
 const CONFIG_FILE = path.join(CONFIG_DIR, 'config.json');
+
+/** The directory this process is using. Exported so tooling can report it rather than guess. */
+export function getConfigDir(): string {
+  return CONFIG_DIR;
+}
 
 function randomHex(bytes: number): string {
   return crypto.randomBytes(bytes).toString('hex');
@@ -96,4 +118,15 @@ export function getConfig(): ChronicleConfig {
     _cachedConfig = loadConfig();
   }
   return _cachedConfig;
+}
+
+/**
+ * Drop the memoised config so the next `getConfig()` re-reads from disk.
+ *
+ * For tests and tooling only. Production code MUST NOT call this: the database handle is opened
+ * against `dbPath`, so swapping the config underneath an open connection would leave the process
+ * writing to one file while believing it uses another.
+ */
+export function resetConfigCache(): void {
+  _cachedConfig = null;
 }

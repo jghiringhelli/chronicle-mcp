@@ -6,7 +6,8 @@ import type Database from 'better-sqlite3';
 import type { MemoryRepository, RecallQuery, MemorySearchResult } from '../../ports/repositories/memory-repository.js';
 import type { Memory, CreateMemoryInput } from '../../domain/entities/memory.js';
 import { createMemory } from '../../domain/entities/memory.js';
-import type { MemoryId, MemoryType, StorageTier, ProjectId, Embedding } from '../../domain/types.js';
+import type { MemoryId, MemoryType, MemoryScope, StorageTier, ProjectId, Embedding } from '../../domain/types.js';
+import { DEFAULT_SCOPE } from '../../domain/types.js';
 import { StorageError } from '../../shared/exceptions/index.js';
 
 interface MemoryRow {
@@ -20,6 +21,7 @@ interface MemoryRow {
   created_at: string;
   last_accessed_at: string;
   project: string | null;
+  scope: string | null;
   category: string | null;
   tags: string;
   source: string | null;
@@ -45,6 +47,8 @@ function rowToMemory(row: MemoryRow): Memory {
     createdAt: row.created_at,
     lastAccessedAt: row.last_accessed_at,
     project: row.project ?? undefined,
+    // A row written before ADR-018 has no scope; DEFAULT_SCOPE is what it meant.
+    scope: (row.scope as MemoryScope | null) ?? DEFAULT_SCOPE,
     category: row.category ?? undefined,
     tags: Object.freeze(JSON.parse(row.tags) as string[]),
     source: row.source ?? undefined,
@@ -62,8 +66,8 @@ export class SqliteMemoryRepository implements MemoryRepository {
       this.db.prepare(`
         INSERT OR REPLACE INTO memories
           (id, content, memory_type, tier, weight, decay_rate, access_count,
-           created_at, last_accessed_at, project, category, tags, source, embedding, confirmed)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+           created_at, last_accessed_at, project, scope, category, tags, source, embedding, confirmed)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).run(
         memory.id,
         memory.content,
@@ -75,6 +79,7 @@ export class SqliteMemoryRepository implements MemoryRepository {
         memory.createdAt,
         memory.lastAccessedAt,
         memory.project ?? null,
+        memory.scope,
         memory.category ?? null,
         JSON.stringify(memory.tags),
         memory.source ?? null,
@@ -127,6 +132,14 @@ export class SqliteMemoryRepository implements MemoryRepository {
         params.push(...query.memoryTypes);
       }
 
+      // Scope filter. The common recall is "this repository's project memories plus my person
+      // memories", which a caller expresses as scopes: ['project', 'person'] with the project set.
+      if (query.scopes && query.scopes.length > 0) {
+        const placeholders = query.scopes.map(() => '?').join(', ');
+        conditions.push(`scope IN (${placeholders})`);
+        params.push(...query.scopes);
+      }
+
       if (query.tiers && query.tiers.length > 0) {
         const placeholders = query.tiers.map(() => '?').join(', ');
         conditions.push(`tier IN (${placeholders})`);
@@ -157,7 +170,7 @@ export class SqliteMemoryRepository implements MemoryRepository {
         UPDATE memories SET
           content = ?, memory_type = ?, tier = ?, weight = ?, decay_rate = ?,
           access_count = ?, last_accessed_at = ?, project = ?, category = ?,
-          tags = ?, source = ?, embedding = ?, confirmed = ?
+          tags = ?, source = ?, embedding = ?, confirmed = ?, scope = ?
         WHERE id = ?
       `).run(
         memory.content,
@@ -173,6 +186,7 @@ export class SqliteMemoryRepository implements MemoryRepository {
         memory.source ?? null,
         embeddingBuffer,
         memory.confirmed ? 1 : 0,
+        memory.scope,
         memory.id,
       );
     } catch (err) {

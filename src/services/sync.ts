@@ -69,6 +69,7 @@ export async function syncMemories(): Promise<SyncResult> {
     const toSync = db.prepare(`
       SELECT * FROM memories
       WHERE (tier IN ('working','core') OR memory_type IN ('procedural','architectural'))
+        AND scope IN ('project','person')
         AND (synced_at IS NULL OR synced_at < last_accessed_at OR created_at > ?)
     `).all(since) as Record<string, unknown>[];
 
@@ -77,14 +78,15 @@ export async function syncMemories(): Promise<SyncResult> {
       const tags = JSON.parse(m['tags'] as string ?? '[]') as string[];
       await sql`
         INSERT INTO memories (id, user_id, content, memory_type, tier, weight, decay_rate,
-          access_count, created_at, last_accessed_at, project, category, tags, source,
+          access_count, created_at, last_accessed_at, project, scope, category, tags, source,
           confirmed, fact_subject, fact_predicate, source_device, updated_at)
         VALUES (
           ${m['id'] as string}, ${config.userId}, ${m['content'] as string},
           ${m['memory_type'] as string}, ${m['tier'] as string}, ${m['weight'] as number},
           ${m['decay_rate'] as number}, ${m['access_count'] as number},
           ${m['created_at'] as string}, ${m['last_accessed_at'] as string},
-          ${m['project'] as string | null}, ${m['category'] as string | null},
+          ${m['project'] as string | null}, ${(m['scope'] as string | null) ?? 'project'},
+          ${m['category'] as string | null},
           ${tags}, ${m['source'] as string | null},
           ${Boolean(m['confirmed'])}, ${m['fact_subject'] as string | null},
           ${m['fact_predicate'] as string | null}, ${config.deviceId},
@@ -126,13 +128,14 @@ export async function syncMemories(): Promise<SyncResult> {
       db.prepare(`
         INSERT OR REPLACE INTO memories
           (id, content, memory_type, tier, weight, decay_rate, access_count,
-           created_at, last_accessed_at, project, category, tags, source,
+           created_at, last_accessed_at, project, scope, category, tags, source,
            confirmed, device_id, synced_at)
-        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
       `).run(
         rm['id'], rm['content'], rm['memory_type'], rm['tier'],
         rm['weight'], rm['decay_rate'], rm['access_count'],
         toIsoString(rm['created_at']), remoteLastAccessed, rm['project'],
+        (rm['scope'] as string | null) ?? 'project',
         rm['category'], tags, rm['source'], rm['confirmed'] ? 1 : 0,
         rm['source_device'], new Date().toISOString()
       );

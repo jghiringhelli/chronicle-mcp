@@ -8,6 +8,7 @@
 import type {
   MemoryId,
   MemoryType,
+  MemoryScope,
   StorageTier,
   ProjectId,
   Timestamp,
@@ -15,7 +16,7 @@ import type {
   Weight,
   DecayRate,
 } from '../types.js';
-import { DECAY_RATES, DEFAULT_TIERS, REINFORCEMENT_BOOSTS } from '../types.js';
+import { DECAY_RATES, DEFAULT_TIERS, REINFORCEMENT_BOOSTS, DEFAULT_SCOPE } from '../types.js';
 
 /**
  * Memory entity — the atomic unit of Chronicle storage.
@@ -32,7 +33,14 @@ export interface Memory {
   readonly accessCount: number;
   readonly createdAt: Timestamp;
   readonly lastAccessedAt: Timestamp;
+  /**
+   * Which repository this memory is about, as a derived identity (ADR-018 §2) —
+   * `github.com/owner/repo`, not a label an agent invented. Absent for a memory about nothing in
+   * particular.
+   */
   readonly project?: ProjectId;
+  /** Who and what this memory is about (ADR-018 §1). */
+  readonly scope: MemoryScope;
   readonly category?: string;
   readonly tags: readonly string[];
   readonly source?: string;
@@ -47,6 +55,8 @@ export interface CreateMemoryInput {
   content: string;
   memoryType: MemoryType;
   project?: ProjectId;
+  /** Defaults to DEFAULT_SCOPE when the caller does not say. */
+  scope?: MemoryScope;
   category?: string;
   tags?: string[];
   source?: string;
@@ -83,6 +93,7 @@ export function createMemory(id: MemoryId, input: CreateMemoryInput): Memory {
     createdAt: now,
     lastAccessedAt: now,
     project: input.project,
+    scope: input.scope ?? DEFAULT_SCOPE,
     category: input.category,
     tags: Object.freeze(input.tags ?? []),
     source: input.source,

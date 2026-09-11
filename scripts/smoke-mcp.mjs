@@ -133,6 +133,40 @@ async function main() {
   record('recall round-trip over MCP is under 200ms at smoke-test scale', recallMs < 200,
     `${recallMs}ms (NOT an NFR-03 measurement — that needs 10k memories, see RM-104)`);
 
+  // ── ADR-018: project identity is derived from the repository, scope is explicit ───────────
+  //
+  // The server inherits the host's working directory, so a memory written with no `project`
+  // argument must land on this repository's derived identity — not on whatever label an agent
+  // guessed. That is the drift this decision removes, so it is asserted against the live server.
+  const derived = await call(a.client, 'chronicle', {
+    action: 'remember', content: `${TAG} derived project identity check`, memory_type: 'semantic',
+  });
+  record('ADR-018 remember derives the project from the repo when none is given',
+    /github\.com\/jghiringhelli\/chronicle-mcp/.test(derived),
+    derived.replace(/\s+/g, ' ').slice(0, 150));
+  record('ADR-018 the derived id comes from the remote, not a fallback',
+    /"projectSource":"remote"/.test(derived),
+    (/"projectSource":"([^"]+)"/.exec(derived) ?? [])[1] ?? '(absent)');
+  record('ADR-018 a memory defaults to project scope',
+    /"scope":"project"/.test(derived), (/"scope":"([^"]+)"/.exec(derived) ?? [])[1] ?? '(absent)');
+
+  // A person-scoped memory is about the developer, so it must NOT be pinned to one repository —
+  // pinning it would make it invisible from every other project, which is the opposite of the point.
+  const personal = await call(a.client, 'chronicle', {
+    action: 'remember', content: `${TAG} I prefer early returns over nested conditionals`,
+    memory_type: 'semantic', scope: 'person',
+  });
+  record('ADR-018 a person-scoped memory is not pinned to a project',
+    /"scope":"person"/.test(personal) && /"project":null|"project":undefined/.test(personal) === false
+      ? !/"project":"github/.test(personal) : false,
+    personal.replace(/\s+/g, ' ').slice(0, 140));
+
+  // The ordinary recall returns both: what is true of this repo, and what is true of me.
+  const both = await call(a.client, 'chronicle', { action: 'recall', query: TAG });
+  record('ADR-018 recall returns project scope and person scope together',
+    /"scope":"project"/.test(both) && /"scope":"person"/.test(both),
+    `project:${/"scope":"project"/.test(both)} person:${/"scope":"person"/.test(both)}`);
+
   // ── session lifecycle (UC-004, F7) ──────────────────────────────────────────────────────
   const started = await call(a.client, 'session', { action: 'start', project: PROJECT });
   record('F7 session start returns context', started.length > 0,

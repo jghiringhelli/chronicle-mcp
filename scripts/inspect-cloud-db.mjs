@@ -139,6 +139,31 @@ try {
     }
   }
 
+  // ── Privacy check: is raw prompt text sitting in the shared database? ────────────────────
+  //
+  // `prompt_logs.raw_content` is opt-in by design (`share_content`), and raw prompts are the most
+  // sensitive thing this system can hold — a teammate or an admin reading them is a different
+  // proposition from reading a distilled lesson. This reports whether any row actually carries it,
+  // without printing the content.
+  if (has('prompt_logs')) {
+    const rows = await sql`
+      SELECT user_id, team_id, project, pattern, outcome, category,
+             share_content, (raw_content IS NOT NULL) AS has_raw,
+             coalesce(length(raw_content), 0) AS raw_len, logged_at
+      FROM prompt_logs ORDER BY logged_at DESC LIMIT 20
+    `;
+    console.log('\nprompt_logs (raw content NOT printed, only whether it exists):');
+    for (const r of rows) {
+      console.log('  ' + JSON.stringify({
+        user_id: r.user_id, project: r.project, pattern: String(r.pattern).slice(0, 60),
+        outcome: r.outcome, category: r.category,
+        share_content: r.share_content, has_raw_content: r.has_raw, raw_chars: Number(r.raw_len),
+      }));
+    }
+    const [{ n }] = await sql`SELECT count(*)::int AS n FROM prompt_logs WHERE raw_content IS NOT NULL`;
+    console.log(`  => rows carrying raw prompt text: ${n}`);
+  }
+
   // The cursor columns are worth printing: EDR-003 records a suspected defect in which column the
   // memory pull reads, and that is the failure mode a two-developer mirror would surface first.
   if (has('sync_cursor')) {

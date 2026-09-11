@@ -1,6 +1,6 @@
 ﻿command: node node_modules/eslint/bin/eslint.js src tests
 exit code: 0
-run: 2026-09-10T22:01:39.3845894-05:00
+run: 2026-09-11T15:17:38.0710880-05:00
 node: v24.18.0
 
 
@@ -35,14 +35,14 @@ C:\workspace\PragmaWorks\mcp\chronicle\src\services\coordination-service.ts
   741:34  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
 
 C:\workspace\PragmaWorks\mcp\chronicle\src\services\sync.ts
-  292:10  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
-  319:10  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
-  325:10  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
-  365:10  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
-  370:10  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
-  407:38  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
-  428:38  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
-  457:33  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  295:10  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  322:10  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  328:10  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  368:10  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  373:10  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  410:38  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  431:38  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  460:33  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
 
 C:\workspace\PragmaWorks\mcp\chronicle\src\services\team-promotion-service.ts
   118:20  warning  Forbidden non-null assertion  @typescript-eslint/no-non-null-assertion

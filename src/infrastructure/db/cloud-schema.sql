@@ -31,7 +31,11 @@ CREATE TABLE IF NOT EXISTS memories (
   access_count     INTEGER     NOT NULL DEFAULT 0,
   created_at       TIMESTAMPTZ NOT NULL,
   last_accessed_at TIMESTAMPTZ NOT NULL,
-  project          TEXT,                   -- NULL = cross-project
+  project          TEXT,                   -- derived repo identity (ADR-018 §2); NULL = not about a repo
+  scope            TEXT        NOT NULL DEFAULT 'project',  -- project|person (ADR-018 §1)
+                                           -- `team` never lands here: the team layer has its own
+                                           -- tables, and crossing to another person is deliberate
+                                           -- (ADR-019 §4).
   category         TEXT,
   tags             TEXT[]      NOT NULL DEFAULT '{}',
   source           TEXT,
@@ -87,6 +91,13 @@ CREATE INDEX IF NOT EXISTS idx_sessions_ended   ON session_summaries(ended_at DE
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Sync cursor  (per-device watermark — enables incremental sync)
 -- ─────────────────────────────────────────────────────────────────────────────
+-- UNUSED. Kept only so an existing database is not altered for nothing.
+--
+-- The sync watermark lives in each machine's LOCAL SQLite, which is correct: "what have I already
+-- pushed" is per-machine state, and keeping it in the mirror would add a round trip to learn
+-- something only that machine knows. Losing a local cursor means a full resync, which is harmless.
+-- No cloud query reads or writes this table (verified). Drop it in a deliberate migration, or wire
+-- it if cross-machine watermark visibility ever earns its cost.
 CREATE TABLE IF NOT EXISTS sync_cursor (
   device_id         TEXT        NOT NULL,
   user_id           TEXT        NOT NULL REFERENCES users(id),
@@ -95,3 +106,6 @@ CREATE TABLE IF NOT EXISTS sync_cursor (
   memories_version  INTEGER     NOT NULL DEFAULT 0,
   PRIMARY KEY (device_id, user_id)
 );
+
+-- Scope is part of every personal pull predicate (ADR-018 §3).
+CREATE INDEX IF NOT EXISTS idx_memories_user_scope ON memories(user_id, scope);

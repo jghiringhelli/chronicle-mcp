@@ -30,6 +30,8 @@ carries the local context a change actually needs.
 | ADR-015 | `better-sqlite3@13` (Node-API) instead of pinning a Node major | Accepted | @docs/adrs/active/ADR-015-node-api-better-sqlite3.md |
 | ADR-016 | Concurrent multi-instance access is a supported contract | Accepted · amends ADR-001 | @docs/adrs/active/ADR-016-multi-instance-concurrency.md |
 | ADR-017 | Drop `fastembed` from the install tree; baseline the SDK's advisories | Accepted · supersedes ADR-003's acceptance | @docs/adrs/active/ADR-017-supply-chain-baseline.md |
+| ADR-018 | Three memory scopes, project identity derived from the repository, multi-machine by default | Accepted · amends ADR-010 §4, ADR-016 | @docs/adrs/active/ADR-018-three-scopes-repo-identity.md |
+| ADR-019 | Insights are shared, prompts are not; isolation enforced by Postgres RLS | Accepted · supersedes the `share_content` opt-in | @docs/adrs/active/ADR-019-insights-shared-prompts-private.md |
 
 ## Numbering — why it jumps from 003 to 010
 
@@ -42,7 +44,7 @@ gate can detect, because each file is individually well-formed. The gap is the s
 lines of work met, and it is left visible rather than renumbered: ADRs are immutable after
 acceptance.
 
-**The next ADR on this branch is ADR-018.**
+**The next ADR on this branch is ADR-020.**
 
 Two records that read similarly and are not the same decision: **ADR-010** put `axon`
 *coordination* in core (the earlier choice); **ADR-002** folded chronicle-team's *knowledge* layer

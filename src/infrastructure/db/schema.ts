@@ -14,6 +14,10 @@ CREATE TABLE IF NOT EXISTS memories (
   created_at TEXT NOT NULL,
   last_accessed_at TEXT NOT NULL,
   project TEXT,
+  -- Which of the three scopes this memory belongs to (ADR-018). Defaulted rather than NOT NULL
+  -- without one, so a row written by an older build remains readable: an unscoped row is treated
+  -- as 'project', which is DEFAULT_SCOPE.
+  scope TEXT NOT NULL DEFAULT 'project',
   category TEXT,
   tags TEXT NOT NULL DEFAULT '[]',
   source TEXT,
@@ -222,6 +226,10 @@ CREATE TABLE IF NOT EXISTS team_sync_cursor (
 CREATE INDEX IF NOT EXISTS idx_memories_type ON memories(memory_type);
 CREATE INDEX IF NOT EXISTS idx_memories_tier ON memories(tier);
 CREATE INDEX IF NOT EXISTS idx_memories_project ON memories(project);
+-- Recall filters on scope on every call (project scope for this repo + my person scope), so this
+-- index is on the hot path, not a nicety.
+CREATE INDEX IF NOT EXISTS idx_memories_scope ON memories(scope);
+CREATE INDEX IF NOT EXISTS idx_memories_scope_project ON memories(scope, project);
 CREATE INDEX IF NOT EXISTS idx_memories_weight ON memories(weight DESC);
 CREATE INDEX IF NOT EXISTS idx_triggers_action ON triggers(action);
 CREATE INDEX IF NOT EXISTS idx_contributors_project ON contributors(project);

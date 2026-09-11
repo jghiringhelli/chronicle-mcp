@@ -11,6 +11,7 @@ import type {
 } from '../../domain/entities/memory.js';
 import type {
   MemoryId,
+  MemoryScope,
   MemoryType,
   StorageTier,
   ProjectId,
@@ -35,6 +36,14 @@ export interface RecallQuery {
   category?: string;
   memoryTypes?: MemoryType[];
   tiers?: StorageTier[];
+  /**
+   * Which scopes to search (ADR-018 §1). Omitted means every scope.
+   *
+   * The ordinary recall is `['project', 'person']` with `project` set to the repository identity:
+   * what is true about this repo, plus what is true about me. `team` memories reach a caller through
+   * the team surface, not through this one.
+   */
+  scopes?: MemoryScope[];
   limit?: number;
 }
 

@@ -139,29 +139,37 @@ try {
     }
   }
 
-  // ── Privacy check: is raw prompt text sitting in the shared database? ────────────────────
+  // ── Privacy check: ADR-019 §1 — raw prompt text must be impossible, not merely unused ───
   //
-  // `prompt_logs.raw_content` is opt-in by design (`share_content`), and raw prompts are the most
-  // sensitive thing this system can hold — a teammate or an admin reading them is a different
-  // proposition from reading a distilled lesson. This reports whether any row actually carries it,
-  // without printing the content.
+  // This used to report whether any row *carried* raw content, behind a `share_content` flag. The
+  // columns are now dropped, so the check is the stronger one: assert they are absent. A flag is a
+  // promise; an absent column is a property.
+  //
+  // (This check broke the first time it ran after the migration, because it still queried the
+  // columns it had just helped remove. Worth noting: a tool that inspects a schema has to track it.)
   if (has('prompt_logs')) {
+    const forbidden = await sql`
+      SELECT column_name FROM information_schema.columns
+      WHERE table_schema='public' AND table_name='prompt_logs'
+        AND column_name IN ('raw_content','share_content')`;
+    console.log('\nprompt_logs privacy (ADR-019 §1):');
+    if (forbidden.length === 0) {
+      console.log('  raw_content / share_content: ABSENT — raw prompt capture is structurally impossible');
+    } else {
+      console.log('  PRESENT: ' + forbidden.map((c) => c.column_name).join(', ') +
+        ' — run scripts/migrate-cloud-db.mjs --only 003-drop-raw-prompt-content --allow-destructive --apply');
+      process.exitCode = 1;
+    }
+
     const rows = await sql`
-      SELECT user_id, team_id, project, pattern, outcome, category,
-             share_content, (raw_content IS NOT NULL) AS has_raw,
-             coalesce(length(raw_content), 0) AS raw_len, logged_at
-      FROM prompt_logs ORDER BY logged_at DESC LIMIT 20
-    `;
-    console.log('\nprompt_logs (raw content NOT printed, only whether it exists):');
+      SELECT user_id, project, pattern, outcome, category, logged_at
+      FROM prompt_logs ORDER BY logged_at DESC LIMIT 20`;
     for (const r of rows) {
       console.log('  ' + JSON.stringify({
-        user_id: r.user_id, project: r.project, pattern: String(r.pattern).slice(0, 60),
-        outcome: r.outcome, category: r.category,
-        share_content: r.share_content, has_raw_content: r.has_raw, raw_chars: Number(r.raw_len),
+        user_id: r.user_id, project: r.project,
+        pattern: String(r.pattern).slice(0, 60), outcome: r.outcome, category: r.category,
       }));
     }
-    const [{ n }] = await sql`SELECT count(*)::int AS n FROM prompt_logs WHERE raw_content IS NOT NULL`;
-    console.log(`  => rows carrying raw prompt text: ${n}`);
   }
 
   // The cursor columns are worth printing: EDR-003 records a suspected defect in which column the
@@ -192,6 +200,43 @@ try {
       const flag = kind === 'Date' || kind === 'Array' ? '   <-- not bindable by SQLite' : '';
       console.log('  ' + k.padEnd(18) + kind + flag);
     }
+  }
+
+  // ── Identity consistency: does this machine's configured userId match the mirror? ────────
+  //
+  // `userId` is derived from `git config user.email` on first run and then stored. If the config
+  // file is ever recreated — new machine, reset, different git email — it is re-derived to a
+  // DIFFERENT value, and every row this machine already wrote becomes unreachable: the team gate
+  // checks `team_members WHERE user_id = config.userId`, and the personal mirror filters on the
+  // same field. A silently-changing identity is the one thing that breaks both layers at once.
+  try {
+    const { homedir } = await import('node:os');
+    const { readFileSync: read } = await import('node:fs');
+    const { join: joinPath } = await import('node:path');
+    const cfgPath = joinPath(process.env['CHRONICLE_HOME'] ?? joinPath(homedir(), '.chronicle'), 'config.json');
+    const configured = JSON.parse(read(cfgPath, 'utf8')).userId;
+
+    const members = has('team_members')
+      ? (await sql`SELECT user_id FROM team_members`).map((r) => r.user_id) : [];
+    const memoryOwners = has('memories')
+      ? (await sql`SELECT DISTINCT user_id FROM memories`).map((r) => r.user_id) : [];
+
+    console.log('\nidentity consistency:');
+    console.log('  this machine config.userId : ' + configured);
+    console.log('  team_members in the mirror  : ' + (members.join(', ') || '(none)'));
+    console.log('  memory owners in the mirror : ' + (memoryOwners.join(', ') || '(none)'));
+
+    if (members.length && !members.includes(configured)) {
+      console.log('  => MISMATCH: this machine is NOT a member under its configured id.');
+      console.log('     The team gate will refuse, and pushed memories will land under an id that');
+      console.log('     owns no membership. Align config.userId with the id already in the mirror.');
+      process.exitCode = 1;
+    } else if (members.length) {
+      console.log('  => consistent');
+    }
+  } catch (err) {
+    console.log('\nidentity consistency: could not read the local config (' +
+      (err instanceof Error ? err.message : String(err)) + ')');
   }
 
   console.log('\nnothing was written.');

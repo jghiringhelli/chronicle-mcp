@@ -10,7 +10,7 @@
 import Database from 'better-sqlite3';
 import fs from 'node:fs';
 import path from 'node:path';
-import { SCHEMA_SQL } from './schema.js';
+import { SCHEMA_TABLES_SQL, SCHEMA_INDEXES_SQL } from './schema.js';
 import { getConfig } from '../../shared/config/index.js';
 import { StorageError } from '../../shared/exceptions/index.js';
 
@@ -66,11 +66,68 @@ export function getDatabase(): Database.Database {
 
     _db = new Database(config.dbPath);
     applyConcurrencyPragmas(_db);
-    _db.exec(SCHEMA_SQL);
+    // Order matters, and it is not cosmetic: tables, then column migrations, then indexes.
+    // `CREATE TABLE IF NOT EXISTS` does nothing to a table that already exists, so a new column
+    // needs an ALTER — and an index on that column cannot be created before it is there.
+    _db.exec(SCHEMA_TABLES_SQL);
+    migrateLocalSchema(_db);
+    _db.exec(SCHEMA_INDEXES_SQL);
     return _db;
   } catch (err) {
     throw new StorageError('Failed to open database', err);
   }
+}
+
+/**
+ * Columns added to the local schema after a release, and the table each belongs to.
+ *
+ * SQLite has no migration runner here by design (ADR-001 accepted "manual migration scripts
+ * required if schema changes"), so this is that, inlined and idempotent: every entry is checked
+ * against `PRAGMA table_info` and added only when missing.
+ *
+ * Each entry MUST have a DEFAULT or be nullable. An existing row has to remain valid — there is no
+ * opportunity to backfill before the column exists.
+ */
+const COLUMN_MIGRATIONS: ReadonlyArray<{
+  table: string;
+  column: string;
+  definition: string;
+  why: string;
+}> = [
+  {
+    table: 'memories',
+    column: 'scope',
+    definition: "TEXT NOT NULL DEFAULT 'project'",
+    why: "ADR-018 §1 — three explicit scopes. 'project' is what an unscoped row meant.",
+  },
+];
+
+/**
+ * Bring an existing database up to the current column set.
+ *
+ * Idempotent and additive: it adds missing columns and never drops or rewrites one. Exported so a
+ * test can run it against a deliberately-old database rather than trusting that startup does.
+ *
+ * This exists because of a real break: adding `memories.scope` to the schema file made the server
+ * fail to start on every database that already existed, with `no such column: scope` — the index on
+ * the new column was created before anything added the column. A schema file describes a fresh
+ * database; a migration is what an existing one needs.
+ *
+ * @param db - An open database with the tables already created
+ * @returns The columns it added, for logging and tests
+ */
+export function migrateLocalSchema(db: Database.Database): string[] {
+  const added: string[] = [];
+  for (const m of COLUMN_MIGRATIONS) {
+    const cols = db.prepare(`PRAGMA table_info(${m.table})`).all() as Array<{ name: string }>;
+    // An absent table is not a migration failure: the tables pass creates it, and a table this
+    // build does not know about is not this function's business.
+    if (cols.length === 0) continue;
+    if (cols.some((c) => c.name === m.column)) continue;
+    db.exec(`ALTER TABLE ${m.table} ADD COLUMN ${m.column} ${m.definition}`);
+    added.push(`${m.table}.${m.column}`);
+  }
+  return added;
 }
 
 /**

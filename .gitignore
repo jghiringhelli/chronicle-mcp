@@ -14,3 +14,7 @@ reports/
 
 # Local tool caches
 .codeseeker/
+
+# Database role credentials, if ever copied into the tree. They belong in ~/.chronicle only.
+cloud-roles.json
+*.bak-*

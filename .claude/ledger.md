@@ -51,6 +51,16 @@ When the user says *"don't do that"* about a pattern produced here, append a lin
   `Session not found: ` on an empty id. One run of `scripts/smoke-mcp.mjs` did.
 - `[2026-09-10]` — Do not retype uncovered code to satisfy a new lint rule. Characterise it with
   tests first, then type it. A scoped, expiring waiver is the correct interim (exc-009).
+- `[2026-09-11]` — `userId` is an identity, not a convenience. It keys team membership and every
+  synced row, and it was being re-derived from `git config user.email` whenever the config file was
+  recreated — which silently orphaned this machine's membership in its own team. Derive once, then
+  treat as immutable; changing it means migrating the rows it owns.
+- `[2026-09-11]` — `BYPASSRLS` does not grant table access. It lets a role ignore policies; the role
+  still needs SELECT. The first isolation verification failed on the admin with
+  `permission denied for table memories` for exactly this reason.
+- `[2026-09-11]` — State an isolation guarantee at the strength it actually holds. Two admins means
+  RLS does not hide them from each other, and a test that omitted that would imply a guarantee that
+  does not exist. `verify-isolation.mjs` asserts the admin DOES see everything, on purpose.
 - `[2026-09-10]` — An error that cannot say why it failed is an error nobody can act on.
   `StorageError` stashed its cause in `context` and nothing printed it, so a real cloud failure
   reached the user as `Error: Team sync failed`. The cause now goes in the message.
@@ -95,6 +105,26 @@ failed in a way that reads exactly like a code bug.
 
 **How to tell which kind a package is:** `ls node_modules/<pkg>/prebuilds`. Names like
 `win32-x64.node` are NAPI; names like `better_sqlite3-v11.10.0-node-v137-win32-x64` are per-ABI.
+
+### `CREATE TABLE IF NOT EXISTS` is not a migration
+
+**What goes wrong.** Adding a column to the schema file does nothing to a database that already
+exists — `IF NOT EXISTS` skips the whole statement, column and all. Worse, an index on the new column
+*is* created, and it throws: `no such column: scope`. The server then fails to start on every store
+that predates the change, which for a user-scope MCP server means every AI session on the machine.
+
+- **Wrong:** adding a column to `SCHEMA_SQL` and assuming startup applies it.
+- **Right:** tables, then **column migrations**, then indexes — in that order, because an index on a
+  new column cannot precede the column. `migrateLocalSchema()` in `database.ts` holds the list, checks
+  `PRAGMA table_info` and adds only what is missing. Every entry needs a DEFAULT or must be nullable:
+  there is no chance to backfill before the column exists.
+- **Verify it on an OLD database, not a fresh one.** `tests/unit/infrastructure/local-migration.test.ts`
+  builds a pre-change `memories` table on purpose, because a fresh database cannot expose this class
+  of bug — and a test suite that only ever creates fresh databases will pass while every real upgrade
+  breaks.
+
+The cloud side has the same shape and its own script (`scripts/migrate-cloud-db.mjs`). Two stores,
+two migration paths; forgetting either is the same mistake.
 
 ### A test double that is more convenient than reality tests the double
 

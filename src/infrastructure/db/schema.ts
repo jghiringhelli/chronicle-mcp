@@ -2,7 +2,7 @@
  * SQLite schema for Chronicle.
  */
 
-export const SCHEMA_SQL: string = `
+export const SCHEMA_TABLES_SQL: string = `
 CREATE TABLE IF NOT EXISTS memories (
   id TEXT PRIMARY KEY,
   content TEXT NOT NULL,
@@ -223,6 +223,20 @@ CREATE TABLE IF NOT EXISTS team_sync_cursor (
   PRIMARY KEY (user_id, team_id)
 );
 
+`;
+
+/**
+ * Index statements, kept SEPARATE from the table statements on purpose.
+ *
+ * `CREATE TABLE IF NOT EXISTS` does not add a column to a table that already exists, so an
+ * existing database needs an ALTER between the two — and an index on a new column cannot be
+ * created before the column is there. Running tables, then migrations, then indexes is what
+ * makes an upgrade work on a store that predates the change.
+ *
+ * This was not theoretical: adding `memories.scope` broke server startup with
+ * `no such column: scope` on the first database that already existed.
+ */
+export const SCHEMA_INDEXES_SQL: string = `
 CREATE INDEX IF NOT EXISTS idx_memories_type ON memories(memory_type);
 CREATE INDEX IF NOT EXISTS idx_memories_tier ON memories(tier);
 CREATE INDEX IF NOT EXISTS idx_memories_project ON memories(project);
@@ -244,3 +258,7 @@ CREATE INDEX IF NOT EXISTS idx_team_shared_cache_project ON team_shared_cache(te
 CREATE INDEX IF NOT EXISTS idx_team_insights_cache_team ON team_insights_cache(team_id);
 CREATE INDEX IF NOT EXISTS idx_prompt_log_buffer_status ON prompt_log_buffer(status);
 `;
+
+/** Tables and indexes together. For a fresh database, and for tests. */
+export const SCHEMA_SQL: string = `${SCHEMA_TABLES_SQL}
+${SCHEMA_INDEXES_SQL}`;

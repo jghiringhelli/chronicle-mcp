@@ -300,12 +300,15 @@ export function createMcpServer(): McpServer {
           // session. Without this fallback the documented F7 flow is impossible — an agent that
           // called `start` with a project and did not retain the returned id could never end it,
           // and got `Session not found: ` with an empty id. Found by scripts/smoke-mcp.mjs.
-          const sessionId = args.id ?? (args.project ? sessSvc.getActiveSession(args.project)?.id : undefined);
+          // Resolve the project the same way `start` does, or the symmetry breaks: `start` with no
+          // argument opens a session on the derived repository identity, so `end` with no argument
+          // must close that one rather than demand an id the caller never saw (ADR-018 §2).
+          const endProject = args.project ?? resolveProject().id;
+          const sessionId = args.id ?? sessSvc.getActiveSession(endProject)?.id;
           if (!sessionId) {
             return { content: [{ type: 'text', text: JSON.stringify({
-              error: args.project
-                ? `No active session for project "${args.project}". Pass an id, or call session start first.`
-                : 'Pass either id or project to end a session.',
+              error: `No active session for project "${endProject}". Pass an id, or call session start first.`,
+              project: endProject,
             }) }] };
           }
           const sess     = sessSvc.endSession(sessionId, args.summary);

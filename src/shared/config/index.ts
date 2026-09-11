@@ -12,6 +12,19 @@ import { execSync } from 'node:child_process';
 import { ConfigurationError } from '../exceptions/index.js';
 
 export interface ChronicleConfig {
+  /**
+   * The person this store belongs to. **An identity, not a convenience.**
+   *
+   * It keys team membership (`team_members.user_id`) and every row the cross-machine mirror writes
+   * (`memories.user_id`). If it changes, the previous rows become unreachable and the team gate
+   * stops recognising this machine — which is exactly what happened once: the config was recreated,
+   * `userId` was re-derived from `git config user.email` to a different value than the GitHub handle
+   * the team rows used, and the machine silently stopped being a member of its own team.
+   *
+   * It is derived ONCE, on first run, and then read from disk. Treat it as immutable: changing it
+   * requires migrating the rows it owns. `scripts/inspect-cloud-db.mjs` reports a mismatch against
+   * the mirror, and the server warns at startup.
+   */
   userId: string;
   deviceId: string;
   dbPath: string;
@@ -85,6 +98,17 @@ export function loadConfig(): ChronicleConfig {
     };
     fs.mkdirSync(CONFIG_DIR, { recursive: true });
     fs.writeFileSync(CONFIG_FILE, JSON.stringify(defaults, null, 2), 'utf-8');
+    // A freshly-derived identity on a machine that is meant to join an existing team is the failure
+    // mode described on `userId` above. Say so on stderr, which an MCP host shows in its logs,
+    // rather than letting the machine quietly own nothing.
+    process.stderr.write(
+      `chronicle: created ${CONFIG_FILE} with a NEW identity "${defaults.userId}" derived from your ` +
+      `git email.
+` +
+      `  If you already sync or belong to a team under a different id, set "userId" to that id now — ` +
+      `it keys every synced row and your team membership.
+`,
+    );
     return defaults;
   }
 

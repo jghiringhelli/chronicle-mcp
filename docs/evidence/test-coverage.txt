@@ -1,44 +1,46 @@
 ﻿command: node node_modules/vitest/vitest.mjs run --coverage
 exit code: 0
-run: 2026-09-11T15:17:42.3439816-05:00
+run: 2026-09-11T16:48:47.7406778-05:00
 node: v24.18.0
 
 
  RUN  v2.1.9 C:/workspace/PragmaWorks/mcp/chronicle
       Coverage enabled with v8
 
- ✓ tests/unit/shared/time.test.ts (14 tests) 5ms
- ✓ tests/unit/domain/session.test.ts (7 tests) 4ms
- ✓ tests/unit/domain/memory.test.ts (14 tests) 5ms
  ✓ tests/unit/services/memory-service.test.ts (9 tests) 5ms
- ✓ tests/unit/services/team-promotion-service.test.ts (15 tests) 26ms
- ✓ tests/unit/services/team-service.test.ts (8 tests) 8ms
- ✓ tests/unit/adapters/sqlite-memory-repository.test.ts (11 tests) 19ms
- ✓ tests/unit/services/prompt-log-service.test.ts (4 tests) 11ms
- ✓ tests/unit/infrastructure/fastembed-gateway.test.ts (5 tests) 2ms
- ✓ tests/unit/adapters/sqlite-team-repository.test.ts (13 tests) 34ms
- ✓ tests/unit/adapters/sqlite-team-repository-search.test.ts (14 tests) 38ms
- ✓ tests/unit/services/pattern-service.test.ts (4 tests) 10ms
- ✓ tests/unit/infrastructure/database-concurrency.test.ts (7 tests) 82ms
- ✓ tests/unit/services/sync.test.ts (15 tests) 82ms
- ✓ tests/unit/services/coordination-service.test.ts (45 tests) 126ms
- ✓ tests/unit/services/session-service.test.ts (11 tests) 17ms
- ✓ tests/unit/shared/repo-identity.test.ts (21 tests) 2903ms
-   ✓ resolveProjectIdentity > prefers the normalised remote 442ms
-   ✓ resolveProjectIdentity > resolves the same id from a subdirectory of the repository 315ms
-   ✓ resolveProjectIdentity > gives two different repositories different ids 555ms
-   ✓ resolveProjectIdentity > gives the same id to two clones in differently-named directories 639ms
+ ✓ tests/unit/domain/memory.test.ts (14 tests) 5ms
+ ✓ tests/unit/shared/time.test.ts (14 tests) 4ms
+ ✓ tests/unit/services/team-promotion-service.test.ts (15 tests) 21ms
+ ✓ tests/unit/adapters/sqlite-team-repository-search.test.ts (14 tests) 26ms
+ ✓ tests/unit/domain/session.test.ts (7 tests) 4ms
+ ✓ tests/unit/services/pattern-service.test.ts (4 tests) 11ms
+ ✓ tests/unit/adapters/sqlite-memory-repository.test.ts (11 tests) 22ms
+ ✓ tests/unit/services/prompt-log-service.test.ts (4 tests) 12ms
+ ✓ tests/unit/adapters/sqlite-team-repository.test.ts (13 tests) 37ms
+ ✓ tests/unit/infrastructure/fastembed-gateway.test.ts (5 tests) 3ms
+ ✓ tests/unit/services/team-service.test.ts (8 tests) 5ms
+ ✓ tests/unit/services/session-service.test.ts (11 tests) 18ms
+ ✓ tests/unit/services/sync.test.ts (15 tests) 61ms
+ ✓ tests/unit/infrastructure/database-concurrency.test.ts (7 tests) 96ms
+ ✓ tests/unit/services/coordination-service.test.ts (45 tests) 173ms
+ ✓ tests/unit/infrastructure/local-migration.test.ts (9 tests) 130ms
+ ✓ tests/unit/shared/repo-identity.test.ts (21 tests) 3178ms
+   ✓ resolveProjectIdentity > prefers the normalised remote 513ms
+   ✓ resolveProjectIdentity > resolves the same id from a subdirectory of the repository 330ms
+   ✓ resolveProjectIdentity > gives two different repositories different ids 537ms
+   ✓ resolveProjectIdentity > gives the same id to two clones in differently-named directories 599ms
+   ✓ resolveProjectIdentity > reports the repository root, not the subdirectory it was called from 450ms
 
- Test Files  17 passed (17)
-      Tests  217 passed (217)
-   Start at  15:17:38
-   Duration  3.62s (transform 1.27s, setup 0ms, collect 2.40s, tests 3.38s, environment 3ms, prepare 2.11s)
+ Test Files  18 passed (18)
+      Tests  226 passed (226)
+   Start at  16:48:43
+   Duration  3.87s (transform 1.48s, setup 0ms, collect 3.09s, tests 3.81s, environment 3ms, prepare 2.60s)
 
  % Coverage report from v8
 -------------------|---------|----------|---------|---------|-------------------
 File               | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s 
 -------------------|---------|----------|---------|---------|-------------------
-All files          |   43.79 |     74.4 |   75.67 |   43.79 |                   
+All files          |   44.12 |     74.7 |    75.8 |   44.12 |                   
  ...s/repositories |   62.98 |    61.53 |   82.92 |   62.98 |                   
   index.ts         |       0 |        0 |       0 |       0 | 1                 
   ...repository.ts |   73.05 |    48.97 |    90.9 |   73.05 | ...49-250,254-260 
@@ -62,8 +64,8 @@ All files          |   43.79 |     74.4 |   75.67 |   43.79 |
   team-pattern.ts  |       0 |        0 |       0 |       0 |                   
   team.ts          |      60 |      100 |   33.33 |      60 | 52-53,64-65       
   trigger.ts       |       0 |      100 |     100 |       0 | 43-65             
- infrastructure/db |   41.93 |      100 |   33.33 |   41.93 |                   
-  database.ts      |   37.93 |      100 |   33.33 |   37.93 | 60-74,80-84       
+ infrastructure/db |   64.28 |      100 |      50 |   64.28 |                   
+  database.ts      |   60.78 |      100 |      50 |   60.78 | 60-79,137-141     
   schema.ts        |     100 |      100 |     100 |     100 |                   
   team-schema.ts   |     100 |      100 |     100 |     100 |                   
  ...cture/gateways |   48.83 |      100 |   30.76 |   48.83 |                   
@@ -73,7 +75,7 @@ All files          |   43.79 |     74.4 |   75.67 |   43.79 |
  lib               |       0 |      100 |     100 |       0 |                   
   index.ts         |       0 |      100 |     100 |       0 | 49-126            
  mcp               |       0 |        0 |       0 |       0 |                   
-  server.ts        |       0 |        0 |       0 |       0 | 1-605             
+  server.ts        |       0 |        0 |       0 |       0 | 1-608             
   team-gate.ts     |       0 |        0 |       0 |       0 | 1-50              
   team-tools.ts    |       0 |        0 |       0 |       0 | 1-212             
  ports/gateways    |       0 |       75 |      75 |       0 |                   
@@ -106,8 +108,8 @@ All files          |   43.79 |     74.4 |   75.67 |   43.79 |
  shared            |     100 |    95.55 |     100 |     100 |                   
   repo-identity.ts |     100 |       92 |     100 |     100 | 79,113            
   time.ts          |     100 |      100 |     100 |     100 |                   
- shared/config     |   15.25 |        0 |       0 |   15.25 |                   
-  index.ts         |   15.25 |        0 |       0 |   15.25 | ...17-121,131-132 
+ shared/config     |   14.51 |        0 |       0 |   14.51 |                   
+  index.ts         |   14.51 |        0 |       0 |   14.51 | ...41-145,155-156 
  shared/exceptions |   77.35 |       50 |   42.85 |   77.35 |                   
   index.ts         |   77.35 |       50 |   42.85 |   77.35 | ...60,65-67,72-74 
  types             |       0 |        0 |       0 |       0 |                   

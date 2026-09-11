@@ -1,25 +1,13 @@
 ﻿{
-  "ran_at": "2026-09-11T20:19:05.055Z",
+  "ran_at": "2026-09-11T21:50:39.124Z",
   "errors": 0,
-  "warnings": 6,
+  "warnings": 4,
   "findings": [
     {
       "severity": "warning",
       "step": 4,
       "predicate": "no-orphan-references",
       "detail": "docs/adrs/active/ADR-010-fold-axon-coordination-into-chronicle.md points at docs/adrs/ADR-002-fold-team-into-core.md, which does not exist"
-    },
-    {
-      "severity": "warning",
-      "step": 4,
-      "predicate": "no-orphan-references",
-      "detail": "docs/adrs/active/ADR-019-insights-shared-prompts-private.md points at scripts/apply-rls.mjs, which does not exist"
-    },
-    {
-      "severity": "warning",
-      "step": 4,
-      "predicate": "no-orphan-references",
-      "detail": "docs/adrs/active/ADR-019-insights-shared-prompts-private.md points at scripts/verify-isolation.mjs, which does not exist"
     },
     {
       "severity": "warning",

@@ -1,40 +1,42 @@
 ﻿command: node node_modules/vitest/vitest.mjs run --coverage
 exit code: 0
-run: 2026-09-11T16:48:47.7406778-05:00
+run: 2026-09-11T22:10:43.6241105-05:00
 node: v24.18.0
 
 
  RUN  v2.1.9 C:/workspace/PragmaWorks/mcp/chronicle
       Coverage enabled with v8
 
- ✓ tests/unit/services/memory-service.test.ts (9 tests) 5ms
- ✓ tests/unit/domain/memory.test.ts (14 tests) 5ms
- ✓ tests/unit/shared/time.test.ts (14 tests) 4ms
- ✓ tests/unit/services/team-promotion-service.test.ts (15 tests) 21ms
- ✓ tests/unit/adapters/sqlite-team-repository-search.test.ts (14 tests) 26ms
- ✓ tests/unit/domain/session.test.ts (7 tests) 4ms
- ✓ tests/unit/services/pattern-service.test.ts (4 tests) 11ms
- ✓ tests/unit/adapters/sqlite-memory-repository.test.ts (11 tests) 22ms
- ✓ tests/unit/services/prompt-log-service.test.ts (4 tests) 12ms
- ✓ tests/unit/adapters/sqlite-team-repository.test.ts (13 tests) 37ms
+ ✓ tests/unit/shared/time.test.ts (14 tests) 7ms
+ ✓ tests/unit/services/memory-service.test.ts (9 tests) 8ms
+ ✓ tests/unit/domain/memory.test.ts (14 tests) 6ms
+ ✓ tests/unit/domain/session.test.ts (7 tests) 7ms
+ ✓ tests/unit/adapters/sqlite-memory-repository.test.ts (11 tests) 31ms
+ ✓ tests/unit/services/team-promotion-service.test.ts (15 tests) 33ms
+ ✓ tests/unit/adapters/sqlite-team-repository-search.test.ts (14 tests) 52ms
+ ✓ tests/unit/adapters/sqlite-team-repository.test.ts (13 tests) 41ms
+ ✓ tests/unit/services/sync.test.ts (15 tests) 70ms
+ ✓ tests/unit/infrastructure/database-concurrency.test.ts (7 tests) 113ms
  ✓ tests/unit/infrastructure/fastembed-gateway.test.ts (5 tests) 3ms
- ✓ tests/unit/services/team-service.test.ts (8 tests) 5ms
- ✓ tests/unit/services/session-service.test.ts (11 tests) 18ms
- ✓ tests/unit/services/sync.test.ts (15 tests) 61ms
- ✓ tests/unit/infrastructure/database-concurrency.test.ts (7 tests) 96ms
- ✓ tests/unit/services/coordination-service.test.ts (45 tests) 173ms
- ✓ tests/unit/infrastructure/local-migration.test.ts (9 tests) 130ms
- ✓ tests/unit/shared/repo-identity.test.ts (21 tests) 3178ms
-   ✓ resolveProjectIdentity > prefers the normalised remote 513ms
-   ✓ resolveProjectIdentity > resolves the same id from a subdirectory of the repository 330ms
-   ✓ resolveProjectIdentity > gives two different repositories different ids 537ms
-   ✓ resolveProjectIdentity > gives the same id to two clones in differently-named directories 599ms
-   ✓ resolveProjectIdentity > reports the repository root, not the subdirectory it was called from 450ms
+ ✓ tests/unit/services/pattern-service.test.ts (4 tests) 13ms
+ ✓ tests/unit/services/prompt-log-service.test.ts (4 tests) 15ms
+ ✓ tests/unit/infrastructure/local-migration.test.ts (9 tests) 155ms
+ ✓ tests/unit/services/team-service.test.ts (8 tests) 6ms
+ ✓ tests/unit/services/session-service.test.ts (11 tests) 23ms
+ ✓ tests/unit/services/coordination-service.test.ts (45 tests) 170ms
+ ✓ tests/unit/shared/repo-identity.test.ts (21 tests) 3581ms
+   ✓ resolveProjectIdentity > prefers the normalised remote 735ms
+   ✓ resolveProjectIdentity > falls back to the root commit when there is no remote 326ms
+   ✓ resolveProjectIdentity > prefixes the unstable fallbacks, so a reader can see them 359ms
+   ✓ resolveProjectIdentity > resolves the same id from a subdirectory of the repository 433ms
+   ✓ resolveProjectIdentity > gives two different repositories different ids 633ms
+   ✓ resolveProjectIdentity > gives the same id to two clones in differently-named directories 623ms
+   ✓ resolveProjectIdentity > reports the repository root, not the subdirectory it was called from 330ms
 
  Test Files  18 passed (18)
       Tests  226 passed (226)
-   Start at  16:48:43
-   Duration  3.87s (transform 1.48s, setup 0ms, collect 3.09s, tests 3.81s, environment 3ms, prepare 2.60s)
+   Start at  22:10:38
+   Duration  4.62s (transform 1.98s, setup 0ms, collect 3.50s, tests 4.33s, environment 4ms, prepare 3.40s)
 
  % Coverage report from v8
 -------------------|---------|----------|---------|---------|-------------------

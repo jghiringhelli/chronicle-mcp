@@ -183,6 +183,64 @@ async function main() {
   record('a second pull is idempotent, not a duplicator', afterSecondPull === localCount,
     `${localCount} -> ${afterSecondPull}`);
 
+  // ── The conflict policy, with an actual conflict ──────────────────────────────────────────
+  //
+  // EDR-003 documents last-access-wins, comparing ISO strings lexicographically. That policy was
+  // written for exactly this case and had NEVER been exercised with a real conflict: the earlier
+  // checks only prove a row travels, not that the right version survives when two machines disagree.
+  //
+  // Both machines now hold the same memory. B touches it (recall reinforces, which bumps
+  // last_accessed_at and weight), then both push. B's version must win on the mirror, and A must
+  // receive it on its next pull rather than clobbering it with its own staler copy.
+  const contested = await call(a, 'chronicle', {
+    action: 'remember', content: `${TAG} contested row — both machines will touch this`,
+    memory_type: 'semantic', project: PROJECT, scope: 'project', confirmed: true,
+  });
+  const contestedId = JSON.parse(contested).id;
+  await call(a, 'session', { action: 'start', project: PROJECT });
+  await call(a, 'session', { action: 'end', project: PROJECT });
+
+  await call(b, 'session', { action: 'start', project: PROJECT });
+  await new Promise((r) => setTimeout(r, 2500));
+
+  const bHasIt = await call(b, 'chronicle', { action: 'recall', query: 'contested row', project: PROJECT });
+  record('both machines now hold the contested row', bHasIt.includes(contestedId),
+    bHasIt.includes(contestedId) ? 'B pulled it' : 'B never received it');
+
+  // Snapshot the mirror BEFORE B touches anything. Comparing before/after is the only honest way
+  // to assert "B's version won" — an absolute weight threshold would just be me re-deriving the
+  // asymptote by hand, and `source_device` is not the tell: the ON CONFLICT clause updates weight,
+  // access_count, last_accessed_at and tier, and deliberately leaves source_device as the inserter.
+  const [beforeBTouch] = await sql`
+    SELECT weight, last_accessed_at FROM memories WHERE id = ${contestedId}`;
+
+  // B recalls it repeatedly: each hit reinforces, so B's copy ends with a later access and a higher
+  // weight than the mirror currently holds. Then B pushes.
+  for (let i = 0; i < 3; i++) {
+    await call(b, 'chronicle', { action: 'recall', query: 'contested row', project: PROJECT });
+  }
+  await call(b, 'session', { action: 'end', project: PROJECT });
+
+  const [mirrored] = await sql`
+    SELECT weight, last_accessed_at, source_device FROM memories WHERE id = ${contestedId}`;
+  const grew = mirrored !== undefined && beforeBTouch !== undefined &&
+    Number(mirrored.weight) > Number(beforeBTouch.weight) &&
+    new Date(mirrored.last_accessed_at) > new Date(beforeBTouch.last_accessed_at);
+  record("EDR-003 B's more-recently-accessed version won on the mirror", grew,
+    mirrored && beforeBTouch
+      ? `weight ${Number(beforeBTouch.weight).toFixed(3)} -> ${Number(mirrored.weight).toFixed(3)}, ` +
+        `accessed ${new Date(beforeBTouch.last_accessed_at).toISOString()} -> ${new Date(mirrored.last_accessed_at).toISOString()}`
+      : 'row absent');
+
+  // Now A pushes its STALER copy. The ON CONFLICT guard must refuse it.
+  const weightBeforeAPush = mirrored ? Number(mirrored.weight) : 0;
+  await call(a, 'session', { action: 'start', project: PROJECT });
+  await call(a, 'session', { action: 'end', project: PROJECT });
+  const [afterAPush] = await sql`SELECT weight FROM memories WHERE id = ${contestedId}`;
+  record('EDR-003 a staler push does NOT overwrite the newer version',
+    afterAPush !== undefined && Number(afterAPush.weight) >= weightBeforeAPush,
+    `mirror weight ${weightBeforeAPush.toFixed(3)} -> ${afterAPush ? Number(afterAPush.weight).toFixed(3) : 'gone'}`);
+
   // ── Team scope must never reach the personal mirror (ADR-019 §4) ──────────────────────────
   await call(a, 'chronicle', {
     action: 'remember', content: `${TAG} team scoped, must not be mirrored`,

@@ -33,6 +33,7 @@ carries the local context a change actually needs.
 | ADR-018 | Three memory scopes, project identity derived from the repository, multi-machine by default | Accepted · amends ADR-010 §4, ADR-016 | @docs/adrs/active/ADR-018-three-scopes-repo-identity.md |
 | ADR-019 | Insights are shared, prompts are not; isolation enforced by Postgres RLS | Accepted · supersedes the `share_content` opt-in | @docs/adrs/active/ADR-019-insights-shared-prompts-private.md |
 | ADR-020 | Both partners are DB admins; each also has an RLS-confined app role | Accepted · amends ADR-019 §3 | @docs/adrs/active/ADR-020-two-admins-one-app-role-each.md |
+| ADR-021 | NFR-02 revised to a measured budget; NFR-04 defect fixed (28×) | Accepted · amends spec §5, corrects ADR-014 §3 | @docs/adrs/active/ADR-021-nfr-revision-measured.md |
 
 ## Numbering — why it jumps from 003 to 010
 
@@ -45,7 +46,7 @@ gate can detect, because each file is individually well-formed. The gap is the s
 lines of work met, and it is left visible rather than renumbered: ADRs are immutable after
 acceptance.
 
-**The next ADR on this branch is ADR-021.**
+**The next ADR on this branch is ADR-022.**
 
 Two records that read similarly and are not the same decision: **ADR-010** put `axon`
 *coordination* in core (the earlier choice); **ADR-002** folded chronicle-team's *knowledge* layer

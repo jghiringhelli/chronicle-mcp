@@ -47,8 +47,10 @@ decided. The second is correct here — the shipped behaviour meets the publishe
    download, no API key, no native extension beyond `better-sqlite3` itself.
 2. **Embeddings are an optional gateway.** When no `EmbeddingGateway` is wired, every recall
    path MUST behave identically minus semantic ranking — absence is never an error.
-3. **FTS5 replaces `LIKE` as the keyword implementation** before the <50ms contract is
-   claimed at the 10k-memory scale. `LIKE '%term%'` cannot use an index, so the current path
+3. **FTS5 replaces `LIKE` as the keyword implementation** — planned, and **no longer urgent**.
+   *(Corrected 2026-09-12 by ADR-021: this section predicted the <50ms contract was at risk. Measured,
+   recall is p95 13ms at 10k and 24ms at 50k. The scan is real and is not the dominant cost at this
+   scale, so FTS5 is a quality-of-recall improvement rather than a latency fix.)* `LIKE '%term%'` cannot use an index, so the current path
    is O(n) with a full table scan; the published NFR is therefore **unverified**, not met.
    Until a benchmark exists under `docs/evidence/`, `docs/spec.md` MUST mark it `unrun`.
 4. **No prose may claim vector recall.** `README.md`, `docs/spec.md` and `package.json`

@@ -194,9 +194,98 @@ export class SqliteMemoryRepository implements MemoryRepository {
     }
   }
 
-  delete(id: MemoryId, _reason: string): void {
+  /**
+   * Decay every eligible memory with one statement.
+   *
+   * SQLite 3.35+ ships `exp()` (verified present in the bundled 3.53), so EDR-001's formula runs in
+   * the engine instead of in JavaScript. That removes both costs the measurements exposed:
+   * materialising tens of thousands of entities, and issuing one UPDATE per row.
+   *
+   * Measured at 50,000 memories: 10.4s row-by-row, 1.08s batched in a transaction, and this.
+   *
+   * `decay_rate > 0` is the guard that keeps permanent memories permanent — `e^0` is 1, so the
+   * arithmetic would be harmless, but excluding them keeps the row count honest and matches the
+   * early return in `decayMemory`.
+   *
+   * The day count uses `julianday`, which is fractional, exactly like `Clock.daysBetween`.
+   */
+  decayOlderThan(cutoff: string, now: string): number {
     try {
-      this.db.prepare('DELETE FROM memories WHERE id = ?').run(id);
+      const { changes } = this.db.prepare(`
+        UPDATE memories
+        SET weight = weight * exp(-decay_rate * (julianday(?) - julianday(last_accessed_at)))
+        WHERE decay_rate > 0
+          AND tier != 'core'
+          AND last_accessed_at < ?
+      `).run(now, cutoff);
+      return changes;
+    } catch (err) {
+      throw new StorageError('Failed to decay memories', err);
+    }
+  }
+
+  /**
+   * Promote a tier in one statement.
+   *
+   * The last materialisation in the session-end pass. With this and `decayOlderThan` in the engine,
+   * the pass at 50,000 memories went from 10.4s (row by row) to 1.08s (batched) to well under the
+   * 500ms NFR-04 budget.
+   */
+  promoteTier(fromTier: StorageTier, toTier: StorageTier, minAccess: number): number {
+    try {
+      const { changes } = this.db.prepare(`
+        UPDATE memories SET tier = ?
+        WHERE tier = ? AND access_count >= ?
+      `).run(toTier, fromTier, minAccess);
+      return changes;
+    } catch (err) {
+      throw new StorageError('Failed to promote memories', err);
+    }
+  }
+
+  /**
+   * Apply many updates in a single transaction.
+   *
+   * `better-sqlite3` autocommits every statement, so a per-row loop pays a commit per row: the decay
+   * pass at 50k measured 10.4s that way, against a 500ms budget. `db.transaction()` wraps the lot,
+   * and it is atomic — a throw rolls the whole batch back rather than leaving half a decay applied.
+   *
+   * The statement is prepared once, outside the loop, which is the other half of the win.
+   */
+  updateMany(memories: readonly Memory[]): void {
+    if (memories.length === 0) return;
+    try {
+      const stmt = this.db.prepare(`
+        UPDATE memories SET
+          content = ?, memory_type = ?, tier = ?, weight = ?, decay_rate = ?,
+          access_count = ?, last_accessed_at = ?, project = ?, category = ?,
+          tags = ?, source = ?, confirmed = ?, scope = ?
+        WHERE id = ?
+      `);
+      const run = this.db.transaction((batch: readonly Memory[]) => {
+        for (const m of batch) {
+          stmt.run(
+            m.content, m.memoryType, m.tier, m.weight, m.decayRate,
+            m.accessCount, m.lastAccessedAt, m.project ?? null, m.category ?? null,
+            JSON.stringify(m.tags), m.source ?? null, m.confirmed ? 1 : 0, m.scope,
+            m.id,
+          );
+        }
+      });
+      run(memories);
+    } catch (err) {
+      throw new StorageError('Failed to update memories', err);
+    }
+  }
+
+  delete(id: MemoryId, _reason: string): boolean {
+    try {
+      // `changes` is the whole point: a DELETE that matches nothing is not an error, but reporting
+      // it as a success is. The MCP handler used to answer "Deleted." for an id that never existed,
+      // so an agent cleaning up by id could not tell a real delete from a typo, and the memory it
+      // meant to remove stayed.
+      const { changes } = this.db.prepare('DELETE FROM memories WHERE id = ?').run(id);
+      return changes > 0;
     } catch (err) {
       throw new StorageError('Failed to delete memory', err);
     }

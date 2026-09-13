@@ -262,3 +262,17 @@ CREATE INDEX IF NOT EXISTS idx_prompt_log_buffer_status ON prompt_log_buffer(sta
 /** Tables and indexes together. For a fresh database, and for tests. */
 export const SCHEMA_SQL: string = `${SCHEMA_TABLES_SQL}
 ${SCHEMA_INDEXES_SQL}`;
+
+/**
+ * Schema version, stamped into `PRAGMA user_version` so startup can skip the DDL when the database
+ * is already current (see `ensureSchema`).
+ *
+ * **Bump this whenever SCHEMA_TABLES_SQL or SCHEMA_INDEXES_SQL changes**, and add any new column to
+ * `COLUMN_MIGRATIONS` so existing databases get it. Forgetting the bump means the DDL is skipped and
+ * the change silently never applies — which is why `tests/unit/infrastructure/schema.test.ts` pins
+ * this number to a fingerprint of the schema text. Change the schema without bumping, and that test
+ * fails with the value to use.
+ *
+ * 1 = the schema as of ADR-018 (memories.scope and its indexes).
+ */
+export const SCHEMA_VERSION = 1;

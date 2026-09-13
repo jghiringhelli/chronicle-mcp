@@ -51,6 +51,21 @@ When the user says *"don't do that"* about a pattern produced here, append a lin
   `Session not found: ` on an empty id. One run of `scripts/smoke-mcp.mjs` did.
 - `[2026-09-10]` — Do not retype uncovered code to satisfy a new lint rule. Characterise it with
   tests first, then type it. A scoped, expiring waiver is the correct interim (exc-009).
+- `[2026-09-12]` — Measure before optimising, and say so when the guess was wrong. I predicted
+  NFR-03 would miss (leading-wildcard scan, two queries per recall) and it meets at p95 13ms; I added
+  a schema-version gate expecting it to cut cold start and it moved nothing — the cost is Node plus
+  the MCP SDK, ~165ms before the app runs. Two wrong predictions in one session is the argument for
+  `scripts/bench-nfr.mjs`.
+- `[2026-09-12]` — A loop of single-row writes is not a pass, it is thousands of transactions.
+  `better-sqlite3` autocommits every statement: the decay pass took 10.4s at 50k against a 500ms
+  budget. One transaction took it to 1.08s; moving the arithmetic into SQL (`exp()` ships since 3.35)
+  took it to 363ms. 28×, on a path that runs at every session end.
+- `[2026-09-12]` — If a formula exists twice, bind the copies with a test. The decay rule is now in
+  the domain and in SQL; `sqlite-decay-parity.test.ts` pins them to nine decimals, and that test is
+  the only thing making the duplication acceptable.
+- `[2026-09-12]` — A skipped test must say so loudly. `driver-upgrade.test.ts` cannot install
+  `better-sqlite3@11` on a machine with no C++ toolchain — ADR-015's original problem — so it warns on
+  stderr and asserts the skip. A green tick for an assertion that never ran is worse than no test.
 - `[2026-09-11]` — `userId` is an identity, not a convenience. It keys team membership and every
   synced row, and it was being re-derived from `git config user.email` whenever the config file was
   recreated — which silently orphaned this machine's membership in its own team. Derive once, then

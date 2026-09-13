@@ -10,7 +10,7 @@
 import Database from 'better-sqlite3';
 import fs from 'node:fs';
 import path from 'node:path';
-import { SCHEMA_TABLES_SQL, SCHEMA_INDEXES_SQL } from './schema.js';
+import { SCHEMA_TABLES_SQL, SCHEMA_INDEXES_SQL, SCHEMA_VERSION } from './schema.js';
 import { getConfig } from '../../shared/config/index.js';
 import { StorageError } from '../../shared/exceptions/index.js';
 
@@ -66,16 +66,45 @@ export function getDatabase(): Database.Database {
 
     _db = new Database(config.dbPath);
     applyConcurrencyPragmas(_db);
-    // Order matters, and it is not cosmetic: tables, then column migrations, then indexes.
-    // `CREATE TABLE IF NOT EXISTS` does nothing to a table that already exists, so a new column
-    // needs an ALTER — and an index on that column cannot be created before it is there.
-    _db.exec(SCHEMA_TABLES_SQL);
-    migrateLocalSchema(_db);
-    _db.exec(SCHEMA_INDEXES_SQL);
+    ensureSchema(_db);
     return _db;
   } catch (err) {
     throw new StorageError('Failed to open database', err);
   }
+}
+
+/**
+ * Bring the database to the current schema, skipping the DDL when it is already there.
+ *
+ * Why the skip: every start used to run ~36 `CREATE ... IF NOT EXISTS` statements. They are cheap
+ * individually and not free in aggregate, and cold start is an NFR (spec §5 NFR-02, budget 200ms) on
+ * a process that is spawned once per AI session — often several at a time.
+ * `PRAGMA user_version` is a single integer read in the file header, so the common path becomes one
+ * read instead of three dozen statements.
+ *
+ * The hazard this introduces is obvious and is closed by a test: change the schema, forget to bump
+ * `SCHEMA_VERSION`, and the DDL is skipped so the change never lands. `schema.test.ts` asserts the
+ * version against a fingerprint of the schema text, so forgetting fails the build rather than
+ * shipping a database that quietly lacks a table.
+ *
+ * Order within the apply path matters and is not cosmetic: tables, then column migrations, then
+ * indexes. `CREATE TABLE IF NOT EXISTS` does nothing to a table that already exists, so a new column
+ * needs an ALTER — and an index on that column cannot be created before it is there.
+ *
+ * @param db - An open database handle
+ * @returns true when the schema was applied, false when it was already current
+ */
+export function ensureSchema(db: Database.Database): boolean {
+  const [row] = db.pragma('user_version') as Array<{ user_version: number }>;
+  if (row?.user_version === SCHEMA_VERSION) return false;
+
+  db.exec(SCHEMA_TABLES_SQL);
+  migrateLocalSchema(db);
+  db.exec(SCHEMA_INDEXES_SQL);
+  // Only after everything succeeded: a version stamped before a failed migration would make the next
+  // start skip the work it still needs to do.
+  db.pragma(`user_version = ${SCHEMA_VERSION}`);
+  return true;
 }
 
 /**

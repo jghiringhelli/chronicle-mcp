@@ -13,6 +13,9 @@ on:
     branches: [master, main]
   pull_request:
   workflow_dispatch:
+  schedule:
+    # Nightly, for the jobs that need a live credential and should not run on every push.
+    - cron: '0 6 * * *'
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -145,6 +148,105 @@ jobs:
         run: pnpm audit --prod --audit-level=high
       - name: Approved-library check
         run: node scripts/check-dependency-policy.mjs
+
+  # The latency claims in spec §5 are measured, not asserted (ADR-021). This job keeps them honest:
+  # it runs the benchmark and uploads the record. It deliberately does NOT fail the build on a miss —
+  # a hosted runner's timings are too noisy to gate on, and a flaky performance gate teaches people to
+  # ignore red. The numbers are for reading; the verdicts are in the artifact and the log.
+  benchmark:
+    name: NFR benchmark (measured, not gated)
+    runs-on: ubuntu-latest
+    needs: verify
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run build
+
+      - name: Measure NFR-02 / 03 / 04
+        run: pnpm run bench
+
+      - name: Print the verdicts, including how this runner compares
+        if: always()
+        run: |
+          node -e "
+          const r = require('./docs/evidence/nfr-bench.json');
+          console.log('machine:', r.machine.platform, r.machine.cpus + ' cpus', r.machine.node);
+          const v = (ms, t) => ms <= t ? 'MEETS' : 'MISSES';
+          console.log('NFR-02 cold start ' + r.nfr02_cold_start.ms + 'ms / ' + r.nfr02_cold_start.target + 'ms ' + v(r.nfr02_cold_start.ms, r.nfr02_cold_start.target));
+          for (const x of r.nfr03_recall) console.log('NFR-03 recall @' + x.storeSize + ' p95 ' + x.p95 + 'ms / ' + x.target + 'ms ' + v(x.p95, x.target));
+          if (r.nfr04_decay_pass) { const d = r.nfr04_decay_pass; console.log('NFR-04 decay @' + d.storeSize + ' ' + d.ms + 'ms / ' + d.target + 'ms ' + v(d.ms, d.target)); }
+          "
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: nfr-bench
+          path: docs/evidence/nfr-bench.json
+
+  # Generative execution against the REAL cloud mirror (ADR-018 §3, ADR-019, ADR-020).
+  #
+  # Secret-gated and scheduled rather than per-push, for three reasons: it needs a live Postgres
+  # credential, it writes to a database a partner shares, and a push-triggered job on a fork would
+  # expose the secret. A missing secret produces an explicit skip, not a failure — a red X nobody can
+  # fix is noise, but a silent pass would be a lie.
+  cloud-verify:
+    name: Cloud verification (real Postgres)
+    runs-on: ubuntu-latest
+    needs: verify
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run build
+
+      - name: Is a credential configured for this run?
+        id: creds
+        run: echo "present=${{ secrets.CHRONICLE_CLOUD_URL != '' }}" >> "$GITHUB_OUTPUT"
+
+      - name: Git identity, because userId is derived from it on first run
+        if: steps.creds.outputs.present == 'true'
+        run: git config --global user.email "ci@example.com"
+
+      - name: Inspect the mirror (read-only)
+        if: steps.creds.outputs.present == 'true'
+        env:
+          CHRONICLE_CLOUD_URL: ${{ secrets.CHRONICLE_CLOUD_URL }}
+        run: pnpm run cloud:inspect
+
+      - name: Cross-machine sync, scopes and the conflict policy
+        if: steps.creds.outputs.present == 'true'
+        env:
+          CHRONICLE_CLOUD_URL: ${{ secrets.CHRONICLE_CLOUD_URL }}
+        run: pnpm run cloud:verify-sync
+
+      - name: Team layer against the real mirror (read-only)
+        if: steps.creds.outputs.present == 'true'
+        env:
+          CHRONICLE_CLOUD_URL: ${{ secrets.CHRONICLE_CLOUD_URL }}
+        run: pnpm run cloud:verify-team
+
+      - name: Not verified, and saying so
+        if: steps.creds.outputs.present != 'true'
+        run: |
+          echo "::warning::CHRONICLE_CLOUD_URL is not set, so the cloud path was NOT verified in this run."
+          echo "This is a skip, not a pass. Set the repository secret to enable it."
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cloud-verify
+          path: docs/evidence/*-verify.json
+          if-no-files-found: ignore
 
   build:
     name: Build

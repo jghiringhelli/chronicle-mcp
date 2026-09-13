@@ -1,0 +1,44 @@
+{
+  "ran_at": "2026-09-13T04:11:49.903Z",
+  "command": "node scripts/bench-nfr.mjs",
+  "machine": {
+    "platform": "win32-x64",
+    "cpus": 20,
+    "cpu_model": "Intel(R) Core(TM) Ultra 7 255HX",
+    "memory_gb": 15,
+    "node": "v24.18.0"
+  },
+  "seed": 20260912,
+  "note": "Measured over the real MCP stdio boundary, which is what a user waits for. Recall runs TWO queries per call since ADR-018 (project scope + person scope).",
+  "nfr02_cold_start": {
+    "ms": 251.13,
+    "target": 200
+  },
+  "nfr03_recall": [
+    {
+      "storeSize": 1000,
+      "target": 50,
+      "n": 30,
+      "min": 2.68,
+      "median": 3.27,
+      "p95": 9.27,
+      "max": 10.08,
+      "mean": 4.03
+    },
+    {
+      "storeSize": 10000,
+      "target": 50,
+      "n": 30,
+      "min": 4.04,
+      "median": 5.2,
+      "p95": 13.49,
+      "max": 24.54,
+      "mean": 6.61
+    }
+  ],
+  "nfr04_decay_pass": {
+    "storeSize": 10000,
+    "ms": 63.63,
+    "target": 500
+  }
+}

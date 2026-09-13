@@ -186,8 +186,12 @@ export function createMcpServer(): McpServer {
         }
 
         case 'forget': {
-          memSvc.forget(args.id ?? '', args.context);
-          return { content: [{ type: 'text', text: JSON.stringify({ message: 'Deleted.' }) }] };
+          const deleted = memSvc.forget(args.id ?? '', args.context);
+          return { content: [{ type: 'text', text: JSON.stringify(
+            deleted
+              ? { deleted: true, message: 'Deleted.' }
+              : { deleted: false, message: `No memory with id "${args.id ?? ''}" — nothing was deleted.` },
+          ) }] };
         }
 
         case 'trigger': {

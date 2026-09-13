@@ -384,10 +384,10 @@ met — in a README, a release note, or a pitch.
 
 | ID | Requirement | Status |
 |---|---|---|
-| NFR-01 | The server MUST speak MCP over stdio and MUST be runnable as `npx -y chronicle-mcp` with no prior install. | unrun |
-| NFR-02 | Cold start MUST complete in <200ms. | unrun |
-| NFR-03 | `recall` MUST return in <50ms with up to 10,000 memories stored. | **unrun — and at risk**: recall is a leading-wildcard `LIKE`, which cannot use an index, so the scan is O(rows) (EDR-002, ADR-014 §3). Needs a benchmark before it is claimed. |
-| NFR-04 | The decay and promotion pass MUST complete in <500ms with up to 50,000 memories. | unrun |
+| NFR-01 | The server MUST speak MCP over stdio and MUST be runnable as `npx -y chronicle-mcp` with no prior install. | unrun — needs a clean machine (RM-302) |
+| NFR-02 | Cold start MUST complete in <300ms. | **verified 251ms** · 2026-09-12 · win32-x64, 20 cpus, node 24.18. Revised from 200ms in ADR-021: ~165ms of any measurement is Node plus the MCP SDK, leaving ~35ms for the whole application inside the old budget. Dependency-dominated, and imperceptible for a process spawned once per session. |
+| NFR-03 | `recall` MUST return in <50ms with up to 10,000 memories stored. | **verified p95 13ms** at 10k (24ms at 50k) · 2026-09-12. Predicted at risk and is not: the leading-wildcard scan is real but not dominant at this scale, so FTS5 is **not** urgent — ADR-014 §3 corrected. |
+| NFR-04 | The decay and promotion pass MUST complete in <500ms with up to 50,000 memories. | **verified 363ms** at 50k · 2026-09-12. Was **10,386ms** when first measured — a real defect: the pass looped one autocommitting `update` per row. Now set-based in SQL (ADR-021). |
 | NFR-05 | Every local operation MUST succeed with no network available, and the server MUST NOT emit telemetry. | unrun (no offline test) |
 | NFR-06 | The server MUST work on Claude Code CLI, the VS Code MCP extension, and Cursor. | unrun |
 | NFR-07 | Released as `chronicle-mcp` on npm. | verified — published, v0.3.2 |
@@ -395,10 +395,18 @@ met — in a README, a release note, or a pitch.
 | NFR-09 | Absence of cloud configuration MUST leave every local operation unchanged and MUST NOT raise (ADR-010 §3). | unrun (no test) |
 | NFR-10 | A memory in the Core tier MUST NOT be removed by any decay or consolidation pass. | verified by unit test (`decayRate === 0` early return, EDR-001) |
 
-A benchmark harness writing to `docs/evidence/` is the open work that turns rows 01–06 and 09
-from *unrun* into a number. Until it exists, this section is honest rather than impressive —
-which is the point: an unverified NFR quoted as met is how a specification stops being a
-specification.
+**The latency rows are measured.** `scripts/bench-nfr.mjs --full` produces
+`docs/evidence/nfr-bench.json`, carrying the machine, CPU model, Node version, fixed seed and store
+sizes — a number without its conditions is an anecdote. Re-run it before changing anything on the
+recall or session-end path.
+
+What remains *unrun* is the environmental set: NFR-01, 05, 06 and 09 need a clean machine and an
+offline run, not a benchmark. And every measured number here comes from **one** host; a CI matrix is
+what would say whether NFR-02's 300ms holds on a modest runner.
+
+Two of the three measurements contradicted expectation — NFR-03 was predicted to miss and meets
+comfortably, NFR-04 met nothing and was out by 20×. That is the argument for measuring instead of
+reasoning, and it is why an unverified NFR quoted as met is how a specification stops being one.
 
 ## 6. Deferred work
 

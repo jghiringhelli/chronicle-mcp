@@ -64,7 +64,7 @@ const NFR02_SAMPLES = 10;
  * real 50,000-row pass rather than a process spawn and the spread is narrower — but more than one,
  * because 363ms and 564ms against a 500ms budget came from the same code on the same machine.
  */
-const NFR04_SAMPLES = 5;
+const NFR04_SAMPLES = 9;
 
 const SEED = 20260912;
 const WORDS = [
@@ -138,28 +138,44 @@ function stats(samples) {
 }
 
 /**
- * Summarise repeated timings of something with a warm-up.
+ * Summarise repeated timings of a once-per-session operation.
  *
- * Both NFR-02 and NFR-04 showed a clean warm-up curve rather than noise around a centre — spawns of
- * 349, 345, 280, 210, 213, 225, 233, 242, 239, 220ms, and decay passes of 573, 370, 248, 229, 234ms.
- * A median over back-to-back iterations therefore measures a warm OS page cache that the user does
- * not have, and the first iteration measures the case the user does have: one cold start per session,
- * one session-end pass per session.
+ * This function has been wrong twice, and both mistakes are worth keeping written down because they
+ * are the same mistake: fitting a model to one machine's data.
  *
- * So `cold` is the first reading and is what the verdict is judged on, and `steadyMedian` is reported
- * beside it. A `p95` is NOT reported here: with n of 5 or 10, the nearest-rank p95 *is* the maximum,
- * and labelling a maximum as a p95 overstates what the sample can resolve. NFR-03 keeps its p95
- * because it takes 30 samples of an operation with no warm-up curve.
+ * 1. It started as a SINGLE reading, while NFR-03 took thirty and reported a p95. One reading is
+ *    whichever point of the spread the run landed on, which is how `251ms` and `363ms` were recorded
+ *    as *verified* in ADR-021 and spec §5.
+ * 2. It then reported `cold` (first reading) and `steadyMedian` (median of the rest), judging on
+ *    `cold`. That came from Windows samples, which are a clean monotonic warm-up — 349, 345, 280,
+ *    210, 213, 225, 233, 242, 239, 220ms. On the CI linux runner the same code gives 791, 415, 207,
+ *    553, 302ms: not a curve, just a noisy shared host. Calling the first of those "cold" and the
+ *    rest "steady" reads a warm-up into what is interference.
+ *
+ * So the verdict is judged on the **median**, which is robust in both regimes, and `cold`, `max` and
+ * the full sample list are reported beside it. `warmupMonotonic` records whether the series actually
+ * decreases, so a reader can tell which regime the numbers came from instead of assuming.
+ *
+ * No `p95` here: at n of 5 or 10 the nearest-rank p95 *is* the maximum, and labelling a maximum as a
+ * p95 claims resolution the sample does not have. NFR-03 keeps its p95, on thirty samples.
  */
-function warmupProfile(samples) {
-  const rest = samples.slice(1);
-  const sorted = [...rest].sort((a, b) => a - b);
+function sampleProfile(samples) {
+  const sorted = [...samples].sort((a, b) => a - b);
+  const median = sorted.length % 2
+    ? sorted[(sorted.length - 1) / 2]
+    : (sorted[sorted.length / 2 - 1] + sorted[sorted.length / 2]) / 2;
+  // "Monotonic" is deliberately loose: a warm-up curve need not decrease at every step, but its
+  // second half should sit clearly below its first. Two thirds is a judgement, and it is recorded
+  // rather than hidden so the threshold can be argued with.
+  const half = Math.floor(samples.length / 2);
+  const mean = (xs) => xs.reduce((a, b) => a + b, 0) / xs.length;
   return {
     n: samples.length,
     cold: +samples[0].toFixed(2),
-    steadyMedian: +(sorted[Math.floor(sorted.length / 2)] ?? samples[0]).toFixed(2),
+    median: +median.toFixed(2),
     min: +Math.min(...samples).toFixed(2),
     max: +Math.max(...samples).toFixed(2),
+    warmupMonotonic: half > 0 && mean(samples.slice(half)) < mean(samples.slice(0, half)) * (2 / 3),
     samples_ms: samples.map((s) => +s.toFixed(2)),
   };
 }
@@ -223,11 +239,11 @@ try {
         samples.push(again.coldStartMs);
         await again.client.close();
       }
-      const w = warmupProfile(samples);
-      results.nfr02 = { ...w, ms: w.cold, target: NFR02_TARGET_MS };
-      console.log(`  cold start (spawn → first answer): cold ${w.cold}ms  ` +
-        `then steady ~${w.steadyMedian}ms  (${w.min}-${w.max}ms over ${w.n} spawns)  ` +
-        `[NFR-02 < ${NFR02_TARGET_MS}ms, judged on the cold figure]`);
+      const w = sampleProfile(samples);
+      results.nfr02 = { ...w, ms: w.median, target: NFR02_TARGET_MS };
+      console.log(`  cold start (spawn → first answer): median ${w.median}ms  ` +
+        `(first ${w.cold}ms, ${w.min}-${w.max}ms over ${w.n} spawns` +
+        `${w.warmupMonotonic ? ', warming' : ''})  [NFR-02 < ${NFR02_TARGET_MS}ms]`);
     }
 
     // ── NFR-03: recall ──────────────────────────────────────────────────────────────────────
@@ -265,11 +281,11 @@ try {
         await client.callTool({ name: 'chronicle', arguments: { action: 'decay' } });
         samples.push(performance.now() - t);
       }
-      const w = warmupProfile(samples);
-      results.nfr04 = { storeSize: size, ...w, ms: w.cold, target: 500 };
-      console.log(`  decay + promotion pass at ${size.toLocaleString()}: cold ${w.cold}ms  ` +
-        `then steady ~${w.steadyMedian}ms  (${w.min}-${w.max}ms over ${w.n} passes)  ` +
-        `[NFR-04 < 500ms, judged on the cold figure]`);
+      const w = sampleProfile(samples);
+      results.nfr04 = { storeSize: size, ...w, ms: w.median, target: 500 };
+      console.log(`  decay + promotion pass at ${size.toLocaleString()}: median ${w.median}ms  ` +
+        `(first ${w.cold}ms, ${w.min}-${w.max}ms over ${w.n} passes` +
+        `${w.warmupMonotonic ? ', warming' : ''})  [NFR-04 < 500ms]`);
     }
 
     await client.close();
@@ -300,13 +316,11 @@ try {
   console.log('\n── verdicts ──');
   // Judged on p95, the same basis as NFR-03. A median inside budget with a p95 outside it is a stall
   // a user meets one session in twenty; reporting only the median would hide it.
-  // Judged on the cold reading, because "cold start" means the cold case: one spawn per session, on
-  // a page cache warmed by whatever else the machine was doing.
-  console.log(`NFR-02 cold start < ${NFR02_TARGET_MS}ms        : cold ${results.nfr02.cold}ms  ` +
-    (results.nfr02.cold <= NFR02_TARGET_MS ? 'MEETS' : 'MISSES') +
-    `  (steady ~${results.nfr02.steadyMedian}ms` +
-    (results.nfr02.steadyMedian <= NFR02_TARGET_MS && results.nfr02.cold > NFR02_TARGET_MS
-      ? ', which is inside budget — the miss is the cold path)' : ')'));
+  console.log(`NFR-02 cold start < ${NFR02_TARGET_MS}ms        : median ${results.nfr02.median}ms  ` +
+    (results.nfr02.median <= NFR02_TARGET_MS ? 'MEETS' : 'MISSES') +
+    `  (worst ${results.nfr02.max}ms of ${results.nfr02.n})` +
+    (results.nfr02.max > NFR02_TARGET_MS && results.nfr02.median <= NFR02_TARGET_MS
+      ? '  — the worst spawn is over budget' : ''));
   const at10k = results.nfr03.find((r) => r.storeSize === 10_000);
   if (at10k) {
     console.log(`NFR-03 recall < 50ms at 10k      : p95 ${at10k.p95}ms  ` +
@@ -314,8 +328,8 @@ try {
   }
   if (results.nfr04) {
     console.log(`NFR-04 decay < 500ms at ${results.nfr04.storeSize.toLocaleString().padEnd(6)} : ` +
-      `cold ${results.nfr04.cold}ms  ` + (results.nfr04.cold <= 500 ? 'MEETS' : 'MISSES') +
-      `  (steady ~${results.nfr04.steadyMedian}ms)` +
+      `median ${results.nfr04.median}ms  ` + (results.nfr04.median <= 500 ? 'MEETS' : 'MISSES') +
+      `  (first ${results.nfr04.cold}ms, worst ${results.nfr04.max}ms of ${results.nfr04.n})` +
       (results.nfr04.storeSize < 50_000 ? '  (below the 50k the NFR specifies — run --full)' : ''));
   }
   console.log('\nevidence → docs/evidence/nfr-bench.json');

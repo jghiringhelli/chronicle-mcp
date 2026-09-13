@@ -1,13 +1,13 @@
 {
-  "ran_at": "2026-09-13T04:41:57.005Z",
+  "ran_at": "2026-09-13T05:16:46.327Z",
   "command": "node scripts/smoke-mcp.mjs",
   "node": "v24.18.0",
   "platform": "win32-x64",
   "server": "dist/cli.js",
   "chronicle_home": "throwaway temp directory (CHRONICLE_HOME) — the real ~/.chronicle is untouched",
   "handshake_ms": {
-    "instanceA": 290,
-    "instanceB": 253
+    "instanceA": 309,
+    "instanceB": 312
   },
   "passed": 18,
   "failed": 0,
@@ -20,7 +20,7 @@
     {
       "name": "UC-008 server starts over stdio with no configuration",
       "ok": true,
-      "detail": "connect+handshake 290ms"
+      "detail": "connect+handshake 309ms"
     },
     {
       "name": "ADR-011 exactly 4 tools are registered",
@@ -35,7 +35,7 @@
     {
       "name": "UC-001 step 1 remember succeeds",
       "ok": true,
-      "detail": "{\"id\":\"mem_16dc85d3-3392-450a-abdd-8b25511e72f9\",\"tier\":\"working\",\"weight\":0.5,\"scope\":\"project\",\"project\":\"chronicle-sm"
+      "detail": "{\"id\":\"mem_ae4a9a55-f8f3-4044-bd4b-2df074253f31\",\"tier\":\"working\",\"weight\":0.5,\"scope\":\"project\",\"project\":\"chronicle-sm"
     },
     {
       "name": "UC-001 semantic memory lands in the working tier (not buffer)",
@@ -60,7 +60,7 @@
     {
       "name": "ADR-018 remember derives the project from the repo when none is given",
       "ok": true,
-      "detail": "{\"id\":\"mem_5347d4d1-5c60-4931-98a9-c7b10f26b28a\",\"tier\":\"working\",\"weight\":0.5,\"scope\":\"project\",\"project\":\"github.com/jghiringhelli/chronicle-mcp\",\"p"
+      "detail": "{\"id\":\"mem_488b4252-82ad-4f12-bbc4-4b1dc1b05a71\",\"tier\":\"working\",\"weight\":0.5,\"scope\":\"project\",\"project\":\"github.com/jghiringhelli/chronicle-mcp\",\"p"
     },
     {
       "name": "ADR-018 the derived id comes from the remote, not a fallback",
@@ -75,7 +75,7 @@
     {
       "name": "ADR-018 a person-scoped memory is not pinned to a project",
       "ok": true,
-      "detail": "{\"id\":\"mem_c48b3342-054c-4700-9647-f21d976c6094\",\"tier\":\"working\",\"weight\":0.5,\"scope\":\"person\",\"projectSource\":\"remote\"}"
+      "detail": "{\"id\":\"mem_ede30c52-68d7-400f-a5b2-cc7dda80488a\",\"tier\":\"working\",\"weight\":0.5,\"scope\":\"person\",\"projectSource\":\"remote\"}"
     },
     {
       "name": "ADR-018 recall returns project scope and person scope together",
@@ -85,12 +85,12 @@
     {
       "name": "F7 session start returns context",
       "ok": true,
-      "detail": "{\"id\":\"sess_a1cd19ae-f857-4f94-b2ad-ee7c4b45a8d2\",\"project\":\"chronicle-smoke\",\"status\":\"active\",\"sta"
+      "detail": "{\"id\":\"sess_2cb95718-e002-431c-8d0e-ef678b732be6\",\"project\":\"chronicle-smoke\",\"status\":\"active\",\"sta"
     },
     {
       "name": "F7 session end applies decay and promotion",
       "ok": true,
-      "detail": "{\"id\":\"sess_a1cd19ae-f857-4f94-b2ad-ee7c4b45a8d2\",\"status\":\"ended\",\"endedAt\":\"2026-09-13T04:41:56.95"
+      "detail": "{\"id\":\"sess_2cb95718-e002-431c-8d0e-ef678b732be6\",\"status\":\"ended\",\"endedAt\":\"2026-09-13T05:16:46.28"
     },
     {
       "name": "ADR-010 axon answers without a team configured instead of throwing",

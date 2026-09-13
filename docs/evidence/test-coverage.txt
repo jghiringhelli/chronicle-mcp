@@ -1,14 +1,14 @@
 command: npx vitest run --coverage
 exit code: 0
-run: 2026-09-13T05:03:12Z
+run: 2026-09-13T05:16:33Z
 node: v24.18.0
 
 
  RUN  v2.1.9 C:/workspace/PragmaWorks/mcp/chronicle
       Coverage enabled with v8
 
- ✓ tests/unit/shared/time.test.ts (14 tests) 5ms
  ✓ tests/unit/shared/runtime.test.ts (15 tests) 6ms
+ ✓ tests/unit/shared/time.test.ts (14 tests) 4ms
  ✓ tests/unit/domain/memory.test.ts (14 tests) 5ms
  ✓ tests/unit/services/memory-service.test.ts (9 tests) 5ms
 stderr | tests/unit/infrastructure/driver-upgrade.test.ts > a database written by better-sqlite3@11 opens with @13 > reads rows the old driver wrote, with the schema migrated forward
@@ -17,38 +17,38 @@ stderr | tests/unit/infrastructure/driver-upgrade.test.ts > a database written b
   which is ADR-015's original problem). This assertion did NOT run.
 
 
+ ✓ tests/unit/adapters/sqlite-memory-repository.test.ts (11 tests) 18ms
+ ✓ tests/unit/adapters/sqlite-team-repository-search.test.ts (14 tests) 24ms
 stderr | tests/unit/infrastructure/driver-upgrade.test.ts > a database written by better-sqlite3@11 opens with @13 > reads a WAL-mode database the old driver left behind
 
   SKIPPED: better-sqlite3@11 unavailable; this assertion did NOT run.
 
 
- ✓ tests/unit/adapters/sqlite-memory-repository.test.ts (11 tests) 19ms
- ✓ tests/unit/adapters/sqlite-decay-parity.test.ts (12 tests) 21ms
- ✓ tests/unit/infrastructure/driver-upgrade.test.ts (2 tests) 9ms
- ✓ tests/unit/adapters/sqlite-team-repository-search.test.ts (14 tests) 30ms
  ✓ tests/unit/adapters/sqlite-team-repository.test.ts (13 tests) 21ms
- ✓ tests/unit/services/sync.test.ts (15 tests) 33ms
- ✓ tests/unit/services/team-promotion-service.test.ts (15 tests) 57ms
- ✓ tests/unit/services/pattern-service.test.ts (4 tests) 18ms
- ✓ tests/unit/services/session-service.test.ts (11 tests) 17ms
- ✓ tests/unit/infrastructure/database-concurrency.test.ts (7 tests) 98ms
- ✓ tests/unit/services/coordination-service.test.ts (45 tests) 158ms
- ✓ tests/unit/infrastructure/schema.test.ts (8 tests) 136ms
- ✓ tests/unit/infrastructure/local-migration.test.ts (9 tests) 144ms
+ ✓ tests/unit/adapters/sqlite-decay-parity.test.ts (12 tests) 26ms
+ ✓ tests/unit/infrastructure/driver-upgrade.test.ts (2 tests) 8ms
+ ✓ tests/unit/services/team-promotion-service.test.ts (15 tests) 40ms
+ ✓ tests/unit/services/pattern-service.test.ts (4 tests) 10ms
+ ✓ tests/unit/services/coordination-service.test.ts (45 tests) 108ms
+ ✓ tests/unit/services/sync.test.ts (15 tests) 56ms
+ ✓ tests/unit/infrastructure/database-concurrency.test.ts (7 tests) 105ms
+ ✓ tests/unit/services/session-service.test.ts (11 tests) 18ms
+ ✓ tests/unit/infrastructure/schema.test.ts (8 tests) 128ms
+ ✓ tests/unit/infrastructure/local-migration.test.ts (9 tests) 155ms
  ✓ tests/unit/domain/session.test.ts (7 tests) 4ms
- ✓ tests/unit/services/team-service.test.ts (8 tests) 5ms
- ✓ tests/unit/services/prompt-log-service.test.ts (4 tests) 11ms
  ✓ tests/unit/infrastructure/fastembed-gateway.test.ts (5 tests) 2ms
- ✓ tests/unit/mcp/server.test.ts (35 tests) 171ms
- ✓ tests/unit/shared/repo-identity.test.ts (21 tests) 1970ms
-   ✓ resolveProjectIdentity > prefers the normalised remote 418ms
-   ✓ resolveProjectIdentity > gives two different repositories different ids 365ms
-   ✓ resolveProjectIdentity > gives the same id to two clones in differently-named directories 371ms
+ ✓ tests/unit/services/team-service.test.ts (8 tests) 4ms
+ ✓ tests/unit/services/prompt-log-service.test.ts (4 tests) 11ms
+ ✓ tests/unit/mcp/server.test.ts (35 tests) 177ms
+ ✓ tests/unit/shared/repo-identity.test.ts (21 tests) 2513ms
+   ✓ resolveProjectIdentity > prefers the normalised remote 397ms
+   ✓ resolveProjectIdentity > gives two different repositories different ids 569ms
+   ✓ resolveProjectIdentity > gives the same id to two clones in differently-named directories 574ms
 
  Test Files  23 passed (23)
       Tests  298 passed (298)
-   Start at  00:03:17
-   Duration  2.61s (transform 1.27s, setup 0ms, collect 3.24s, tests 2.94s, environment 4ms, prepare 2.82s)
+   Start at  00:16:38
+   Duration  3.28s (transform 1.29s, setup 0ms, collect 3.20s, tests 3.45s, environment 3ms, prepare 2.73s)
 
  % Coverage report from v8
 -------------------|---------|----------|---------|---------|-------------------

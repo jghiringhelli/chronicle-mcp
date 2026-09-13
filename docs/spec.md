@@ -385,9 +385,9 @@ met — in a README, a release note, or a pitch.
 | ID | Requirement | Status |
 |---|---|---|
 | NFR-01 | The server MUST speak MCP over stdio and MUST be runnable as `npx -y chronicle-mcp` with no prior install. | unrun — needs a clean machine (RM-302) |
-| NFR-02 | Cold start MUST complete in <300ms. | **met on linux, not reliably on win32** · 2026-09-13. linux-x64 4-cpu CI runner: **280ms** cold. win32-x64 20-cpu dev host: **225–372ms** over repeated spawns, crossing the budget roughly a third of the time. Target revised from 200ms in ADR-021: ~165ms of any measurement is Node plus the MCP SDK, leaving ~35ms for the whole application inside the old budget. The previously recorded *"251ms"* was **one sample**; see the note on method below. |
-| NFR-03 | `recall` MUST return in <50ms with up to 10,000 memories stored. | **verified, on both platforms** · 2026-09-13. p95 **15ms** on linux CI and **19–23ms** on win32 dev at the specified 10k; **31–38ms** at 50k, still inside. 30 samples per size, no warm-up curve. Predicted at risk and is not: the leading-wildcard scan is real but not dominant at this scale, so FTS5 is **not** urgent — ADR-014 §3 corrected. |
-| NFR-04 | The decay and promotion pass MUST complete in <500ms with up to 50,000 memories. | **met on linux; missed on a cold win32 pass** · 2026-09-13. linux CI: **327ms** cold. win32 dev: **504–605ms on the first pass**, settling to **~240ms** on subsequent passes against the same open store. Was **10,386ms** when first measured — a real defect: the pass looped one autocommitting `update` per row, now set-based in SQL (ADR-021). The previously recorded *"363ms"* was one sample and, it turns out, a warm one. **Open: which reading the acceptance is judged on** — see below. |
+| NFR-02 | Cold start MUST complete in <300ms. | **marginal, and load-dependent** · 2026-09-13, median of 10 spawns. linux-x64 4-cpu runner: **median 182ms** (178–220ms), comfortably inside. win32-x64 20-cpu dev host: **median 239ms idle, 329ms under load** (210–372ms across runs). Met on linux; on the line on win32 depending on what else the machine is doing. Target revised from 200ms in ADR-021: ~165ms of any measurement is Node plus the MCP SDK. The *"251ms"* once recorded here was **one sample** — see the note on method. |
+| NFR-03 | `recall` MUST return in <50ms with up to 10,000 memories stored. | **verified** · 2026-09-13, p95 of 30 samples per size. win32 dev: p95 **14–23ms** at the specified 10k, **38ms** at 50k. linux runner: p95 **32ms** at 10k. One exception: a p95 of **375ms at 1k** on the shared runner while the same run measured 32ms at 10k — interference, not a size effect, and the reason the runner's numbers are informational only (see below). Predicted at risk and is not: the leading-wildcard scan is real but not dominant, so FTS5 is **not** urgent — ADR-014 §3 corrected. |
+| NFR-04 | The decay and promotion pass MUST complete in <500ms with up to 50,000 memories. | **met on the median; the first pass against a cold store is not** · 2026-09-13, 9 passes at 50k. win32 dev: **median 229ms** (182–230ms), but the **first pass is 504–605ms** — over budget, every run. Was **10,386ms** when first measured — a real defect: the pass looped one autocommitting `update` per row, now set-based in SQL (ADR-021). The *"363ms"* once recorded was one sample. **Open: whether acceptance is judged on the median or on that first pass** — see below. |
 | NFR-05 | Every local operation MUST succeed with no network available, and the server MUST NOT emit telemetry. | unrun (no offline test) |
 | NFR-06 | The server MUST work on Claude Code CLI, the VS Code MCP extension, and Cursor. | unrun |
 | NFR-07 | Released as `chronicle-mcp` on npm. | verified — published, v0.3.2 |
@@ -402,37 +402,52 @@ recall or session-end path.
 
 ### How these are measured, and what it changed
 
-The first version of the benchmark took **one** reading each for NFR-02 and NFR-04, while NFR-03 took
-thirty and reported a p95. That inconsistency was not cosmetic — it decided verdicts. Ten consecutive
-cold starts on one host gave 349, 345, 280, 210, 213, 225, 233, 242, 239 and 220ms; five consecutive
-decay passes gave 573, 370, 248, 229 and 234ms. Both are **warm-up curves, not noise around a
-centre**, so:
+The benchmark originally took **one** reading each for NFR-02 and NFR-04 while NFR-03 took thirty and
+reported a p95. That inconsistency decided verdicts: `251ms` and `363ms` were each a single sample
+presented as verified. Both are now sampled — 10 spawns for NFR-02, 9 passes for NFR-04 — and the
+record carries every reading.
 
-- a single reading is whichever point of the curve you happened to land on — which is how `251ms` and
-  `363ms` came to be recorded as verified;
-- a *median* over back-to-back iterations measures a warm OS page cache the user does not have.
+The verdict is judged on the **median**, with the first reading and the maximum reported beside it.
+That was not the first answer. Sampling initially reported cold-versus-steady and judged on the cold
+figure, because the win32 samples are a clean monotonic warm-up:
 
-Both are now sampled, and the record separates **cold** (the first reading) from **steady** (the
-median of the rest). The verdict is judged on the cold figure, because that is the situation: one
-cold start per session, one session-end pass per session. A `p95` is deliberately **not** quoted for
-these two — at n=5 or n=10 the nearest-rank p95 *is* the maximum, and labelling a maximum as a p95
-claims resolution the sample does not have. NFR-03 keeps its p95 on 30 samples.
+    win32  cold start : 349, 345, 280, 210, 213, 225, 233, 242, 239, 220   (warming)
+    win32  decay pass : 564, then 182-230 for the remaining eight          (warming)
 
-**Open question, for a decision rather than a default.** NFR-04's cold figure misses on win32 and its
-steady figure is less than half the budget. The cold reading here is a *pessimistic* cold — a store
-this process has never touched — whereas a real session end follows a session that already read from
-it, so reality sits between the two. Three honest options: judge on the cold reading and optimise the
-first pass; judge on steady state and say so explicitly in this row; or qualify the targets by
-platform, since linux meets both budgets cold and win32 meets neither. **Not resolved here** —
-picking whichever reading passes is the failure mode this whole section exists to prevent.
+The same code on the CI runner produces nothing of the kind:
+
+    linux  decay pass : 791, 415, 207, 553, 302    (not a curve - a noisy shared host)
+    linux  recall p95 : 375ms at 1k, 32ms at 10k   (interference, not a size effect)
+
+Reading a warm-up into that would be fitting a model to one machine. The median is robust in both
+regimes; `warmupMonotonic` in the record states whether the series actually decreases, so a reader can
+tell which regime a number came from instead of assuming. No `p95` is quoted for these two: at n=9 or
+n=10 the nearest-rank p95 *is* the maximum, and calling a maximum a p95 claims resolution the sample
+does not have. NFR-03 keeps its p95, on thirty samples.
+
+**The CI runner's numbers are informational, not acceptance evidence.** A shared 4-cpu runner that
+reports a decay pass anywhere in 207–791ms, and a recall p95 an order of magnitude worse at 1k than at
+10k, cannot establish whether a 500ms budget is met. That is why the `benchmark` job deliberately does
+not gate — and why the claim previously in this file that linux "met both budgets cold" has been
+removed. It came from single samples: the same error as the numbers it was correcting.
+
+**Open question, for a decision rather than a default.** NFR-04's median is less than half its budget,
+and its first pass against a store the process has never opened is consistently over it. That first
+reading is a *pessimistic* cold — a real session end follows a session that already read from the
+store — so reality sits between the two. Three honest options: judge on the first pass and optimise it;
+judge on the median and say so explicitly in the row above; or measure the realistic case directly, by
+running a session before the pass. **Not resolved here** — picking whichever reading passes is the
+failure mode this section exists to prevent.
 
 What remains *unrun* is the environmental set: NFR-01, 05, 06 and 09 need a clean machine and an
 offline run, not a benchmark.
 
-The "one host" gap is closed: the `benchmark` CI job measures every run on a 4-cpu linux runner, and
-the answer is that the modest runner is the *faster* of the two for these paths — both budgets are met
-cold there and neither is on the 20-cpu Windows dev host. Process spawn and first-touch file I/O are
-the difference, not CPU count, which is consistent with NFR-02 being dependency-dominated.
+The "one host" gap is **partly** closed. The `benchmark` CI job measures every run on a 4-cpu linux
+runner, and for cold start the answer is clear and slightly surprising: the modest runner is *faster*
+(median 182ms against 239–329ms on a 20-cpu Windows host), because spawn and first-touch file I/O
+dominate rather than CPU count — consistent with NFR-02 being dependency-dominated. For the decay pass
+the runner is too noisy to conclude anything. A second *quiet* machine, not a second hosted runner, is
+what would close this properly.
 
 Two of the three measurements contradicted expectation — NFR-03 was predicted to miss and meets
 comfortably, NFR-04 met nothing and was out by 20×. That is the argument for measuring instead of

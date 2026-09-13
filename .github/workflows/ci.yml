@@ -182,9 +182,14 @@ jobs:
           const r = require('./docs/evidence/nfr-bench.json');
           console.log('machine:', r.machine.platform, r.machine.cpus + ' cpus', r.machine.node);
           const v = (ms, t) => ms <= t ? 'MEETS' : 'MISSES';
-          console.log('NFR-02 cold start ' + r.nfr02_cold_start.ms + 'ms / ' + r.nfr02_cold_start.target + 'ms ' + v(r.nfr02_cold_start.ms, r.nfr02_cold_start.target));
+          // Cold and steady are printed separately on purpose: NFR-02 and NFR-04 sit on a warm-up
+          // curve, and collapsing them to one figure is how 251ms and 363ms were once recorded as
+          // verified (docs/spec.md section 5, 'How these are measured').
+          const warm = (x) => x.steadyMedian === undefined ? '' : '  (steady ~' + x.steadyMedian + 'ms, ' + x.n + ' samples ' + x.min + '-' + x.max + 'ms)';
+          const c = r.nfr02_cold_start;
+          console.log('NFR-02 cold start ' + c.ms + 'ms / ' + c.target + 'ms ' + v(c.ms, c.target) + warm(c));
           for (const x of r.nfr03_recall) console.log('NFR-03 recall @' + x.storeSize + ' p95 ' + x.p95 + 'ms / ' + x.target + 'ms ' + v(x.p95, x.target));
-          if (r.nfr04_decay_pass) { const d = r.nfr04_decay_pass; console.log('NFR-04 decay @' + d.storeSize + ' ' + d.ms + 'ms / ' + d.target + 'ms ' + v(d.ms, d.target)); }
+          if (r.nfr04_decay_pass) { const d = r.nfr04_decay_pass; console.log('NFR-04 decay @' + d.storeSize + ' ' + d.ms + 'ms / ' + d.target + 'ms ' + v(d.ms, d.target) + warm(d)); }
           "
 
       - uses: actions/upload-artifact@v4

@@ -58,6 +58,18 @@ When the user says *"don't do that"* about a pattern produced here, append a lin
   in ADR-021 and spec §5 were whichever point of the curve the run happened to land on — and the decay
   pass actually takes ~600ms cold on this host, over its 500ms budget. Cold and steady are now
   reported separately, and the verdict is judged on cold, because that is the user's situation.
+- `[2026-09-13]` — Do not fit a model to one machine's data. Having replaced a single reading with a
+  sample, I read the win32 series (349, 345, 280, 210…) as a warm-up curve, reported cold-versus-steady
+  and judged on cold. The same code on the CI runner gave 791, 415, 207, 553, 302 — not a curve, just a
+  noisy shared host — so "cold" and "steady" were labels for interference. The verdict is now the
+  median, which is robust in both regimes, and the record carries a `warmupMonotonic` flag so a reader
+  can tell which regime a number came from. Three iterations of the same lesson in one session: one
+  sample, then a mislabelled p95, then a model that only held on one host.
+- `[2026-09-13]` — A shared CI runner measures throughput, not latency. It reported the decay pass
+  anywhere in 207–791ms and a recall p95 an order of magnitude worse at 1,000 memories than at 10,000.
+  Useful for "did it run", useless for "is 500ms met" — which is why the `benchmark` job does not gate,
+  and why its numbers are recorded as informational. I had already quoted two of them as verdicts
+  before looking at their spread.
 - `[2026-09-13]` — Do not print a `p95` you cannot resolve. At n=5 or n=10 the nearest-rank p95 *is*
   the maximum, so labelling it p95 overstates the sample. I shipped exactly that for one iteration
   before noticing the p95 and the max were always equal.

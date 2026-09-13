@@ -1,6 +1,6 @@
-﻿command: node node_modules/eslint/bin/eslint.js src tests
+command: npx eslint src tests
 exit code: 0
-run: 2026-09-12T23:19:38.3530284-05:00
+run: 2026-09-13T04:41:44Z
 node: v24.18.0
 
 
@@ -60,5 +60,4 @@ C:\workspace\PragmaWorks\mcp\chronicle\src\services\team-sync-service.ts
   120:21  warning  Forbidden non-null assertion  @typescript-eslint/no-non-null-assertion
 
 ✖ 43 problems (0 errors, 43 warnings)
-
 

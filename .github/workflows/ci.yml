@@ -2,11 +2,16 @@ name: CI
 
 # The Defended property scores 0 until gates actually run. This file is the gate.
 #
-# The test job runs a Node MATRIX (20 and 24) rather than a single pinned version. That is not
-# thoroughness for its own sake: `engines.node` claims `>=20`, and since ADR-015 the claim is
-# honest only because better-sqlite3@13 ships Node-API binaries that work across majors. The
-# matrix is what turns that claim into a tested one — under the previous per-ABI driver, Node 24
-# failed at runtime with a bindings error that reads like a code bug (.claude/ledger.md).
+# The test job runs a Node MATRIX (the floor of `engines.node` and the current LTS) rather than a
+# single pinned version. That is not thoroughness for its own sake, and it has now paid for itself
+# twice: under the per-ABI driver, Node 24 failed with a bindings error that reads like a code bug;
+# and on 2026-09-12 this matrix caught `engines.node: ">=20"` while better-sqlite3@13 requires
+# `>=22` — Node 20 did not throw, it SEGFAULTED (exit 139), which no amount of unit testing on one
+# developer's Node 24 would ever have surfaced. See ADR-022 and .claude/ledger.md.
+#
+# Keep the low end of this matrix equal to the lower bound of `engines.node`. A matrix that does not
+# include the floor is not testing the claim, and `scripts/check-dependency-policy.mjs` rule 9 only
+# checks that the floor is high enough, not that anyone ran it.
 
 on:
   push:
@@ -22,7 +27,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  NODE_VERSION: '20'
+  NODE_VERSION: '22'
 
 jobs:
   # Dependency-free and fast: fails a broken specification surface before anything installs.
@@ -53,7 +58,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: ['20', '24']
+        node: ['22', '24']
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4

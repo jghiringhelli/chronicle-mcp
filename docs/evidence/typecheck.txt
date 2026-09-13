@@ -1,6 +1,5 @@
-﻿command: node node_modules/typescript/bin/tsc --noEmit
+command: npx tsc --noEmit -p tsconfig.json
 exit code: 0
-run: 2026-09-12T23:19:36.4610020-05:00
+run: 2026-09-13T04:41:44Z
 node: v24.18.0
-
 

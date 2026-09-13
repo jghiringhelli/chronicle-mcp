@@ -1,69 +1,60 @@
-﻿command: node node_modules/vitest/vitest.mjs run --coverage
+command: npx vitest run --coverage
 exit code: 0
-run: 2026-09-12T23:19:43.9452328-05:00
+run: 2026-09-13T04:41:44Z
 node: v24.18.0
 
 
  RUN  v2.1.9 C:/workspace/PragmaWorks/mcp/chronicle
       Coverage enabled with v8
 
+ ✓ tests/unit/shared/runtime.test.ts (15 tests) 6ms
  ✓ tests/unit/domain/memory.test.ts (14 tests) 5ms
- ✓ tests/unit/shared/time.test.ts (14 tests) 4ms
  ✓ tests/unit/services/memory-service.test.ts (9 tests) 5ms
- ✓ tests/unit/domain/session.test.ts (7 tests) 4ms
- ✓ tests/unit/services/team-promotion-service.test.ts (15 tests) 21ms
- ✓ tests/unit/adapters/sqlite-decay-parity.test.ts (12 tests) 19ms
- ✓ tests/unit/adapters/sqlite-memory-repository.test.ts (11 tests) 21ms
- ✓ tests/unit/adapters/sqlite-team-repository-search.test.ts (14 tests) 26ms
-node : stderr | tests/unit/infrastructure/driver-upgrade.test.ts > a database written by better-sqlite3@11 opens with @13 > reads rows the old driver wrote, 
-with the schema migrated forward
-At line:1 char:1
-+ node node_modules/vitest/vitest.mjs run --coverage
-+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    + CategoryInfo          : NotSpecified: (stderr | tests/...igrated forward:String) [], RemoteException
-    + FullyQualifiedErrorId : NativeCommandError
- 
+ ✓ tests/unit/shared/time.test.ts (14 tests) 11ms
+stderr | tests/unit/infrastructure/driver-upgrade.test.ts > a database written by better-sqlite3@11 opens with @13 > reads rows the old driver wrote, with the schema migrated forward
 
   SKIPPED: could not install better-sqlite3@11 (no registry, or no C++ toolchain —
   which is ADR-015's original problem). This assertion did NOT run.
 
 
-stderr | tests/unit/infrastructure/driver-upgrade.test.ts > a database written by better-sqlite3@11 opens with @13 > reads a WAL-mode database the old 
-driver left behind
+stderr | tests/unit/infrastructure/driver-upgrade.test.ts > a database written by better-sqlite3@11 opens with @13 > reads a WAL-mode database the old driver left behind
 
   SKIPPED: better-sqlite3@11 unavailable; this assertion did NOT run.
 
 
- ✓ tests/unit/infrastructure/driver-upgrade.test.ts (2 tests) 12ms
- ✓ tests/unit/services/pattern-service.test.ts (4 tests) 10ms
- ✓ tests/unit/adapters/sqlite-team-repository.test.ts (13 tests) 30ms
- ✓ tests/unit/services/sync.test.ts (15 tests) 58ms
+ ✓ tests/unit/services/team-promotion-service.test.ts (15 tests) 24ms
+ ✓ tests/unit/infrastructure/driver-upgrade.test.ts (2 tests) 10ms
+ ✓ tests/unit/adapters/sqlite-memory-repository.test.ts (11 tests) 21ms
+ ✓ tests/unit/services/pattern-service.test.ts (4 tests) 19ms
+ ✓ tests/unit/adapters/sqlite-team-repository.test.ts (13 tests) 21ms
+ ✓ tests/unit/adapters/sqlite-decay-parity.test.ts (12 tests) 27ms
+ ✓ tests/unit/adapters/sqlite-team-repository-search.test.ts (14 tests) 42ms
+ ✓ tests/unit/services/sync.test.ts (15 tests) 54ms
+ ✓ tests/unit/services/session-service.test.ts (11 tests) 16ms
  ✓ tests/unit/infrastructure/database-concurrency.test.ts (7 tests) 90ms
- ✓ tests/unit/services/session-service.test.ts (11 tests) 17ms
- ✓ tests/unit/services/coordination-service.test.ts (45 tests) 131ms
- ✓ tests/unit/infrastructure/schema.test.ts (8 tests) 121ms
- ✓ tests/unit/infrastructure/local-migration.test.ts (9 tests) 128ms
- ✓ tests/unit/infrastructure/fastembed-gateway.test.ts (5 tests) 3ms
- ✓ tests/unit/services/team-service.test.ts (8 tests) 5ms
+ ✓ tests/unit/services/coordination-service.test.ts (45 tests) 140ms
+ ✓ tests/unit/infrastructure/schema.test.ts (8 tests) 118ms
+ ✓ tests/unit/infrastructure/local-migration.test.ts (9 tests) 125ms
+ ✓ tests/unit/domain/session.test.ts (7 tests) 4ms
  ✓ tests/unit/services/prompt-log-service.test.ts (4 tests) 10ms
- ✓ tests/unit/mcp/server.test.ts (35 tests) 183ms
- ✓ tests/unit/shared/repo-identity.test.ts (21 tests) 3520ms
-   ✓ resolveProjectIdentity > prefers the normalised remote 516ms
-   ✓ resolveProjectIdentity > resolves the same id from a subdirectory of the repository 408ms
-   ✓ resolveProjectIdentity > gives two different repositories different ids 724ms
-   ✓ resolveProjectIdentity > gives the same id to two clones in differently-named directories 804ms
-   ✓ resolveProjectIdentity > reports the repository root, not the subdirectory it was called from 397ms
+ ✓ tests/unit/services/team-service.test.ts (8 tests) 4ms
+ ✓ tests/unit/infrastructure/fastembed-gateway.test.ts (5 tests) 2ms
+ ✓ tests/unit/mcp/server.test.ts (35 tests) 171ms
+ ✓ tests/unit/shared/repo-identity.test.ts (21 tests) 1851ms
+   ✓ resolveProjectIdentity > prefers the normalised remote 366ms
+   ✓ resolveProjectIdentity > gives two different repositories different ids 347ms
+   ✓ resolveProjectIdentity > gives the same id to two clones in differently-named directories 330ms
 
- Test Files  22 passed (22)
-      Tests  283 passed (283)
-   Start at  23:19:39
-   Duration  4.23s (transform 1.49s, setup 0ms, collect 3.50s, tests 4.42s, environment 4ms, prepare 3.07s)
+ Test Files  23 passed (23)
+      Tests  298 passed (298)
+   Start at  23:41:49
+   Duration  2.56s (transform 1.54s, setup 0ms, collect 3.35s, tests 2.78s, environment 4ms, prepare 2.86s)
 
  % Coverage report from v8
 -------------------|---------|----------|---------|---------|-------------------
 File               | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s 
 -------------------|---------|----------|---------|---------|-------------------
-All files          |   59.87 |    72.13 |   76.32 |   59.87 |                   
+All files          |   59.98 |    72.36 |   76.19 |   59.98 |                   
  ...s/repositories |   71.01 |    67.66 |      80 |   71.01 |                   
   index.ts         |     100 |      100 |     100 |     100 |                   
   ...repository.ts |   72.41 |     64.4 |   85.71 |   72.41 | ...38-339,343-349 
@@ -128,8 +119,10 @@ All files          |   59.87 |    72.13 |   76.32 |   59.87 |
   team-service.ts  |    28.7 |       40 |     100 |    28.7 | ...53-168,181-193 
   ...nc-service.ts |    8.57 |      100 |      25 |    8.57 | ...02-150,158-246 
   ...er-service.ts |   77.27 |    57.14 |      75 |   77.27 | 56-57,82-83,92-97 
- shared            |     100 |    95.55 |     100 |     100 |                   
+ shared            |   93.06 |    94.44 |    90.9 |   93.06 |                   
+  ...rt-runtime.ts |       0 |        0 |       0 |       0 | 1-20              
   repo-identity.ts |     100 |       92 |     100 |     100 | 79,113            
+  runtime.ts       |     100 |      100 |     100 |     100 |                   
   time.ts          |     100 |      100 |     100 |     100 |                   
  shared/config     |   14.51 |        0 |       0 |   14.51 |                   
   index.ts         |   14.51 |        0 |       0 |   14.51 | ...41-145,155-156 
@@ -138,4 +131,3 @@ All files          |   59.87 |    72.13 |   76.32 |   59.87 |
  types             |       0 |        0 |       0 |       0 |                   
   fastembed.d.ts   |       0 |        0 |       0 |       0 |                   
 -------------------|---------|----------|---------|---------|-------------------
-

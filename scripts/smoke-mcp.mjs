@@ -11,7 +11,7 @@
 
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
-import { writeFileSync, mkdirSync, existsSync, mkdtempSync, rmSync } from 'node:fs';
+import { writeFileSync, readFileSync, mkdirSync, existsSync, mkdtempSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
@@ -70,6 +70,24 @@ async function call(client, name, args) {
 }
 
 async function main() {
+  // ── ADR-022: the Node guard survived bundling ─────────────────────────────────
+  //
+  // The guard is a side-effect-only import, which is the category a bundler is most likely to drop
+  // — and if it is dropped, the symptom is not a failing test, it is exit 139 with no message on an
+  // older Node. The ordering itself is guaranteed by the language (`cli.ts` reaches the native code
+  // through a dynamic import, asserted in tests/unit/shared/runtime.test.ts); what this checks is
+  // that the guard is still in the shipped artifact at all.
+  {
+    const built = readFileSync(SERVER, 'utf8');
+    record(
+      'ADR-022 the Node version guard is present in the built CLI',
+      built.includes('Chronicle requires Node'),
+      built.includes('Chronicle requires Node')
+        ? 'guard text found in dist/cli.js'
+        : 'the guard was dropped by the bundler — an unsupported Node would segfault instead',
+    );
+  }
+
   // ── UC-008: the server starts and serves over stdio with no configuration ────────────────
   const a = await connect('A');
   record('UC-008 server starts over stdio with no configuration', true,

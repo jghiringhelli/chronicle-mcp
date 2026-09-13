@@ -10,6 +10,32 @@ commits they cite are exact.
 
 ## [Unreleased]
 
+### Changed — BREAKING
+
+- **The minimum supported Node is now 22** (`engines.node: ">=22"`, previously `>=20`). Required, not
+  chosen: `better-sqlite3@13` declares `>=22`, and on Node 20 its prebuilt binding does not fail to
+  load — it **segfaults**, exit 139, no stack, no message. Node 20 reached end of life on
+  2026-04-30. **ADR-022**.
+
+### Fixed — defects found by running things
+
+- **`engines.node` promised a runtime that segfaults.** Found by the Node matrix on this branch's
+  first CI run: Node 24 green, Node 20 `Segmentation fault (core dumped)`. `better-sqlite3` raised
+  its own floor from `20.x||22.x||23.x||24.x` (`@12`) to `>=22` (`@13`) and this package kept
+  claiming `>=20`; npm and pnpm treat an engine mismatch as a warning, so it installed cleanly and
+  then crashed. Three-part fix, because each part covers a different escape route:
+  - `engines.node` raised to `>=22` and the CI matrix moved to `['22', '24']` — a matrix that omits
+    the floor is not testing the claim, which is how `>=20` survived until the day 20 was in it.
+  - **dependency-policy rule 9**: the `engines.node` floor must be at or above every runtime
+    dependency's own floor, gated by `scripts/check-dependency-policy.mjs` against the installed
+    tree. Rule 7 already governed the *shape* of the range and passed this — `>=20` was the right
+    shape and the wrong number. Verified by reverting the defect and watching the gate exit 1.
+  - a **runtime guard** (`src/shared/runtime.ts`, `src/shared/assert-runtime.ts`): an unsupported
+    Node now gets four lines naming the version, the cause and the remedy, on stderr — stdout is the
+    MCP transport. `engines` cannot do this; it is advisory, and `npx` or a global install skips it.
+  `cli.ts` now reaches the native code via `await import('./mcp/server.js')`, so the guard running
+  first is guaranteed by the language rather than by its import line staying above the others.
+
 ### Fixed — defects found by running things
 
 - **`session(action: 'end', project)` ignored `project`** and called `endSession(args.id ?? '')`, so
@@ -22,7 +48,8 @@ commits they cite are exact.
   `new Database()` threw `Could not locate the bindings file` at runtime — 11 of 41 tests failing in
   a way that read like a code bug. Moved to `better-sqlite3@^13`, which ships **Node-API** binaries:
   one ABI-stable binary per platform, no compiler, no Node pin (**ADR-015**). 41/41 immediately, and
-  `engines.node` returns to `>=20`, which is now the accurate statement.
+  `engines.node` returned to `>=20` — *which was wrong, and is corrected below: `@13` requires Node
+  `>=22`, and on Node 20 its binding segfaults. See **ADR-022**.*
 - **`better-sqlite3` removed from pnpm's `onlyBuiltDependencies`.** It still carries a `binding.gyp`,
   and pnpm rebuilds any approved package that has one — re-creating the whole failure while the
   shipped binary sat unused beside it. The resulting `Ignored build scripts` warning is the desired

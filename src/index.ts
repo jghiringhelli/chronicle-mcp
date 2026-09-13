@@ -11,6 +11,8 @@ export {
 } from './shared/repo-identity.js';
 export type { ProjectIdentity, ProjectIdSource } from './shared/repo-identity.js';
 export { toIsoString, toTagsJson } from './shared/time.js';
+// Embedders get the check as an assertion rather than as an exit (see src/shared/runtime.ts).
+export { assertSupportedRuntime, checkRuntime, MINIMUM_NODE_MAJOR } from './shared/runtime.js';
 export * from './shared/exceptions/index.js';
 export * from './ports/repositories/index.js';
 export * from './ports/gateways/index.js';

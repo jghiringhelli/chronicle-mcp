@@ -10,8 +10,19 @@
  *   chronicle-mcp --dashboard --dash-port 4000
  */
 
-import { createMcpServer } from './mcp/server.js';
+// ADR-022. This import must be evaluated before anything that loads the SQLite binding, because on
+// an unsupported Node that load is a *segmentation fault*, not an error — a guard placed after it
+// never runs. `assert-runtime.js` pulls in nothing native, so it is safe this high up.
+import './shared/assert-runtime.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+
+// `createMcpServer` is reached through a DYNAMIC import, and that is the load-bearing part of the
+// guard rather than the comment above. It transitively imports `better-sqlite3`; as a static import
+// its evaluation order relative to the guard would depend on declaration order surviving every
+// future reformat, import sorter and bundler. As a dynamic import, the ordering is guaranteed by the
+// language: the module is not fetched until this line runs, and on an unsupported runtime the guard
+// has already exited the process.
+const { createMcpServer } = await import('./mcp/server.js');
 
 const args = process.argv.slice(2);
 

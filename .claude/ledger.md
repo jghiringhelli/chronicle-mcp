@@ -51,6 +51,21 @@ When the user says *"don't do that"* about a pattern produced here, append a lin
   `Session not found: ` on an empty id. One run of `scripts/smoke-mcp.mjs` did.
 - `[2026-09-10]` — Do not retype uncovered code to satisfy a new lint rule. Characterise it with
   tests first, then type it. A scoped, expiring waiver is the correct interim (exc-009).
+- `[2026-09-12]` — A gate that has never failed has not been verified. The Node 20/24 matrix was
+  added by ADR-015 so that `engines.node` was *tested rather than asserted*; its first real run
+  segfaulted on Node 20, because `better-sqlite3@13` had raised its own floor to `>=22` and this
+  package still claimed `>=20`. 283 green tests on Node 24 could not have found it — the only
+  instrument that could was a second Node version, and the only place one exists is CI. ADR-015's
+  Verification section had recorded the range as verified before the matrix ever ran against `@13`.
+- `[2026-09-12]` — When a dependency bumps a major, re-read its `engines`, not just its changelog.
+  A raised floor is silent: the install still succeeds, because npm and pnpm treat an engine mismatch
+  as a warning. The symptom was `Segmentation fault (core dumped)`, exit 139, no stack — the failure
+  mode with the least diagnostic information available. `dependency-policy` rule 9 now gates the
+  floor, and `src/shared/runtime.ts` makes the process say what is wrong instead of dying.
+- `[2026-09-12]` — If correctness depends on import order, make it depend on the language instead.
+  A guard that must be evaluated before a native module is only correct while its `import` line stays
+  above the others — one import sorter away from a segfault on someone else's machine. `cli.ts` now
+  loads the server with `await import()`, so the ordering is guaranteed rather than conventional.
 - `[2026-09-12]` — Measure before optimising, and say so when the guess was wrong. I predicted
   NFR-03 would miss (leading-wildcard scan, two queries per recall) and it meets at p95 13ms; I added
   a schema-version gate expecting it to cut cold start and it moved nothing — the cost is Node plus

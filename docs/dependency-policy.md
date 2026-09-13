@@ -57,6 +57,18 @@ depends_on: [ADR-001]
    test-runner plugin) MUST match that host's major. A mismatch does not fail at install —
    it fails the first time the gate runs, which is how the 80% coverage threshold here went
    unevaluated.
+9. The lower bound of `engines.node` MUST be at or above the lower bound every runtime
+   dependency declares in its own `engines`. Rule 7 governs the *shape* of the range; this one
+   governs where it starts, and the two are independent — an open lower bound can be the right
+   shape and still start too low. *(Added 2026-09-12 — see ADR-022. `better-sqlite3@13` requires
+   `>=22`; this package claimed `>=20`; Node 20 segfaulted rather than failing to load. Checked by
+   `scripts/check-dependency-policy.mjs` against the installed tree, so it is offline and reflects
+   this lockfile rather than the registry.)*
+
+> Rules 7 and 9 are both about native dependencies and they are not the same rule. 7 asks *what
+> shape* the range may take, given how the dependency ships its binaries. 9 asks *where it starts*,
+> given what the dependency says it supports. Satisfying 7 and violating 9 is what happened here,
+> and the symptom was a segfault — the failure mode with the least diagnostic information of any.
 
 ---
 

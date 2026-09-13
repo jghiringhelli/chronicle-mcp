@@ -62,6 +62,53 @@ const MAJOR_LOCKED_TO = {
 /** Runtime dependencies that ship a compiled binary. */
 const NATIVE_DEPS = new Set(['better-sqlite3']);
 
+/**
+ * Rule 9 — the lower bound of `engines.node` must be at or above every runtime dependency's own
+ * lower bound.
+ *
+ * This rule exists because rule 7 was not enough. Rule 7 reasoned about *prebuild style* and
+ * concluded that an open lower bound is correct for a Node-API package — which is true, and says
+ * nothing about where that bound should start. `better-sqlite3@13` raised its own floor from
+ * `20.x||22.x||23.x||24.x` to `>=22` in a major bump, this package kept claiming `>=20`, and the
+ * result on Node 20 was a SEGFAULT, not an error: exit 139, no stack, nothing to read. A library
+ * whose whole job is not losing what you wrote down cannot ship that.
+ *
+ * It reads the installed tree rather than the registry, so it is offline and deterministic, and it
+ * describes what a user would actually get from this lockfile.
+ */
+const readDependencyFloors = () => {
+  const floors = [];
+  for (const name of Object.keys(pkg.dependencies ?? {})) {
+    let declared;
+    try {
+      declared = JSON.parse(
+        readFileSync(join(ROOT, 'node_modules', name, 'package.json'), 'utf8'),
+      ).engines?.node;
+    } catch {
+      continue; // not installed — `pnpm install` is a separate problem, not this gate's to report
+    }
+    if (!declared) continue;
+    const floor = lowerBound(declared);
+    if (floor !== null) floors.push({ name, declared, floor });
+  }
+  return floors;
+};
+
+/**
+ * The lowest Node major a range admits. Deliberately simple: it handles the forms that appear in
+ * real `engines` fields (`>=22`, `^20.0.0`, `20.x||22.x||24.x`, `>=20 <24`) and returns null for
+ * anything it does not understand, so an exotic range is ignored rather than guessed at. A gate
+ * that fails on a range it misread would be worse than one that stays quiet.
+ */
+export const lowerBound = (range) => {
+  const majors = String(range)
+    .split('||')
+    .map((part) => /(\d+)/.exec(part.trim())?.[1])
+    .filter((m) => m !== undefined)
+    .map(Number);
+  return majors.length > 0 ? Math.min(...majors) : null;
+};
+
 const violations = [];
 const fail = (rule, detail) => violations.push({ rule, detail });
 
@@ -117,6 +164,23 @@ if (!engines) {
   fail(7, `engines.node "${engines}" is open-ended, but ${perAbiNative.join(', ')} publishes prebuilds per Node ABI — an open range promises support that does not exist. Declare a closed interval naming the majors it builds for (see .claude/ledger.md).`);
 } else if (!/>=?\s*\d/.test(engines)) {
   fail(7, `engines.node "${engines}" has no lower bound`);
+}
+
+// Rule 9 — our floor is at or above every dependency's floor.
+const ourFloor = engines ? lowerBound(engines) : null;
+if (ourFloor === null) {
+  if (engines) fail(9, `engines.node "${engines}" has no readable lower bound to check dependencies against`);
+} else {
+  for (const { name, declared, floor } of readDependencyFloors()) {
+    if (floor > ourFloor) {
+      fail(
+        9,
+        `engines.node claims Node ${ourFloor}+, but "${name}" declares "${declared}" (Node ${floor}+). ` +
+        `Raise engines.node to >=${floor} and move the low end of the CI matrix with it. ` +
+        `On 2026-09-12 this exact gap made Node 20 SEGFAULT instead of erroring (ADR-022).`,
+      );
+    }
+  }
 }
 
 // Rule 8 — majors locked to a host tool.

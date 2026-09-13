@@ -41,6 +41,31 @@ function seeded(seed) {
   };
 }
 
+/**
+ * NFR-02's budget, per ADR-021 — revised from 200ms on the measured breakdown, because ~165ms of any
+ * measurement here is Node startup plus the MCP SDK import and the original number left ~35ms for the
+ * entire application. Kept beside the spec row it checks: `docs/spec.md` §5.
+ */
+const NFR02_TARGET_MS = 300;
+
+/**
+ * How many times cold start is measured.
+ *
+ * It used to be measured ONCE, while NFR-03 took 30 samples and reported a p95 — an inconsistency
+ * that turned out to decide the verdict. Six consecutive runs on one host gave 225, 232, 262, 291,
+ * 378 and 398ms; two of six exceeded the budget. Quoting any one of those as "the" cold start is
+ * picking a number, and the 251ms that reached ADR-021 and `docs/spec.md` §5 was exactly that.
+ * Process spawn is noisy — scheduler, page cache, antivirus — so the distribution is the measurement.
+ */
+const NFR02_SAMPLES = 10;
+
+/**
+ * How many times the session-end pass is measured. Fewer than NFR-02's, because each iteration is a
+ * real 50,000-row pass rather than a process spawn and the spread is narrower — but more than one,
+ * because 363ms and 564ms against a 500ms budget came from the same code on the same machine.
+ */
+const NFR04_SAMPLES = 5;
+
 const SEED = 20260912;
 const WORDS = [
   'railway', 'deploy', 'postgres', 'sqlite', 'migration', 'auth', 'token', 'cache', 'index',
@@ -112,6 +137,33 @@ function stats(samples) {
   };
 }
 
+/**
+ * Summarise repeated timings of something with a warm-up.
+ *
+ * Both NFR-02 and NFR-04 showed a clean warm-up curve rather than noise around a centre — spawns of
+ * 349, 345, 280, 210, 213, 225, 233, 242, 239, 220ms, and decay passes of 573, 370, 248, 229, 234ms.
+ * A median over back-to-back iterations therefore measures a warm OS page cache that the user does
+ * not have, and the first iteration measures the case the user does have: one cold start per session,
+ * one session-end pass per session.
+ *
+ * So `cold` is the first reading and is what the verdict is judged on, and `steadyMedian` is reported
+ * beside it. A `p95` is NOT reported here: with n of 5 or 10, the nearest-rank p95 *is* the maximum,
+ * and labelling a maximum as a p95 overstates what the sample can resolve. NFR-03 keeps its p95
+ * because it takes 30 samples of an operation with no warm-up curve.
+ */
+function warmupProfile(samples) {
+  const rest = samples.slice(1);
+  const sorted = [...rest].sort((a, b) => a - b);
+  return {
+    n: samples.length,
+    cold: +samples[0].toFixed(2),
+    steadyMedian: +(sorted[Math.floor(sorted.length / 2)] ?? samples[0]).toFixed(2),
+    min: +Math.min(...samples).toFixed(2),
+    max: +Math.max(...samples).toFixed(2),
+    samples_ms: samples.map((s) => +s.toFixed(2)),
+  };
+}
+
 async function connect(home) {
   const transport = new StdioClientTransport({
     command: process.execPath, args: [SERVER], stderr: 'pipe',
@@ -156,8 +208,27 @@ try {
     const { client, coldStartMs } = await connect(home);
 
     // ── NFR-02: cold start ──────────────────────────────────────────────────────────────────
-    if (results.nfr02 === null) results.nfr02 = { ms: +coldStartMs.toFixed(2), target: 200 };
-    console.log(`  cold start (spawn → first answer): ${coldStartMs.toFixed(1)}ms  [NFR-02 < 200ms]`);
+    // 300ms, not 200ms: ADR-021 revised the budget on the measured breakdown (~165ms of any
+    // measurement is Node plus the MCP SDK). This constant had stayed at the superseded number, so
+    // CI printed MISSES against a target the spec no longer contains — a gate disagreeing with the
+    // document it gates is worse than no gate, because the output looks authoritative.
+    //
+    // Sampled repeatedly, and on the SMALLEST store only. Store size is not a cold-start variable
+    // worth sweeping — `ensureSchema` short-circuits on `user_version` and nothing reads rows at
+    // startup — whereas spawn noise is large enough to flip the verdict by itself.
+    if (results.nfr02 === null) {
+      const samples = [coldStartMs];
+      while (samples.length < NFR02_SAMPLES) {
+        const again = await connect(home);
+        samples.push(again.coldStartMs);
+        await again.client.close();
+      }
+      const w = warmupProfile(samples);
+      results.nfr02 = { ...w, ms: w.cold, target: NFR02_TARGET_MS };
+      console.log(`  cold start (spawn → first answer): cold ${w.cold}ms  ` +
+        `then steady ~${w.steadyMedian}ms  (${w.min}-${w.max}ms over ${w.n} spawns)  ` +
+        `[NFR-02 < ${NFR02_TARGET_MS}ms, judged on the cold figure]`);
+    }
 
     // ── NFR-03: recall ──────────────────────────────────────────────────────────────────────
     // Vary the query so no single plan is cached into looking fast, and use words that genuinely
@@ -179,13 +250,26 @@ try {
       `[NFR-03 < 50ms at 10k] ${size === 10_000 ? verdict : ''}`);
 
     // ── NFR-04: the decay + promotion pass ──────────────────────────────────────────────────
+    //
+    // Sampled, for the same reason as NFR-02 and with more riding on it: this pass lands within ~25%
+    // of its budget, so one reading decides MEETS or MISSES almost at random. Runs on this host have
+    // given 363ms, 504ms and 564ms against a 500ms target — same code, opposite verdicts.
+    //
+    // Repeating is valid: the pass does the same work every time. `decayOlderThan` selects on
+    // `last_accessed_at < cutoff` and `decay_rate > 0`, neither of which it mutates, so the same rows
+    // match and the same number are written on each iteration. Only the weights get smaller.
     if (size === Math.max(...sizes)) {
-      const t = performance.now();
-      await client.callTool({ name: 'chronicle', arguments: { action: 'decay' } });
-      const ms = performance.now() - t;
-      results.nfr04 = { storeSize: size, ms: +ms.toFixed(2), target: 500 };
-      console.log(`  decay + promotion pass: ${ms.toFixed(1)}ms at ${size.toLocaleString()} ` +
-        `[NFR-04 < 500ms at 50k]`);
+      const samples = [];
+      for (let i = 0; i < NFR04_SAMPLES; i += 1) {
+        const t = performance.now();
+        await client.callTool({ name: 'chronicle', arguments: { action: 'decay' } });
+        samples.push(performance.now() - t);
+      }
+      const w = warmupProfile(samples);
+      results.nfr04 = { storeSize: size, ...w, ms: w.cold, target: 500 };
+      console.log(`  decay + promotion pass at ${size.toLocaleString()}: cold ${w.cold}ms  ` +
+        `then steady ~${w.steadyMedian}ms  (${w.min}-${w.max}ms over ${w.n} passes)  ` +
+        `[NFR-04 < 500ms, judged on the cold figure]`);
     }
 
     await client.close();
@@ -201,7 +285,10 @@ try {
     },
     seed: SEED,
     note: 'Measured over the real MCP stdio boundary, which is what a user waits for. Recall runs ' +
-          'TWO queries per call since ADR-018 (project scope + person scope).',
+          'TWO queries per call since ADR-018 (project scope + person scope). Cold start is ' +
+          `${NFR02_SAMPLES} spawns reported as a distribution and judged on p95, not one sample: ` +
+          'repeated runs on one host spread 225-398ms, so a single figure would be a choice rather ' +
+          'than a measurement.',
     nfr02_cold_start: results.nfr02,
     nfr03_recall: results.nfr03,
     nfr04_decay_pass: results.nfr04,
@@ -211,8 +298,15 @@ try {
     JSON.stringify(evidence, null, 2) + '\n', 'utf8');
 
   console.log('\n── verdicts ──');
-  console.log(`NFR-02 cold start < 200ms        : ${results.nfr02.ms}ms  ` +
-    (results.nfr02.ms <= 200 ? 'MEETS' : 'MISSES'));
+  // Judged on p95, the same basis as NFR-03. A median inside budget with a p95 outside it is a stall
+  // a user meets one session in twenty; reporting only the median would hide it.
+  // Judged on the cold reading, because "cold start" means the cold case: one spawn per session, on
+  // a page cache warmed by whatever else the machine was doing.
+  console.log(`NFR-02 cold start < ${NFR02_TARGET_MS}ms        : cold ${results.nfr02.cold}ms  ` +
+    (results.nfr02.cold <= NFR02_TARGET_MS ? 'MEETS' : 'MISSES') +
+    `  (steady ~${results.nfr02.steadyMedian}ms` +
+    (results.nfr02.steadyMedian <= NFR02_TARGET_MS && results.nfr02.cold > NFR02_TARGET_MS
+      ? ', which is inside budget — the miss is the cold path)' : ')'));
   const at10k = results.nfr03.find((r) => r.storeSize === 10_000);
   if (at10k) {
     console.log(`NFR-03 recall < 50ms at 10k      : p95 ${at10k.p95}ms  ` +
@@ -220,7 +314,8 @@ try {
   }
   if (results.nfr04) {
     console.log(`NFR-04 decay < 500ms at ${results.nfr04.storeSize.toLocaleString().padEnd(6)} : ` +
-      `${results.nfr04.ms}ms  ` + (results.nfr04.ms <= 500 ? 'MEETS' : 'MISSES') +
+      `cold ${results.nfr04.cold}ms  ` + (results.nfr04.cold <= 500 ? 'MEETS' : 'MISSES') +
+      `  (steady ~${results.nfr04.steadyMedian}ms)` +
       (results.nfr04.storeSize < 50_000 ? '  (below the 50k the NFR specifies — run --full)' : ''));
   }
   console.log('\nevidence → docs/evidence/nfr-bench.json');

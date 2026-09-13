@@ -51,6 +51,20 @@ When the user says *"don't do that"* about a pattern produced here, append a lin
   `Session not found: ` on an empty id. One run of `scripts/smoke-mcp.mjs` did.
 - `[2026-09-10]` — Do not retype uncovered code to satisfy a new lint rule. Characterise it with
   tests first, then type it. A scoped, expiring waiver is the correct interim (exc-009).
+- `[2026-09-13]` — One reading is not a measurement, and a median is not one either when there is a
+  warm-up curve. The benchmark sampled NFR-03 thirty times and NFR-02/NFR-04 **once**, and that
+  inconsistency decided verdicts: ten cold starts gave 349…220ms and five decay passes gave
+  573…234ms, both monotonic warm-ups rather than noise. The `251ms` and `363ms` recorded as *verified*
+  in ADR-021 and spec §5 were whichever point of the curve the run happened to land on — and the decay
+  pass actually takes ~600ms cold on this host, over its 500ms budget. Cold and steady are now
+  reported separately, and the verdict is judged on cold, because that is the user's situation.
+- `[2026-09-13]` — Do not print a `p95` you cannot resolve. At n=5 or n=10 the nearest-rank p95 *is*
+  the maximum, so labelling it p95 overstates the sample. I shipped exactly that for one iteration
+  before noticing the p95 and the max were always equal.
+- `[2026-09-13]` — A gate's target must be the spec's target. `bench-nfr.mjs` still checked NFR-02
+  against the 200ms that ADR-021 superseded, so CI printed `MISSES` against a budget the spec no
+  longer contains. A gate that disagrees with the document it gates is worse than no gate, because
+  its output looks authoritative. The number is now one constant, cited to the spec section.
 - `[2026-09-12]` — A gate that has never failed has not been verified. The Node 20/24 matrix was
   added by ADR-015 so that `engines.node` was *tested rather than asserted*; its first real run
   segfaulted on Node 20, because `better-sqlite3@13` had raised its own floor to `>=22` and this

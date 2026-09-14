@@ -58,6 +58,21 @@ When the user says *"don't do that"* about a pattern produced here, append a lin
   in ADR-021 and spec §5 were whichever point of the curve the run happened to land on — and the decay
   pass actually takes ~600ms cold on this host, over its 500ms budget. Cold and steady are now
   reported separately, and the verdict is judged on cold, because that is the user's situation.
+- `[2026-09-14]` — A control tested only against a cooperating client has not been tested. The RLS
+  suite reported 12/12: one app role could not read, update, delete or forge another person's rows.
+  Every check drove the mechanism *as designed*; none tried to disregard it. The policy filters on
+  `current_setting('chronicle.user_id')`, pinned with `ALTER ROLE … SET` — which is a DEFAULT, and a
+  custom GUC carries no privilege, so a session just re-points it and all four blocked operations
+  succeed. Ask what the control does against a client that misbehaves, because that is the only
+  client it exists for.
+- `[2026-09-14]` — A confident number on an untested property is worse than no number. `12/12` in
+  `isolation-verify.json` is what made the gap invisible for three days: nobody re-reads a suite that
+  is passing. It now reads 12/13 and stays red until the policy binds rows to `current_user` instead
+  of to a claim.
+- `[2026-09-14]` — Classify a credential by what it can reach, not by its name. `chronicle_app_*`
+  sounds like a step down from `chronicle_admin_*` and is not one: either grants full access to both
+  people's rows. That is the whole reason there is no CI secret — a green `cloud-verify` job would
+  have cost a partner's data.
 - `[2026-09-13]` — Do not fit a model to one machine's data. Having replaced a single reading with a
   sample, I read the win32 series (349, 345, 280, 210…) as a warm-up curve, reported cold-versus-steady
   and judged on cold. The same code on the CI runner gave 791, 415, 207, 553, 302 — not a curve, just a

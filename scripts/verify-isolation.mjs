@@ -109,6 +109,41 @@ try {
   const deleted = await sqlA`DELETE FROM memories WHERE user_id = ${b}`;
   record(`${a} cannot delete ${b}'s rows`, deleted.count === 0, `${deleted.count} row(s) deleted`);
 
+  // ── Is the confinement a boundary, or a default? ───────────────────────────────────
+  //
+  // Every check above asks whether the policy holds *while the session behaves*. This one asks what
+  // happens when it does not, and it is the check that decides what an app credential is worth.
+  //
+  // The policy is `USING (user_id = current_setting('chronicle.user_id', true))`, and the value is
+  // pinned with `ALTER ROLE <app> SET chronicle.user_id = '<id>'`. `ALTER ROLE ... SET` establishes a
+  // DEFAULT. Custom GUCs have no GRANT of their own, so unless something prevents it, a session can
+  // simply `SET chronicle.user_id` to another person's id and the policy will admit their rows —
+  // the role is then confined only by its own good manners.
+  //
+  // Nobody's data is read here. The variable is set to a value matching no user, and read back: if
+  // the read-back changes, the override works and that is the whole finding.
+  const NONCE = `${SEED}-nonce`;
+  let overrode = false;
+  let setError = '';
+  try {
+    await sqlA.unsafe(`SET chronicle.user_id = '${NONCE}'`);
+    const [after] = await sqlA`SELECT current_setting('chronicle.user_id', true) AS v`;
+    overrode = after.v === NONCE;
+  } catch (err) {
+    setError = err instanceof Error ? err.message : String(err);
+  }
+  await sqlA.unsafe('RESET chronicle.user_id');
+
+  record(
+    'an app role CANNOT re-point chronicle.user_id at another person',
+    !overrode,
+    overrode
+      ? 'IT CAN. The row filter follows whatever the client claims, so an app credential is ' +
+        'confined by default and not by a boundary — whoever holds one can act as any user id. ' +
+        'Treat an app connection string as equivalent to full access to the person tables.'
+      : (setError ? `SET refused: ${setError.slice(0, 80)}` : 'the pin held'),
+  );
+
   // ── Team tables stay shared — that is the feature, not a leak ──────────────────────────────
   const sharedPool = await sqlA`SELECT count(*)::int AS n FROM team_shared_memories`;
   record('team tables remain readable by every app role (ADR-019 §4)', sharedPool[0].n >= 1,

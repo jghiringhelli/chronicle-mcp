@@ -1,5 +1,5 @@
 {
-  "ran_at": "2026-09-11T21:41:57.867Z",
+  "ran_at": "2026-09-14T15:40:08.021Z",
   "command": "node scripts/verify-isolation.mjs",
   "target": "crossover.proxy.rlwy.net:28455/railway",
   "people": [
@@ -8,7 +8,7 @@
   ],
   "model": "Two admins by decision (ADR-020). RLS confines the day-to-day app roles; admins bypass it.",
   "passed": 12,
-  "failed": 0,
+  "failed": 1,
   "results": [
     {
       "name": "each app role can write its own row",
@@ -18,7 +18,7 @@
     {
       "name": "gabo's app role sees ONLY its own seeded row",
       "ok": true,
-      "detail": "1 row(s): iso-1789162912750-gabo"
+      "detail": "1 row(s): iso-1789400402214-gabo"
     },
     {
       "name": "gabo's app role cannot see jghiringhelli's rows even when asking for them directly",
@@ -28,7 +28,7 @@
     {
       "name": "an unfiltered SELECT returns only this person's rows, not the whole table",
       "ok": true,
-      "detail": "unfiltered=2 own=2"
+      "detail": "unfiltered=1 own=1"
     },
     {
       "name": "gabo cannot write a row owned by jghiringhelli",
@@ -44,6 +44,11 @@
       "name": "gabo cannot delete jghiringhelli's rows",
       "ok": true,
       "detail": "0 row(s) deleted"
+    },
+    {
+      "name": "an app role CANNOT re-point chronicle.user_id at another person",
+      "ok": false,
+      "detail": "IT CAN. The row filter follows whatever the client claims, so an app credential is confined by default and not by a boundary — whoever holds one can act as any user id. Treat an app connection string as equivalent to full access to the person tables."
     },
     {
       "name": "team tables remain readable by every app role (ADR-019 §4)",

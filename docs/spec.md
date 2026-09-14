@@ -391,7 +391,7 @@ met — in a README, a release note, or a pitch.
 | NFR-05 | Every local operation MUST succeed with no network available, and the server MUST NOT emit telemetry. | unrun (no offline test) |
 | NFR-06 | The server MUST work on Claude Code CLI, the VS Code MCP extension, and Cursor. | unrun |
 | NFR-07 | Released as `chronicle-mcp` on npm. | verified — published, v0.3.2 |
-| NFR-08 | Published to the MCP Registry via `server.json` at the repo root. | **not met** — no `server.json` exists |
+| NFR-08 | Published to the MCP Registry via `server.json` at the repo root. | **partly met** · 2026-09-14. `server.json` exists and ships in the npm tarball, but it declares version **0.3.2** while `package.json` is at 0.4.0 — so the manifest describes a release that is two versions behind. A registry entry built from it would point at the wrong package version. The file being present was previously recorded here as *not met*, which was stale in the other direction. |
 | NFR-09 | Absence of cloud configuration MUST leave every local operation unchanged and MUST NOT raise (ADR-010 §3). | unrun (no test) |
 | NFR-10 | A memory in the Core tier MUST NOT be removed by any decay or consolidation pass. | verified by unit test (`decayRate === 0` early return, EDR-001) |
 

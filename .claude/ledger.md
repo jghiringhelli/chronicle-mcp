@@ -58,6 +58,14 @@ When the user says *"don't do that"* about a pattern produced here, append a lin
   in ADR-021 and spec §5 were whichever point of the curve the run happened to land on — and the decay
   pass actually takes ~600ms cold on this host, over its 500ms budget. Cold and steady are now
   reported separately, and the verdict is judged on cold, because that is the user's situation.
+- `[2026-09-14]` — A transformation is not a mapping. The RLS fix was going to derive the user id by
+  parsing it back out of the role name — but `roleName()` sanitises `@` and `.` to `_` to satisfy
+  Postgres, and that is one-way. It works for `gabo` and `jghiringhelli` and silently matches nothing
+  for the first id containing a dot, which presents as a Chronicle that has forgotten everything. It
+  works for exactly the data present when it is written, which is the definition of a latent bug.
+- `[2026-09-14]` — A script that re-issues credentials on every run is a trap. `apply-rls.mjs` did
+  `ALTER ROLE … PASSWORD` unconditionally, so applying an unrelated policy change would have
+  invalidated every credential already handed out, including a partner's. Rotation is now `--rotate`.
 - `[2026-09-14]` — A control tested only against a cooperating client has not been tested. The RLS
   suite reported 12/12: one app role could not read, update, delete or forge another person's rows.
   Every check drove the mechanism *as designed*; none tried to disregard it. The policy filters on

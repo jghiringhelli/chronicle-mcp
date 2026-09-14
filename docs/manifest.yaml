@@ -56,17 +56,67 @@ human_judgment_overrides:
   min_reviewers: 0           # solo project; PR + checks still required
   block_ai_only_merge: false
 
-# ── Migration status ───────────────────────────────────────────────────
+# ── Migration status ─────────────────────────────────────────────
 migration:
   done:
     - consolidated docs/adrs/* into docs/adrs/active/ (kept README.md at docs/adrs/)
     - moved docs/session-prompt-initial.md → docs/session-prompts/initial.md
+    # 2026-09-10, GS compliance pass:
+    - filled docs/PRD.md and docs/TechSpec.md, which were unfilled templates occupying
+      required cascade slots (ADR-013)
+    - docs/spec.md declared the single authoritative functional spec; docs/chronicle-spec.md
+      marked status=superseded with a divergence banner (ADR-013)
+    - added the EDR layer at docs/edrs/ (index, TEMPLATE, EDR-001..004)
+    - added docs/evidence/ — execution records; no status claim may exist without one
+    - added docs/gs-assessment.md (seven-property score + treatment plan)
+    - added docs/dependency-policy.md (supply chain is orthogonal to the seven properties)
+    - replaced the generated docs/roadmap.md stub; RM-001..003 deleted as scope-less stubs
+    - wrote bound prompts RM-101..105 for the P1 treatment items
   todo:
-    # The following moves require coordinated source-code updates in chronicle and forgecraft.
-    # Defer until forgecraft introduces manifest-aware path resolution (see follow-up in forgecraft).
+    # Physical moves still deferred: they require coordinated source changes in chronicle and
+    # forgecraft. Defer until forgecraft has manifest-aware path resolution.
     - move docs/PRD.md, docs/spec.md, docs/chronicle-spec.md → docs/specs/
     - split docs/use-cases.md into docs/use-cases/UC-*.md
     - split docs/roadmap.md into docs/roadmaps/active/RM-*.md
     - move docs/diagrams/* → docs/schemas/
     - move docs/TechSpec.md → docs/contracts/
-    - move legacy one-offs (review-verdict.md, security-audit.md, forge-status.md) into docs/decisions/ with date prefix
+    - move legacy one-offs (review-verdict.md, security-audit.md, forge-status.md) into
+      docs/decisions/ with date prefix
+    - spec-map for docs/spec.md once it passes ~500 lines (426 now) — RM-402
+
+# ── GS artifact index ──────────────────────────────────────────
+# The five mandatory GS artifact types, and where each lives in this repository.
+gs_artifacts:
+  constitution: CLAUDE.md                  # CNT root, ≤3 lines (ADR-000); nodes under .claude/
+  functional_spec: docs/spec.md            # single source (ADR-013)
+  product_brief: docs/PRD.md
+  technical_contract: docs/TechSpec.md
+  decision_records:
+    architecture: docs/adrs/active/        # ADR — the design envelope
+    engineering: docs/edrs/                # EDR — the implementation layer
+    post_mortems: docs/decisions/          # bug post-mortems, YYYY-MM-DD prefixed
+  diagrams: docs/diagrams/
+  behavioural_contracts: docs/use-cases.md # UC-001..UC-009
+  bound_prompts: docs/session-prompts/
+  evidence: docs/evidence/                 # execution records — status derives from here
+  assessment: docs/gs-assessment.md
+  dependency_policy: docs/dependency-policy.md
+
+# ── Harness ─────────────────────────────────────────────────────
+harness:
+  path: tests/
+  cascade_check: scripts/gs-cascade-check.mjs
+  dependency_check: scripts/check-dependency-policy.mjs
+  ci: .github/workflows/ci.yml
+  hooks: .githooks/                        # dispatch to .claude/hooks/*.sh
+  contracts: []                            # no live contract suite yet — Executable scores 0
+
+api_surface:
+  public:
+    - src/index.ts                         # library entrypoint
+    - src/lib/index.ts                     # project-scoped instance API
+    - src/mcp/server.ts                    # the 3 MCP tools and their action names (ADR-011)
+  internal:
+    - src/adapters/**
+    - src/infrastructure/**
+    - src/services/**

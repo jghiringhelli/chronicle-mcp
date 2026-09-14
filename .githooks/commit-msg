@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+#
+# Dispatcher for the commit-msg gate: conventional-commit conformance.
+#
+# The commit type is the cascade trigger (repository-discipline.md §4) — `feat:` must touch
+# a spec, `fix:` must touch a test. A conventional-commit corpus is what makes the history
+# queryable, which is half of the Auditable property.
+#
+# Install (once per clone): pnpm run hooks:install
+
+set -uo pipefail
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+cd "$REPO_ROOT" || exit 1
+
+HOOK=".claude/hooks/commit-msg.sh"
+if [ -f "$HOOK" ]; then
+  bash "$HOOK" "$1" || exit 1
+else
+  echo "commit-msg: $HOOK absent — conventional-commit format unchecked"
+fi
+
+exit 0

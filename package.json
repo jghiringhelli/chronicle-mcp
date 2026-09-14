@@ -1,7 +1,7 @@
 {
   "name": "chronicle-mcp",
-  "version": "0.3.2",
-  "description": "Cross-project AI memory MCP server with six cognitive memory types and agent-instructive tool descriptions",
+  "version": "0.5.0",
+  "description": "Cross-project AI memory MCP server with six cognitive memory types, a team knowledge layer, and agent-instructive tool descriptions",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
@@ -22,13 +22,35 @@
     "dev": "tsx watch src/cli.ts",
     "dashboard": "tsx src/cli.ts --dashboard",
     "test": "vitest",
-    "test:coverage": "vitest --coverage",
+    "test:coverage": "vitest run --coverage",
+    "test:mutation": "stryker run",
+    "smoke": "node scripts/smoke-mcp.mjs",
+    "bench": "node scripts/bench-nfr.mjs --full",
+    "cloud:inspect": "node scripts/inspect-cloud-db.mjs",
+    "cloud:migrate": "node scripts/migrate-cloud-db.mjs",
+    "cloud:verify-sync": "node scripts/verify-cloud-sync.mjs",
+    "cloud:verify-team": "node scripts/verify-team-cloud.mjs",
+    "cloud:verify-isolation": "node scripts/verify-isolation.mjs",
+    "cloud:apply-rls": "node scripts/apply-rls.mjs",
+    "project:identity": "node scripts/probe-project-identity.mjs",
     "lint": "eslint src tests",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "cascade": "node scripts/gs-cascade-check.mjs",
+    "deps:policy": "node scripts/check-dependency-policy.mjs",
+    "audit:supply-chain": "pnpm audit --prod --audit-level=high",
+    "hooks:install": "git config core.hooksPath .githooks",
+    "gates": "pnpm run cascade && pnpm run typecheck && pnpm run lint && pnpm run test:coverage && pnpm run deps:policy",
+    "prepare": "git config core.hooksPath .githooks || true",
+    "release:check": "node scripts/check-release.mjs",
+    "prepublishOnly": "pnpm run release:check && pnpm run gates && pnpm run build && pnpm run smoke"
   },
   "files": [
     "dist",
-    "README.md"
+    "README.md",
+    "CHANGELOG.md",
+    "server.json",
+    "LICENSE",
+    "COMMERCIAL-LICENSE.md"
   ],
   "keywords": [
     "mcp",
@@ -39,7 +61,7 @@
     "cursor"
   ],
   "author": "Juan Carlos Ghiringhelli",
-  "license": "MIT",
+  "license": "SEE LICENSE IN LICENSE",
   "homepage": "https://github.com/jghiringhelli/chronicle-mcp#readme",
   "repository": {
     "type": "git",
@@ -48,23 +70,47 @@
   "bugs": {
     "url": "https://github.com/jghiringhelli/chronicle-mcp/issues"
   },
+  "packageManager": "pnpm@10.15.0",
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.0.0",
-    "better-sqlite3": "^11.0.0",
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "better-sqlite3": "^13.0.3",
     "postgres": "^3.4.9",
     "zod": "^4.0.0"
   },
   "devDependencies": {
-    "@types/better-sqlite3": "^7.6.0",
+    "@eslint/js": "^9.0.0",
+    "@stryker-mutator/core": "^8.7.1",
+    "@stryker-mutator/vitest-runner": "^8.7.1",
+    "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^20.0.0",
-    "@vitest/coverage-v8": "^4.1.0",
+    "@vitest/coverage-v8": "^2.1.9",
     "eslint": "^9.0.0",
+    "eslint-import-resolver-typescript": "^4.3.4",
+    "eslint-plugin-import": "^2.31.0",
     "tsup": "^8.0.0",
     "tsx": "^4.0.0",
     "typescript": "^5.4.0",
+    "typescript-eslint": "^8.0.0",
     "vitest": "^2.0.0"
+  },
+  "pnpm": {
+    "auditConfig": {
+      "_comment": "Accepted advisories, each recorded in ADR-017. This is an allowlist, not a disabled gate: `pnpm audit --prod --audit-level=high` still fails on any advisory not listed here. Every entry is transitive through @modelcontextprotocol/sdk and unfixable from this repository — the SDK bundles express, hono and ajv for its HTTP transports. Re-check on every SDK bump and delete the ids that clear.",
+      "ignoreGhsas": [
+        "GHSA-j3q9-mxjg-w52f",
+        "GHSA-88fw-hqm2-52qc",
+        "GHSA-v2hh-gcrm-f6hx",
+        "GHSA-7p8r-x3mc-p8w7",
+        "GHSA-mwp4-54f8-5fhr",
+        "GHSA-q3j6-qgpj-74h6",
+        "GHSA-v39h-62p7-jpjc",
+        "GHSA-f65p-4m7j-42xc",
+        "GHSA-jqff-g426-hqxp",
+        "GHSA-4c8g-83qw-93j6"
+      ]
+    }
   }
 }

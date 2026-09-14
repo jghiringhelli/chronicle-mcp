@@ -15,6 +15,21 @@ import type { Embedding } from '../../domain/types.js';
  */
 export interface EmbeddingGateway {
   /**
+   * Whether embeddings can actually be produced right now.
+   *
+   * Declared on the port, not just the adapter, because services branch on it: semantic
+   * de-duplication falls back to lexical when this is false (ADR-014, ADR-017). A service
+   * calling a method the port does not declare is a Composable violation — and was one: this
+   * method existed only on FastEmbedGateway while TeamPromotionService called it through the
+   * port type, which the branch's broken typecheck never caught.
+   *
+   * MUST NOT throw. An unavailable gateway is a normal state, not an error.
+   *
+   * @returns true when generate/generateBatch will succeed
+   */
+  available(): Promise<boolean>;
+
+  /**
    * Generate embedding for text content.
    *
    * @param text - Text to embed

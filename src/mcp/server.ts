@@ -6,11 +6,11 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { getDatabase } from '../infrastructure/db/database.js';
 import { getConfig } from '../shared/config/index.js';
-import { TEAM_SCHEMA_SQL } from '../infrastructure/db/team-schema.js';
 import {
   SqliteMemoryRepository,
   SqliteSessionRepository,
   SqlitePreferenceRepository,
+  SqliteTeamRepository,
 } from '../adapters/repositories/index.js';
 import { MemoryService } from '../services/memory-service.js';
 import { SessionService } from '../services/session-service.js';
@@ -18,35 +18,20 @@ import { TriggerService } from '../services/trigger-service.js';
 import { PreferenceService } from '../services/preference-service.js';
 import { CoordinationService } from '../services/coordination-service.js';
 import type { ContributorRole } from '../services/coordination-service.js';
-import { syncCoordination } from '../services/sync.js';
+import { syncCoordination, syncMemories, syncInsights, pushSessionSummary } from '../services/sync.js';
+import { TeamService } from '../services/team-service.js';
+import { PromptLogService } from '../services/prompt-log-service.js';
+import { TeamSyncService } from '../services/team-sync-service.js';
+import { PatternService } from '../services/pattern-service.js';
+import { TeamPromotionService } from '../services/team-promotion-service.js';
+import { FastEmbedGateway } from '../infrastructure/gateways/fastembed-gateway.js';
+import { registerTeamTools } from './team-tools.js';
+import { validateTeamToken } from './team-gate.js';
 import { NodeIdGenerator } from '../infrastructure/gateways/node-id-generator.js';
 import { NodeClock } from '../infrastructure/gateways/node-clock.js';
-import type { MemoryType } from '../domain/types.js';
+import type { MemoryType, MemoryScope } from '../domain/types.js';
+import { resolveProject } from '../shared/repo-identity.js';
 import { REINFORCEMENT_BOOSTS } from '../domain/types.js';
-
-// Cache token validation for process lifetime — one Railway round-trip max.
-let _tokenValid: boolean | null = null;
-
-async function validateTeamToken(token: string, railwayUrl: string | undefined, teamId: string): Promise<boolean> {
-  if (_tokenValid !== null) return _tokenValid;
-  if (!railwayUrl) { _tokenValid = true; return true; } // local-only mode — trust presence
-  try {
-    const { default: postgres } = await import('postgres');
-    const sql = postgres(railwayUrl, { ssl: 'require', max: 1 });
-    await sql.unsafe(TEAM_SCHEMA_SQL);
-    const rows = await sql<{ token: string }[]>`
-      SELECT token FROM team_licenses
-      WHERE token = ${token} AND team_id = ${teamId}
-        AND revoked = FALSE
-        AND (expires_at IS NULL OR expires_at > NOW())
-    `;
-    await sql.end();
-    _tokenValid = rows.length > 0;
-  } catch {
-    _tokenValid = true; // Railway down — fail open so offline work is not blocked
-  }
-  return _tokenValid;
-}
 
 /** Wire up all services and register MCP tools. */
 export function createMcpServer(): McpServer {
@@ -61,8 +46,14 @@ export function createMcpServer(): McpServer {
   const trigSvc = new TriggerService(db);
   const prefSvc = new PreferenceService(prefRepo, idGen);
   const coordSvc = new CoordinationService(db);
+  const teamRepo = new SqliteTeamRepository(db);
+  const teamSvc = new TeamService();
+  const promptLogSvc = new PromptLogService(teamRepo, idGen);
+  const teamSyncSvc = new TeamSyncService(teamRepo, promptLogSvc);
+  const patternSvc = new PatternService(teamRepo);
+  const promotionSvc = new TeamPromotionService(db, teamRepo, teamSyncSvc, new FastEmbedGateway());
 
-  const server = new McpServer({ name: 'chronicle', version: '0.3.1' });
+  const server = new McpServer({ name: 'chronicle', version: '0.4.0' });
 
   // ── chronicle ─────────────────────────────────────────────────────────────
   // Covers: memory CRUD, triggers, preferences, stats, decay.
@@ -94,7 +85,10 @@ export function createMcpServer(): McpServer {
       ),
       // Shared
       id:           z.string().optional().describe('Memory or trigger ID'),
-      project:      z.string().optional(),
+      project:      z.string().optional()
+                      .describe('Leave UNSET — it is derived from the repository you are in (e.g. github.com/owner/repo). Only pass it to address a different project on purpose.'),
+      scope:        z.enum(['project', 'person', 'team']).optional()
+                      .describe('project=true of this repo (default) | person=true of me anywhere, syncs across my machines | team=shared with the team. Crossing to another person is always deliberate: use the team tool to share.'),
       category:     z.string().optional(),
       // remember
       content:      z.string().optional(),
@@ -120,41 +114,84 @@ export function createMcpServer(): McpServer {
       switch (args.action) {
 
         case 'remember': {
+          // Project identity is DERIVED from the repository, not taken from whatever label the
+          // agent guessed this session (ADR-018 §2). An explicit argument still wins.
+          const identity = resolveProject(args.project);
+          const scope = (args.scope ?? 'project') as MemoryScope;
           const memory = memSvc.remember({
             content: args.content ?? '',
             memoryType: (args.memory_type ?? 'semantic') as MemoryType,
-            project: args.project,
+            // A person-scoped memory is about the developer, not the repo, so it is not pinned to
+            // one: pinning it would make it invisible from every other project.
+            project: scope === 'person' ? undefined : identity.id,
+            scope,
             category: args.category,
             tags: args.tags,
             confirmed: args.confirmed,
           });
-          return { content: [{ type: 'text', text: JSON.stringify({ id: memory.id, tier: memory.tier, weight: memory.weight }) }] };
+          return { content: [{ type: 'text', text: JSON.stringify({
+            id: memory.id, tier: memory.tier, weight: memory.weight,
+            scope: memory.scope, project: memory.project,
+            // Tell the caller how the project was established: anything but `remote` is a fallback
+            // that may not join across machines (ADR-018 §2).
+            projectSource: identity.source,
+          }) }] };
         }
 
         case 'recall': {
-          const memories = memSvc.recall({
-            query: args.query ?? '',
-            project: args.project,
-            category: args.category,
-            memoryTypes: args.memory_types as MemoryType[] | undefined,
-            tiers: args.tiers,
-            limit: args.limit,
-          });
+          // Default recall is "what is true about this repository, plus what is true about me".
+          // Person-scoped memories are not pinned to a project, so they must not be filtered out by
+          // the project predicate — hence two queries rather than one OR, which also keeps each
+          // query on an index.
+          const identity = resolveProject(args.project);
+          const scopes = args.scope ? [args.scope as MemoryScope] : undefined;
+          const limit = args.limit ?? 20;
+
+          const projectHits = (!scopes || scopes.includes('project'))
+            ? memSvc.recall({
+                query: args.query ?? '',
+                project: identity.id,
+                category: args.category,
+                memoryTypes: args.memory_types as MemoryType[] | undefined,
+                tiers: args.tiers,
+                scopes: ['project'],
+                limit,
+              })
+            : [];
+
+          const personHits = (!scopes || scopes.includes('person'))
+            ? memSvc.recall({
+                query: args.query ?? '',
+                category: args.category,
+                memoryTypes: args.memory_types as MemoryType[] | undefined,
+                tiers: args.tiers,
+                scopes: ['person'],
+                limit,
+              })
+            : [];
+
+          const memories = [...projectHits, ...personHits]
+            .sort((a, b) => b.weight - a.weight)
+            .slice(0, limit);
           for (const m of memories) {
             try { memSvc.reinforce(m.id, 'RECALL_HIT'); } catch { /* non-fatal */ }
           }
           return {
             content: [{ type: 'text', text: JSON.stringify(memories.map(m => ({
               id: m.id, content: m.content, memoryType: m.memoryType,
-              tier: m.tier, weight: m.weight, project: m.project,
+              tier: m.tier, weight: m.weight, project: m.project, scope: m.scope,
               category: m.category, tags: m.tags,
             }))) }],
           };
         }
 
         case 'forget': {
-          memSvc.forget(args.id ?? '', args.context);
-          return { content: [{ type: 'text', text: JSON.stringify({ message: 'Deleted.' }) }] };
+          const deleted = memSvc.forget(args.id ?? '', args.context);
+          return { content: [{ type: 'text', text: JSON.stringify(
+            deleted
+              ? { deleted: true, message: 'Deleted.' }
+              : { deleted: false, message: `No memory with id "${args.id ?? ''}" — nothing was deleted.` },
+          ) }] };
         }
 
         case 'trigger': {
@@ -236,11 +273,20 @@ export function createMcpServer(): McpServer {
       id:      z.string().optional(),
       summary: z.string().optional(),
     },
-    (args) => {
+    async (args) => {
       switch (args.action) {
 
         case 'start': {
-          const sess = sessSvc.startSession(args.project ?? '', args.device);
+          // Multi-machine is on whenever a remote is configured — no second flag (ADR-018 §3).
+          // Pull first so the session begins with what another machine learned. Fire-and-forget:
+          // a session must start even with no network, and `skipped: true` is the normal answer for
+          // the single-machine case (ADR-010 §3).
+          const cfgStart = getConfig();
+          if (cfgStart.railwayUrl) {
+            void syncMemories().catch(() => { /* offline — local store is the source of truth */ });
+            void syncInsights().catch(() => { /* offline — non-fatal */ });
+          }
+          const sess = sessSvc.startSession(args.project ?? resolveProject().id, args.device);
           const coreMemories = memSvc.recall({ query: args.project ?? '', project: args.project, tiers: ['core'], limit: 10 });
           for (const m of coreMemories) {
             try { memSvc.reinforce(m.id, 'CONTEXT_INJECT'); } catch { /* non-fatal */ }
@@ -254,13 +300,49 @@ export function createMcpServer(): McpServer {
         }
 
         case 'end': {
-          const sess     = sessSvc.endSession(args.id ?? '', args.summary);
+          // Resolve the same way `recover` does: an id if given, otherwise the project's active
+          // session. Without this fallback the documented F7 flow is impossible — an agent that
+          // called `start` with a project and did not retain the returned id could never end it,
+          // and got `Session not found: ` with an empty id. Found by scripts/smoke-mcp.mjs.
+          // Resolve the project the same way `start` does, or the symmetry breaks: `start` with no
+          // argument opens a session on the derived repository identity, so `end` with no argument
+          // must close that one rather than demand an id the caller never saw (ADR-018 §2).
+          const endProject = args.project ?? resolveProject().id;
+          const sessionId = args.id ?? sessSvc.getActiveSession(endProject)?.id;
+          if (!sessionId) {
+            return { content: [{ type: 'text', text: JSON.stringify({
+              error: `No active session for project "${endProject}". Pass an id, or call session start first.`,
+              project: endProject,
+            }) }] };
+          }
+          const sess     = sessSvc.endSession(sessionId, args.summary);
           const decayed  = memSvc.applyDecay();
           const promoted = memSvc.evaluateTierPromotions();
+
+          // Push AFTER decay and promotion, so the other machines receive settled weights and tiers
+          // rather than a mid-maintenance snapshot. Awaited, unlike the pull at session start: this
+          // is the last thing the session does, and losing the push would lose the session's work.
+          let mirrored: { pushed: number; pulled: number; skipped: boolean } | undefined;
+          const cfgEnd = getConfig();
+          if (cfgEnd.railwayUrl) {
+            try {
+              const [mem] = await Promise.all([
+                syncMemories(),
+                syncInsights().catch(() => undefined),
+                pushSessionSummary(sess).catch(() => undefined),
+              ]);
+              mirrored = { pushed: mem.pushed, pulled: mem.pulled, skipped: mem.skipped };
+            } catch { /* offline — the local store keeps everything; the next boundary retries */ }
+          }
+          // Opportunistic team-knowledge sync at session close (non-fatal, offline-safe).
+          const cfg = getConfig();
+          if (cfg.teamToken && cfg.teamId) teamSyncSvc.sync().catch(() => { /* offline — non-fatal */ });
           return {
             content: [{ type: 'text', text: JSON.stringify({
               id: sess.id, status: sess.status, endedAt: sess.endedAt,
               maintenance: { memoriesDecayed: decayed, memoriesPromoted: promoted },
+              // Absent when no remote is configured, which is the ordinary single-machine case.
+              ...(mirrored ? { mirror: mirrored } : {}),
             }) }],
           };
         }
@@ -521,6 +603,10 @@ export function createMcpServer(): McpServer {
       }
     },
   );
+
+  // ── team ────────────────────────────────────────────────────────────────────
+  // Team knowledge: shared memories, prompt logs, insights, analytics.
+  registerTeamTools(server, { teamSvc, promptLogSvc, teamSyncSvc, patternSvc, promotionSvc, teamRepo, memRepo });
 
   return server;
 }

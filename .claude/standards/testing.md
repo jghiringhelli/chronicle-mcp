@@ -1,3 +1,11 @@
+---
+node: testing
+type: sentinel-node
+scope: test pyramid, coverage and mutation targets, TDD phase sequence
+load: on-demand
+categories: [standards]
+routes_to: [root]
+---
 <!-- ForgeCraft sentinel: testing | 2026-04-20 | npx forgecraft-mcp refresh . --apply to update -->
 
 ## Testing Pyramid

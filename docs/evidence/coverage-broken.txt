@@ -1,0 +1,28 @@
+﻿
+ RUN  v2.1.9 C:/workspace/PragmaWorks/mcp/chronicle
+
+node : 
+At line:10 char:1
++ node node_modules/vitest/vitest.mjs run --coverage > docs/evidence/co ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+⎯⎯⎯⎯⎯⎯ Unhandled Error ⎯⎯⎯⎯⎯⎯⎯
+SyntaxError: The requested module 'vitest/node' does not provide an export named 'BaseCoverageProvider'
+ ❯ #asyncInstantiate node:internal/modules/esm/module_job:327:21
+ ❯ ModuleJob.run node:internal/modules/esm/module_job:431:5
+ ❯ node:internal/modules/esm/loader:643:26
+ ❯ loadProvider 
+node_modules/.pnpm/@vitest+coverage-v8@4.1.11__d77bb8b753984e32db62f0ed0ffcd40b/node_modules/@vitest/coverage-v8/dist/load-provider-CdgAx3rL.js:4:33
+ ❯ Vitest.initCoverageProvider node_modules/.pnpm/vitest@2.1.9_@types+node@20.19.37/node_modules/vitest/dist/chunks/cli-api.DqsSTaIi.js:10582:29
+ ❯ Vitest.start node_modules/.pnpm/vitest@2.1.9_@types+node@20.19.37/node_modules/vitest/dist/chunks/cli-api.DqsSTaIi.js:10662:7
+ ❯ startVitest node_modules/.pnpm/vitest@2.1.9_@types+node@20.19.37/node_modules/vitest/dist/chunks/cli-api.DqsSTaIi.js:11848:7
+ ❯ start node_modules/.pnpm/vitest@2.1.9_@types+node@20.19.37/node_modules/vitest/dist/chunks/cac.CB_9Zo9Q.js:1506:17
+ ❯ CAC.run node_modules/.pnpm/vitest@2.1.9_@types+node@20.19.37/node_modules/vitest/dist/chunks/cac.CB_9Zo9Q.js:1486:3
+
+
+
+
+exit code: 1
+run: 2026-09-10T16:14:24.9929005-05:00 | vitest 2.1.9 vs @vitest/coverage-v8 4.1.11 (major mismatch)

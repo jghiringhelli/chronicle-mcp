@@ -2,7 +2,7 @@
  * SQLite schema for Chronicle.
  */
 
-export const SCHEMA_SQL: string = `
+export const SCHEMA_TABLES_SQL: string = `
 CREATE TABLE IF NOT EXISTS memories (
   id TEXT PRIMARY KEY,
   content TEXT NOT NULL,
@@ -14,6 +14,10 @@ CREATE TABLE IF NOT EXISTS memories (
   created_at TEXT NOT NULL,
   last_accessed_at TEXT NOT NULL,
   project TEXT,
+  -- Which of the three scopes this memory belongs to (ADR-018). Defaulted rather than NOT NULL
+  -- without one, so a row written by an older build remains readable: an unscoped row is treated
+  -- as 'project', which is DEFAULT_SCOPE.
+  scope TEXT NOT NULL DEFAULT 'project',
   category TEXT,
   tags TEXT NOT NULL DEFAULT '[]',
   source TEXT,
@@ -156,9 +160,90 @@ CREATE TABLE IF NOT EXISTS assignments (
   status TEXT NOT NULL DEFAULT 'active'
 );
 
+-- ── Team knowledge cache (Axon team layer) ──────────────────────────────────
+-- Local mirror of the team-shared knowledge that lives in Railway. Populated by
+-- TeamSyncService on pull; read by the team tool so recall works offline.
+
+CREATE TABLE IF NOT EXISTS team_shared_cache (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  team_id TEXT NOT NULL,
+  project TEXT,
+  content TEXT NOT NULL,
+  memory_type TEXT NOT NULL,
+  tags TEXT NOT NULL DEFAULT '[]',
+  category TEXT,
+  shared_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS team_insights_cache (
+  id TEXT PRIMARY KEY,
+  team_id TEXT NOT NULL,
+  project TEXT,
+  insight_type TEXT NOT NULL,
+  content TEXT NOT NULL,
+  confidence REAL NOT NULL DEFAULT 0.5,
+  source_count INTEGER NOT NULL DEFAULT 1,
+  version INTEGER NOT NULL DEFAULT 1,
+  updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS team_patterns_cache (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  team_id TEXT NOT NULL,
+  project TEXT,
+  pattern_type TEXT NOT NULL,
+  metric TEXT NOT NULL,
+  value REAL NOT NULL,
+  period TEXT NOT NULL DEFAULT 'monthly',
+  computed_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS prompt_log_buffer (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  team_id TEXT NOT NULL,
+  project TEXT,
+  pattern TEXT NOT NULL,
+  outcome TEXT NOT NULL DEFAULT 'neutral',
+  category TEXT NOT NULL DEFAULT 'general',
+  tags TEXT NOT NULL DEFAULT '[]',
+  share_content INTEGER NOT NULL DEFAULT 0,
+  raw_content TEXT,
+  logged_at TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'pending'
+);
+
+CREATE TABLE IF NOT EXISTS team_sync_cursor (
+  user_id TEXT NOT NULL,
+  team_id TEXT NOT NULL,
+  last_pull_at TEXT,
+  PRIMARY KEY (user_id, team_id)
+);
+
+`;
+
+/**
+ * Index statements, kept SEPARATE from the table statements on purpose.
+ *
+ * `CREATE TABLE IF NOT EXISTS` does not add a column to a table that already exists, so an
+ * existing database needs an ALTER between the two — and an index on a new column cannot be
+ * created before the column is there. Running tables, then migrations, then indexes is what
+ * makes an upgrade work on a store that predates the change.
+ *
+ * This was not theoretical: adding `memories.scope` broke server startup with
+ * `no such column: scope` on the first database that already existed.
+ */
+export const SCHEMA_INDEXES_SQL: string = `
 CREATE INDEX IF NOT EXISTS idx_memories_type ON memories(memory_type);
 CREATE INDEX IF NOT EXISTS idx_memories_tier ON memories(tier);
 CREATE INDEX IF NOT EXISTS idx_memories_project ON memories(project);
+-- Recall filters on scope on every call (project scope for this repo + my person scope), so this
+-- index is on the hot path, not a nicety.
+CREATE INDEX IF NOT EXISTS idx_memories_scope ON memories(scope);
+CREATE INDEX IF NOT EXISTS idx_memories_scope_project ON memories(scope, project);
 CREATE INDEX IF NOT EXISTS idx_memories_weight ON memories(weight DESC);
 CREATE INDEX IF NOT EXISTS idx_triggers_action ON triggers(action);
 CREATE INDEX IF NOT EXISTS idx_contributors_project ON contributors(project);
@@ -168,4 +253,26 @@ CREATE INDEX IF NOT EXISTS idx_assignments_package ON assignments(work_package_i
 CREATE INDEX IF NOT EXISTS idx_work_packages_parent ON work_packages(parent_id);
 CREATE INDEX IF NOT EXISTS idx_merge_requests_project ON merge_requests(project);
 CREATE INDEX IF NOT EXISTS idx_merge_requests_status ON merge_requests(status);
+CREATE INDEX IF NOT EXISTS idx_team_shared_cache_team ON team_shared_cache(team_id);
+CREATE INDEX IF NOT EXISTS idx_team_shared_cache_project ON team_shared_cache(team_id, project);
+CREATE INDEX IF NOT EXISTS idx_team_insights_cache_team ON team_insights_cache(team_id);
+CREATE INDEX IF NOT EXISTS idx_prompt_log_buffer_status ON prompt_log_buffer(status);
 `;
+
+/** Tables and indexes together. For a fresh database, and for tests. */
+export const SCHEMA_SQL: string = `${SCHEMA_TABLES_SQL}
+${SCHEMA_INDEXES_SQL}`;
+
+/**
+ * Schema version, stamped into `PRAGMA user_version` so startup can skip the DDL when the database
+ * is already current (see `ensureSchema`).
+ *
+ * **Bump this whenever SCHEMA_TABLES_SQL or SCHEMA_INDEXES_SQL changes**, and add any new column to
+ * `COLUMN_MIGRATIONS` so existing databases get it. Forgetting the bump means the DDL is skipped and
+ * the change silently never applies — which is why `tests/unit/infrastructure/schema.test.ts` pins
+ * this number to a fingerprint of the schema text. Change the schema without bumping, and that test
+ * fails with the value to use.
+ *
+ * 1 = the schema as of ADR-018 (memories.scope and its indexes).
+ */
+export const SCHEMA_VERSION = 1;

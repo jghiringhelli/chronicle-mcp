@@ -1,0 +1,11 @@
+command: npx stryker run
+exit code: 0
+run: 2026-09-13T04:44:18Z
+node: v24.18.0
+
+-         if (match && match.score >= threshold) {
++         if (match && match.score > threshold) {
+                                   | % Mutation score |          |           |            |          |          |
+File                               |  total | covered | # killed | # timeout | # survived | # no cov | # errors |
+All files                          |  36.92 |   69.58 |     1015 |         5 |        446 |     1297 |        0 |
+23:44:17 (24548) INFO MutationTestReportHelper Final mutation score of 36.92 is greater than or equal to break threshold 36

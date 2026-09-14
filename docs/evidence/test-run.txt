@@ -1,0 +1,231 @@
+﻿
+ RUN  v2.1.9 C:/workspace/PragmaWorks/mcp/chronicle
+
+ ✓ tests/unit/domain/session.test.ts (7 tests) 3ms
+ ✓ tests/unit/domain/memory.test.ts (14 tests) 4ms
+ ✓ tests/unit/services/memory-service.test.ts (9 tests) 4ms
+ ❯ tests/unit/adapters/sqlite-memory-repository.test.ts (11 tests | 11 failed) 18ms
+   × SqliteMemoryRepository > creates and retrieves a memory by id 6ms
+     → Could not locate the bindings file. Tried:
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\build\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\build\Debug\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\build\Release\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\out\Debug\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\Debug\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\out\Release\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\Release\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\build\default\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\compiled\24.18.0\win32\x64\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\addon-build\release\install-root\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\addon-build\debug\install-root\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\addon-build\default\install-root\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\lib\binding\node-v137-win32-x64\better_sqlite3.node
+   × SqliteMemoryRepository > returns undefined for missing id 1ms
+     → Could not locate the bindings file. Tried:
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\build\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\build\Debug\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\build\Release\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\out\Debug\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\Debug\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\out\Release\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\Release\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\build\default\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\compiled\24.18.0\win32\x64\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\addon-build\release\install-root\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\addon-build\debug\install-root\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\addon-build\default\install-root\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\lib\binding\node-v137-win32-x64\better_sqlite3.node
+   × SqliteMemoryRepository > updates weight and access count 1ms
+     → Could not locate the bindings file. Tried:
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\build\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\build\Debug\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\build\Release\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\out\Debug\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\Debug\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\out\Release\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\Release\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\build\default\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\compiled\24.18.0\win32\x64\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\addon-build\release\install-root\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\addon-build\debug\install-root\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\addon-build\default\install-root\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\lib\binding\node-v137-win32-x64\better_sqlite3.node
+   × SqliteMemoryRepository > deletes a memory 1ms
+     → Could not locate the bindings file. Tried:
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\build\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\build\Debug\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\build\Release\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\out\Debug\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\Debug\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\out\Release\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\Release\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\build\default\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\compiled\24.18.0\win32\x64\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\addon-build\release\install-root\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\addon-build\debug\install-root\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\addon-build\default\install-root\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\lib\binding\node-v137-win32-x64\better_sqlite3.node
+   × SqliteMemoryRepository > recalls by keyword match 1ms
+     → Could not locate the bindings file. Tried:
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\build\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\build\Debug\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\build\Release\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\out\Debug\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\Debug\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\out\Release\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\Release\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\build\default\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\compiled\24.18.0\win32\x64\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\addon-build\release\install-root\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\addon-build\debug\install-root\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\addon-build\default\install-root\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\lib\binding\node-v137-win32-x64\better_sqlite3.node
+   × SqliteMemoryRepository > finds memories for decay (non-core, old) 2ms
+     → Could not locate the bindings file. Tried:
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\build\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\build\Debug\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\build\Release\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\out\Debug\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\Debug\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\out\Release\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\Release\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\build\default\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\compiled\24.18.0\win32\x64\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\addon-build\release\install-root\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\addon-build\debug\install-root\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\addon-build\default\install-root\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\lib\binding\node-v137-win32-x64\better_sqlite3.node
+   × SqliteMemoryRepository > does not include core memories in decay candidates 1ms
+     → Could not locate the bindings file. Tried:
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\build\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\build\Debug\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\build\Release\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\out\Debug\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\Debug\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\out\Release\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\Release\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\build\default\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\compiled\24.18.0\win32\x64\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\addon-build\release\install-root\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\addon-build\debug\install-root\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\addon-build\default\install-root\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\lib\binding\node-v137-win32-x64\better_sqlite3.node
+   × SqliteMemoryRepository > finds memories for tier promotion 1ms
+     → Could not locate the bindings file. Tried:
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\build\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\build\Debug\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\build\Release\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\out\Debug\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\Debug\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\out\Release\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\Release\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\build\default\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\compiled\24.18.0\win32\x64\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\addon-build\release\install-root\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\addon-build\debug\install-root\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\addon-build\default\install-root\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\lib\binding\node-v137-win32-x64\better_sqlite3.node
+   × SqliteMemoryRepository > counts memories by tier 1ms
+     → Could not locate the bindings file. Tried:
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\build\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\build\Debug\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\build\Release\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\out\Debug\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\Debug\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\out\Release\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\Release\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\build\default\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\compiled\24.18.0\win32\x64\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\addon-build\release\install-root\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\addon-build\debug\install-root\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\addon-build\default\install-root\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\lib\binding\node-v137-win32-x64\better_sqlite3.node
+   × SqliteMemoryRepository > stores and serialises tags correctly 1ms
+     → Could not locate the bindings file. Tried:
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\build\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\build\Debug\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\build\Release\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\out\Debug\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\Debug\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\out\Release\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\Release\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\build\default\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\compiled\24.18.0\win32\x64\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\addon-build\release\install-root\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\addon-build\debug\install-root\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\addon-build\default\install-root\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\lib\binding\node-v137-win32-x64\better_sqlite3.node
+   × SqliteMemoryRepository > round-trips project and category 1ms
+     → Could not locate the bindings file. Tried:
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\build\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\build\Debug\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\build\Release\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\out\Debug\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\Debug\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\out\Release\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\Release\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\build\default\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\compiled\24.18.0\win32\x64\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\addon-build\release\install-root\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\addon-build\debug\install-root\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\addon-build\default\install-root\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\lib\binding\node-v137-win32-x64\better_sqlite3.node
+
+node : ⎯⎯⎯⎯⎯⎯ Failed Tests 11 ⎯⎯⎯⎯⎯⎯⎯
+At line:6 char:1
++ node node_modules/vitest/vitest.mjs run --reporter=basic > docs/evide ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (⎯⎯⎯⎯⎯⎯ Failed Tests 11 ⎯⎯⎯⎯⎯⎯⎯:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+
+ FAIL  tests/unit/adapters/sqlite-memory-repository.test.ts > SqliteMemoryRepository > creates and retrieves a memory by id
+ FAIL  tests/unit/adapters/sqlite-memory-repository.test.ts > SqliteMemoryRepository > returns undefined for missing id
+ FAIL  tests/unit/adapters/sqlite-memory-repository.test.ts > SqliteMemoryRepository > updates weight and access count
+ FAIL  tests/unit/adapters/sqlite-memory-repository.test.ts > SqliteMemoryRepository > deletes a memory
+ FAIL  tests/unit/adapters/sqlite-memory-repository.test.ts > SqliteMemoryRepository > recalls by keyword match
+ FAIL  tests/unit/adapters/sqlite-memory-repository.test.ts > SqliteMemoryRepository > finds memories for decay (non-core, old)
+ FAIL  tests/unit/adapters/sqlite-memory-repository.test.ts > SqliteMemoryRepository > does not include core memories in decay candidates
+ FAIL  tests/unit/adapters/sqlite-memory-repository.test.ts > SqliteMemoryRepository > finds memories for tier promotion
+ FAIL  tests/unit/adapters/sqlite-memory-repository.test.ts > SqliteMemoryRepository > counts memories by tier
+ FAIL  tests/unit/adapters/sqlite-memory-repository.test.ts > SqliteMemoryRepository > stores and serialises tags correctly
+ FAIL  tests/unit/adapters/sqlite-memory-repository.test.ts > SqliteMemoryRepository > round-trips project and category
+Error: Could not locate the bindings file. Tried:
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\build\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\build\Debug\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\build\Release\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\out\Debug\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\Debug\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\out\Release\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\Release\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\build\default\better_sqlite3.node
+ → 
+C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\compiled\24.18.0\win32\x64\better_sqlite3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\addon-build\release\install-root\better_sqlit
+e3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\addon-build\debug\install-root\better_sqlite3
+.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\addon-build\default\install-root\better_sqlit
+e3.node
+ → C:\workspace\PragmaWorks\mcp\chronicle\node_modules\.pnpm\better-sqlite3@11.10.0\node_modules\better-sqlite3\lib\binding\node-v137-win32-x64\better_sqlite
+3.node
+ Test Files  1 failed | 3 passed (4)
+      Tests  11 failed | 30 passed (41)
+   Start at  16:14:24
+   Duration  363ms (transform 150ms, setup 0ms, collect 232ms, tests 29ms, environment 0ms, prepare 404ms)
+
+ ❯ bindings node_modules/.pnpm/bindings@1.5.0/node_modules/bindings/bindings.js:126:9
+ ❯ new Database node_modules/.pnpm/better-sqlite3@11.10.0/node_modules/better-sqlite3/lib/database.js:48:64
+ ❯ makeDb tests/unit/adapters/sqlite-memory-repository.test.ts:8:14
+      6| // Use in-memory SQLite for integration tests — no file I/O
+      7| function makeDb(): Database.Database {
+      8|   const db = new Database(':memory:');
+       |              ^
+      9|   db.pragma('journal_mode = WAL');
+     10|   db.exec(SCHEMA_SQL);
+ ❯ tests/unit/adapters/sqlite-memory-repository.test.ts:19:10
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/11]⎯
+
+exit code: 1
+run: 2026-09-10T16:14:24.5934405-05:00 | node v24.18.0 | vitest 2.1.9

@@ -1,3 +1,39 @@
+---
+id: CHRONICLE-SPEC-V0
+type: spec-section
+status: superseded
+tier: T1
+properties: [auditable]
+obligations: 0
+depends_on: [SPEC]
+---
+
+> # SUPERSEDED
+>
+> **This is the v0 design document. It is NOT current behaviour and MUST NOT be implemented
+> against.** Superseded by `docs/spec.md` (the single authoritative functional specification)
+> per **ADR-013**.
+>
+> It is retained for provenance only: it holds the original reasoning for the tier model and
+> for the shapes of the three intelligence-layer artifacts, which is worth keeping. It is
+> **not** maintained against the code, and MUST NOT be edited to track it.
+>
+> Known divergences from what ships:
+>
+> - **Tool surface.** Describes ~20 flat MCP tools (`remember`, `save_solution`,
+>   `project_context`, `get_playbook`, …). Three action-dispatching tools ship instead:
+>   `chronicle`, `session`, `axon` (**ADR-011**).
+> - **Memory model.** Describes five types including `session`. Six ship, without `session`
+>   and with `insight` and `coordination` (**ADR-012**).
+> - **Recall.** Describes semantic vector search. Keyword `LIKE` ranked by weight ships
+>   (**ADR-014**).
+> - **Storage path.** Names `~/.chronicle/memory.db`; the code uses `chronicle.db`.
+> - **Intelligence layer.** The `profile` / `lessons` / `playbook` YAML artifacts are specified
+>   here and not emitted.
+>
+> For current behaviour read `docs/spec.md`. For why each of the above changed, read the ADR
+> named beside it.
+
 # Chronicle — Cross-Project AI Memory MCP Server
 
 ## One-Liner

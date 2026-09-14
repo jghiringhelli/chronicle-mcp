@@ -6,4 +6,15 @@ coverage/
 
 tmpclaude-*
 
-tmpclaude-*
+# Gate output. The REPORT is generated; the EVIDENCE is committed.
+# docs/evidence/ is deliberately NOT ignored: a status claim with no committed execution
+# record is not admissible (docs/evidence/README.md).
+reports/
+.stryker-tmp/
+
+# Local tool caches
+.codeseeker/
+
+# Database role credentials, if ever copied into the tree. They belong in ~/.chronicle only.
+cloud-roles.json
+*.bak-*

@@ -1,0 +1,79 @@
+{
+  "ran_at": "2026-09-14T15:40:08.021Z",
+  "command": "node scripts/verify-isolation.mjs",
+  "target": "crossover.proxy.rlwy.net:28455/railway",
+  "people": [
+    "gabo",
+    "jghiringhelli"
+  ],
+  "model": "Two admins by decision (ADR-020). RLS confines the day-to-day app roles; admins bypass it.",
+  "passed": 12,
+  "failed": 1,
+  "results": [
+    {
+      "name": "each app role can write its own row",
+      "ok": true,
+      "detail": "seeded one memory for gabo and jghiringhelli"
+    },
+    {
+      "name": "gabo's app role sees ONLY its own seeded row",
+      "ok": true,
+      "detail": "1 row(s): iso-1789400402214-gabo"
+    },
+    {
+      "name": "gabo's app role cannot see jghiringhelli's rows even when asking for them directly",
+      "ok": true,
+      "detail": "0 row(s) returned for user_id = 'jghiringhelli'"
+    },
+    {
+      "name": "an unfiltered SELECT returns only this person's rows, not the whole table",
+      "ok": true,
+      "detail": "unfiltered=1 own=1"
+    },
+    {
+      "name": "gabo cannot write a row owned by jghiringhelli",
+      "ok": true,
+      "detail": "new row violates row-level security policy for table \"memories\""
+    },
+    {
+      "name": "gabo cannot update jghiringhelli's rows",
+      "ok": true,
+      "detail": "0 row(s) updated"
+    },
+    {
+      "name": "gabo cannot delete jghiringhelli's rows",
+      "ok": true,
+      "detail": "0 row(s) deleted"
+    },
+    {
+      "name": "an app role CANNOT re-point chronicle.user_id at another person",
+      "ok": false,
+      "detail": "IT CAN. The row filter follows whatever the client claims, so an app credential is confined by default and not by a boundary — whoever holds one can act as any user id. Treat an app connection string as equivalent to full access to the person tables."
+    },
+    {
+      "name": "team tables remain readable by every app role (ADR-019 §4)",
+      "ok": true,
+      "detail": "1 shared memory row(s) visible"
+    },
+    {
+      "name": "the roster remains readable, so the team gate still works",
+      "ok": true,
+      "detail": "2 member(s) visible"
+    },
+    {
+      "name": "an app role cannot read licence tokens",
+      "ok": true,
+      "detail": "permission denied for table team_licenses"
+    },
+    {
+      "name": "an ADMIN role sees both people's rows — the boundary, not a bug (ADR-020)",
+      "ok": true,
+      "detail": "2 of 2 seeded rows visible to chronicle_admin_gabo"
+    },
+    {
+      "name": "seeded rows cleaned up",
+      "ok": true,
+      "detail": "2 row(s) deleted"
+    }
+  ]
+}

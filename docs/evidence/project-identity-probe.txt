@@ -1,0 +1,32 @@
+﻿directory                    source       project id
+ambient\lumen                remote       github.com/jghiringhelli/lumen
+ambient\lumen-apps           remote       github.com/jghiringhelli/lumen-apps
+forge\conclave               remote       github.com/jghiringhelli/conclave
+forge\forgecraft-eye         remote       github.com/jghiringhelli/forgecraft-eye
+forge\forgecraft-mcp         remote       github.com/jghiringhelli/forgecraft-mcp
+forge\forgecraft-server      remote       github.com/jghiringhelli/forgecraft-server
+forge\forgecraft-web         remote       github.com/jghiringhelli/forgecraft-web
+forge\forgedx                remote       github.com/jghiringhelli/forgedx
+forge\quality-gates          remote       github.com/jghiringhelli/quality-gates
+gs\generative-specification  remote       github.com/jghiringhelli/generative-specification
+gs\genspec-portal            remote       github.com/jghiringhelli/genspec-portal
+gs\gs-workshop-taskflow      remote       github.com/pragma-works/gs-workshop-taskflow
+gs\gs-workshop-vaquita       remote       github.com/pragma-works/gs-workshop-vaquita
+jc-dx-experiment             remote       github.com/jghiringhelli/jc-dx-experiment
+jc-studio\enjambre           root-commit  repo:3c1e537722fb
+loom                         remote       github.com/jghiringhelli/loom
+mcp\chronicle                remote       github.com/jghiringhelli/chronicle-mcp
+mcp\chronicle-team           remote       github.com/jghiringhelli/chronicle-team
+mcp\CodeSeeker               remote       github.com/jghiringhelli/codeseeker
+mcp\scholaris-mcp            remote       github.com/jghiringhelli/scholaris-mcp
+pragmaworks                  remote       github.com/jghiringhelli/pragmaworks
+pragmaworks-site             remote       github.com/jghiringhelli/pragmaworks-site
+soma                         remote       github.com/jghiringhelli/soma
+vairixdx                     remote       github.com/grodriguez1983/vairixdx
+
+repositories:        24
+by source:           {"remote":23,"root-commit":1}
+ids distinct:        yes
+
+on a fallback (less stable across machines):
+  jc-studio\enjambre -> repo:3c1e537722fb (root-commit)

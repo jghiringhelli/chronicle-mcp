@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { MemoryService } from '../../../src/services/memory-service.js';
 import type { MemoryRepository, RecallQuery, MemorySearchResult } from '../../../src/ports/repositories/memory-repository.js';
 import type { IdGenerator } from '../../../src/ports/gateways/id-generator.js';
@@ -27,7 +27,31 @@ class FakeMemoryRepo implements MemoryRepository {
       .map(m => ({ memory: m, score: m.weight }));
   }
   update(m: Memory): void { this.store.set(m.id, m); }
-  delete(id: string, _reason: string): void { this.store.delete(id); }
+  updateMany(ms: readonly Memory[]): void { for (const m of ms) this.store.set(m.id, m); }
+  /**
+   * Mirrors the adapter's set-based decay, using the same formula as EDR-001.
+   * A fake that decayed differently would verify the service against behaviour nothing has.
+   */
+  promoteTier(fromTier: StorageTier, toTier: StorageTier, minAccess: number): number {
+    let changed = 0;
+    for (const m of [...this.store.values()]) {
+      if (m.tier !== fromTier || m.accessCount < minAccess) continue;
+      this.store.set(m.id, { ...m, tier: toTier });
+      changed++;
+    }
+    return changed;
+  }
+  decayOlderThan(cutoff: string, now: string): number {
+    let changed = 0;
+    for (const m of [...this.store.values()]) {
+      if (m.decayRate <= 0 || m.tier === 'core' || m.lastAccessedAt >= cutoff) continue;
+      const days = (new Date(now).getTime() - new Date(m.lastAccessedAt).getTime()) / 86400000;
+      this.store.set(m.id, { ...m, weight: m.weight * Math.exp(-m.decayRate * days) });
+      changed++;
+    }
+    return changed;
+  }
+  delete(id: string, _reason: string): boolean { return this.store.delete(id); }
   findForDecay(olderThan: string): Memory[] {
     return [...this.store.values()].filter(
       m => m.tier !== 'core' && m.lastAccessedAt < olderThan

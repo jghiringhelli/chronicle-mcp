@@ -1,3 +1,11 @@
+---
+node: protocols
+type: sentinel-node
+scope: dependency registry, commit and branch protocol, agent constraints
+load: on-demand
+categories: [standards, constraints]
+routes_to: [root]
+---
 <!-- ForgeCraft sentinel: protocols | 2026-04-20 | npx forgecraft-mcp refresh . --apply to update -->
 
 ## Dependency Registry — AI-Maintained Security Contract
@@ -193,22 +201,16 @@ Jest: 109 passed, 0 failed, 11 suites
   Test secrets like `"test-secret"` (11 chars) cause startup errors.
   Use `"test-secret-that-is-at-least-32-chars"` in test env.
 
-## Known Pitfalls
-Recurring type errors and runtime traps specific to this project's stack.
-Resolve exactly as documented — no `any` casts, ignore directives, or unlisted workarounds.
-### [Add project-specific pitfalls here]
-<!-- Entry format:
-### Library — trap description
-What goes wrong and why, then:
-```
-// ❌ wrong
-```
-```
-// ✅ correct
-```
--->
+## Known Pitfalls and Corrections Log — moved
 
-## Corrections Log
-When I correct your output, record the correction pattern here so you don't repeat it.
-### Learned Corrections
-- [AI assistant appends corrections here with date and description]
+Both ledgers live in a single always-loaded node: **@.claude/ledger.md**.
+
+They were moved there because the stateless reader must read them on *every* task, not
+only when it happens to route to this protocols node — and because two copies of an
+append-only ledger drift (single source + embedded provenance).
+
+- A recurring type error or runtime trap → append to *Known Pitfalls* (what goes wrong,
+  the wrong pattern, the right one). Resolve exactly as documented: no `any` casts, no
+  ignore directives, no unlisted workarounds.
+- A correction to the agent's behaviour → append a dated one-liner to *Corrections Log*,
+  including the origin of the correction.

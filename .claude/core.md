@@ -1,52 +1,45 @@
-# chronicle — Core
-
-> Always loaded. Contains only what is true across all domains.
-> Hard limit: 50 lines. If it grows, move the excess to a domain node.
-
-## Domain Identity
-It solves the cold-start problem: every AI session begins with zero context about the developer's preferences, past decisions, and hard-won solutions. Chronicle models developer knowledge using five c
-
-## Tags
-[UNIVERSAL] [LIBRARY]
-
-## Primary Entities
-- ---
-project:
-  name: "Chronicle"
-  id: "chronicle"
-  created: "2026-03-03"
-  sealed: "2026-03-03"
-
-tech_stack:
-  language: typescript
-  runtime: "node.js >= 20"
-  module_system: ESM
-  build: tsup
-  test: vitest
-  storage: "sqlite (better-sqlite3) + vector embeddings"
-  package_manager: npm
-  publish: "npm (public)"
-
+---
+node: core
+type: sentinel-node
+scope: identity, scope boundary, layer map, invariants
+load: always
+categories: [architectural-identity, constraints]
+routes_to: [root]
 ---
 
-# Chronicle — Cross-Project AI Memory MCP Server
+# chronicle — Core
 
-## 1.
-- - **Decay rate**: ephemeral, 7-day TTL
-- **Example**: *"Currently migrating auth to Lucia v3; decision pending on edge adapter vs database adapter."*
-- **Primary tools**: `session_start()`, `session_end()`, `session_recover()`
+> Always loaded. Only what is true across all domains. Hard limit: 50 lines.
 
-### Architectural — Why it is built this way
+## Intent
+Chronicle is an MCP server that gives AI coding assistants persistent, queryable memory
+across every project and session. It exists to kill the cold-start problem: a new session
+begins with zero context about the developer's preferences, past decisions and solutions.
 
-Design decisions, trade-off rationale, constraints, and ADR-level records of alternatives considered and rejected.
+## Scope boundary — what Chronicle is NOT
+- NOT a code search tool. Retrieval over source code is CodeSeeker's job.
+- NOT a spec/gate enforcer. Structural enforcement is ForgeCraft's job.
+- NOT a task runner or orchestrator. `axon` records coordination state; it does not execute.
+- NOT a hosted service. Local-first: the source of truth is `~/.chronicle/chronicle.db`.
+  Cloud Postgres is an optional mirror, never the primary (see @docs/adrs/active/ADR-010).
+- NOT multi-tenant. One database per developer machine.
+
+## Memory model — six types, three tiers
+Types: `episodic` `semantic` `procedural` `architectural` `insight` `coordination`.
+Tiers: `buffer` (7-day TTL) → `working` (slow decay) → `core` (permanent, decayRate 0).
+`procedural`, `architectural` and `insight` start in core and never decay (@docs/adrs/active/ADR-012).
 
 ## Layer Map
 ```
-[API/CLI] → [Services] → [Domain] → [Repositories] → [Infrastructure]
-Dependencies point inward. Domain has zero external imports.
+[MCP/CLI] → [Services] → [Domain] ← [Ports] ← [Adapters/Infrastructure]
+Dependencies point inward. Domain imports nothing. Services depend on ports, never adapters.
+Concrete adapters are wired only in src/cli.ts and src/lib/index.ts (composition roots).
 ```
 
 ## Invariants
-- Every public function has a JSDoc with typed params and returns
-- No circular imports (enforced by pre-commit hook)
-- Test coverage ≥80% on all changed files
+- Every public function has a JSDoc with typed params and returns.
+- No circular imports (gate-enforced: `pnpm run lint`).
+- Test coverage ≥80% overall; mutation score ≥65% overall, ≥70% on changed code.
+- Never widen `MemoryType` or `StorageTier` without an ADR — they are persisted values.
+- Never write to `~/.chronicle/chronicle.db` from the domain layer.
+- Read @.claude/ledger.md before generating code: it carries corrections already made.

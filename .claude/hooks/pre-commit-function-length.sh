@@ -1,5 +1,5 @@
 #!/bin/bash
-MAX_LENGTH={{max_function_length | default: 50}}
+MAX_LENGTH=50
 STAGED=$(git diff --cached --name-only --diff-filter=ACM)
 SOURCE_FILES=$(echo "$STAGED" | grep -E '\.(ts|tsx|js|jsx)$' | grep -vE '(\.test\.|\.spec\.|__tests__|tests/)')
 if [ -z "$SOURCE_FILES" ]; then exit 0; fi

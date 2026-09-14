@@ -1,0 +1,31 @@
+﻿{
+  "ran_at": "2026-09-13T04:22:08.175Z",
+  "errors": 0,
+  "warnings": 4,
+  "findings": [
+    {
+      "severity": "warning",
+      "step": 4,
+      "predicate": "no-orphan-references",
+      "detail": "docs/adrs/active/ADR-010-fold-axon-coordination-into-chronicle.md points at docs/adrs/ADR-002-fold-team-into-core.md, which does not exist"
+    },
+    {
+      "severity": "warning",
+      "step": 4,
+      "predicate": "no-orphan-references",
+      "detail": "docs/session-prompts/RM-004.md points at src/ports/gateways/janitor-service.ts, which does not exist"
+    },
+    {
+      "severity": "warning",
+      "step": 4,
+      "predicate": "no-orphan-references",
+      "detail": "docs/session-prompts/RM-004.md points at src/adapters/gateways/llm-janitor-service.ts, which does not exist"
+    },
+    {
+      "severity": "warning",
+      "step": 4,
+      "predicate": "no-orphan-references",
+      "detail": "docs/spec.md points at src/ports/gateways/janitor-service.ts, which does not exist"
+    }
+  ]
+}

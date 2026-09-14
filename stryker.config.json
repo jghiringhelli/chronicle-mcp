@@ -1,0 +1,39 @@
+{
+  "$schema": "./node_modules/@stryker-mutator/core/schema/stryker-schema.json",
+  "_comment": "Mutation gate. Coverage measures what was EXECUTED; mutation measures what was CAUGHT. An AI that writes tests knowing the implementation writes them to pass, not to catch — surviving mutants are the assertions that were not written. Run right after each test batch, not only before a release.",
+  "packageManager": "pnpm",
+  "testRunner": "vitest",
+  "plugins": [
+    "@stryker-mutator/vitest-runner"
+  ],
+  "reporters": [
+    "html",
+    "clear-text",
+    "progress",
+    "json"
+  ],
+  "htmlReporter": {
+    "fileName": "reports/mutation/index.html"
+  },
+  "jsonReporter": {
+    "fileName": "reports/mutation/mutation.json"
+  },
+  "coverageAnalysis": "perTest",
+  "mutate": [
+    "src/**/*.ts",
+    "!src/cli.ts",
+    "!src/index.ts",
+    "!src/lib/index.ts",
+    "!src/infrastructure/db/*schema*.ts",
+    "!src/dashboard/**"
+  ],
+  "thresholds": {
+    "high": 65,
+    "low": 36,
+    "break": 36
+  },
+  "timeoutMS": 20000,
+  "concurrency": 4,
+  "ignoreStatic": true,
+  "_thresholds_comment": "RATCHET, not the target. break=36 is the floor measured on 2026-09-12 after the mcp/server.ts tests (MSI 36.43%; it was 27.06% before them, and 9.14% at the first run ever); it was 24.19% after the v0.4.0 merge, 20.67% before it, and 9.14% at the first run ever. The TARGET is 65% overall and 70% on changed code (.claude/standards/testing.md) — raise `break` toward it as tests land, and NEVER lower it. A threshold nobody can pass is a disabled gate; a floor at the measured value blocks regressions from today forward, which is what a ratchet is. Biggest remaining block: src/mcp/server.ts, the largest single share of mutants with no unit coverage — deliberately still mutated, because the session-end defect found by scripts/smoke-mcp.mjs lived exactly there."
+}

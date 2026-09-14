@@ -10,8 +10,19 @@
  *   chronicle-mcp --dashboard --dash-port 4000
  */
 
-import { createMcpServer } from './mcp/server.js';
+// ADR-022. This import must be evaluated before anything that loads the SQLite binding, because on
+// an unsupported Node that load is a *segmentation fault*, not an error — a guard placed after it
+// never runs. `assert-runtime.js` pulls in nothing native, so it is safe this high up.
+import './shared/assert-runtime.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+
+// `createMcpServer` is reached through a DYNAMIC import, and that is the load-bearing part of the
+// guard rather than the comment above. It transitively imports `better-sqlite3`; as a static import
+// its evaluation order relative to the guard would depend on declaration order surviving every
+// future reformat, import sorter and bundler. As a dynamic import, the ordering is guaranteed by the
+// language: the module is not fetched until this line runs, and on an unsupported runtime the guard
+// has already exited the process.
+const { createMcpServer } = await import('./mcp/server.js');
 
 const args = process.argv.slice(2);
 
@@ -26,8 +37,7 @@ if (args[0] === 'generate-token') {
   }
 
   const { getConfig } = await import('./shared/config/index.js');
-  const { TEAM_SCHEMA_SQL } = await import('./infrastructure/db/team-schema.js');
-  const { randomBytes } = await import('node:crypto');
+  const { TeamService } = await import('./services/team-service.js');
 
   const config = getConfig();
   if (!config.railwayUrl) {
@@ -35,18 +45,10 @@ if (args[0] === 'generate-token') {
     process.exit(1);
   }
 
-  const { default: postgres } = await import('postgres');
-  const sql = postgres(config.railwayUrl, { ssl: 'require', max: 1 });
-
-  await sql.unsafe(TEAM_SCHEMA_SQL);
-  await sql`INSERT INTO teams (id, name) VALUES (${teamSlug}, ${teamSlug}) ON CONFLICT DO NOTHING`;
-
-  const token = `chron_${randomBytes(32).toString('hex')}`;
-  await sql`
-    INSERT INTO team_licenses (token, team_id, created_by)
-    VALUES (${token}, ${teamSlug}, ${config.userId})
-  `;
-  await sql.end();
+  const teamSvc = new TeamService();
+  const { token } = await teamSvc.mintToken(teamSlug);
+  // The token issuer owns the team: they can curate insights and assign roles.
+  await teamSvc.assignRole(teamSlug, config.userId, 'owner');
 
   console.log(`\nChronicle Team token generated for team: ${teamSlug}\n`);
   console.log(`  token: ${token}\n`);

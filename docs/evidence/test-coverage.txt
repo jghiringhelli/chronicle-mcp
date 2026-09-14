@@ -1,0 +1,133 @@
+command: npx vitest run --coverage
+exit code: 0
+run: 2026-09-13T05:16:33Z
+node: v24.18.0
+
+
+ RUN  v2.1.9 C:/workspace/PragmaWorks/mcp/chronicle
+      Coverage enabled with v8
+
+ ✓ tests/unit/shared/runtime.test.ts (15 tests) 6ms
+ ✓ tests/unit/shared/time.test.ts (14 tests) 4ms
+ ✓ tests/unit/domain/memory.test.ts (14 tests) 5ms
+ ✓ tests/unit/services/memory-service.test.ts (9 tests) 5ms
+stderr | tests/unit/infrastructure/driver-upgrade.test.ts > a database written by better-sqlite3@11 opens with @13 > reads rows the old driver wrote, with the schema migrated forward
+
+  SKIPPED: could not install better-sqlite3@11 (no registry, or no C++ toolchain —
+  which is ADR-015's original problem). This assertion did NOT run.
+
+
+ ✓ tests/unit/adapters/sqlite-memory-repository.test.ts (11 tests) 18ms
+ ✓ tests/unit/adapters/sqlite-team-repository-search.test.ts (14 tests) 24ms
+stderr | tests/unit/infrastructure/driver-upgrade.test.ts > a database written by better-sqlite3@11 opens with @13 > reads a WAL-mode database the old driver left behind
+
+  SKIPPED: better-sqlite3@11 unavailable; this assertion did NOT run.
+
+
+ ✓ tests/unit/adapters/sqlite-team-repository.test.ts (13 tests) 21ms
+ ✓ tests/unit/adapters/sqlite-decay-parity.test.ts (12 tests) 26ms
+ ✓ tests/unit/infrastructure/driver-upgrade.test.ts (2 tests) 8ms
+ ✓ tests/unit/services/team-promotion-service.test.ts (15 tests) 40ms
+ ✓ tests/unit/services/pattern-service.test.ts (4 tests) 10ms
+ ✓ tests/unit/services/coordination-service.test.ts (45 tests) 108ms
+ ✓ tests/unit/services/sync.test.ts (15 tests) 56ms
+ ✓ tests/unit/infrastructure/database-concurrency.test.ts (7 tests) 105ms
+ ✓ tests/unit/services/session-service.test.ts (11 tests) 18ms
+ ✓ tests/unit/infrastructure/schema.test.ts (8 tests) 128ms
+ ✓ tests/unit/infrastructure/local-migration.test.ts (9 tests) 155ms
+ ✓ tests/unit/domain/session.test.ts (7 tests) 4ms
+ ✓ tests/unit/infrastructure/fastembed-gateway.test.ts (5 tests) 2ms
+ ✓ tests/unit/services/team-service.test.ts (8 tests) 4ms
+ ✓ tests/unit/services/prompt-log-service.test.ts (4 tests) 11ms
+ ✓ tests/unit/mcp/server.test.ts (35 tests) 177ms
+ ✓ tests/unit/shared/repo-identity.test.ts (21 tests) 2513ms
+   ✓ resolveProjectIdentity > prefers the normalised remote 397ms
+   ✓ resolveProjectIdentity > gives two different repositories different ids 569ms
+   ✓ resolveProjectIdentity > gives the same id to two clones in differently-named directories 574ms
+
+ Test Files  23 passed (23)
+      Tests  298 passed (298)
+   Start at  00:16:38
+   Duration  3.28s (transform 1.29s, setup 0ms, collect 3.20s, tests 3.45s, environment 3ms, prepare 2.73s)
+
+ % Coverage report from v8
+-------------------|---------|----------|---------|---------|-------------------
+File               | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s 
+-------------------|---------|----------|---------|---------|-------------------
+All files          |   59.98 |    72.36 |   76.19 |   59.98 |                   
+ ...s/repositories |   71.01 |    67.66 |      80 |   71.01 |                   
+  index.ts         |     100 |      100 |     100 |     100 |                   
+  ...repository.ts |   72.41 |     64.4 |   85.71 |   72.41 | ...38-339,343-349 
+  ...repository.ts |      50 |       50 |      50 |      50 | ...21-127,130-137 
+  ...repository.ts |   65.09 |    68.75 |   66.66 |   65.09 | ...37-138,142-150 
+  ...repository.ts |   82.56 |       74 |   94.73 |   82.56 | ...68-369,386-387 
+ dashboard         |       0 |        0 |       0 |       0 |                   
+  server.ts        |       0 |        0 |       0 |       0 | 1-494             
+ domain            |   88.88 |        0 |       0 |   88.88 |                   
+  index.ts         |       0 |        0 |       0 |       0 | 1-9               
+  types.ts         |     100 |      100 |     100 |     100 |                   
+ domain/entities   |   58.45 |    97.22 |      85 |   58.45 |                   
+  decision.ts      |       0 |      100 |     100 |       0 | 65-76             
+  index.ts         |       0 |        0 |       0 |       0 | 1-16              
+  memory.ts        |     100 |      100 |     100 |     100 |                   
+  preference.ts    |       0 |      100 |     100 |       0 | 48-79             
+  prompt-log.ts    |     100 |      100 |     100 |     100 |                   
+  session.ts       |     100 |      100 |     100 |     100 |                   
+  solution.ts      |       0 |      100 |     100 |       0 | 49-75             
+  team-insight.ts  |       0 |        0 |       0 |       0 |                   
+  team-pattern.ts  |       0 |        0 |       0 |       0 |                   
+  team.ts          |      60 |      100 |   33.33 |      60 | 52-53,64-65       
+  trigger.ts       |       0 |      100 |     100 |       0 | 43-65             
+ infrastructure/db |   71.87 |      100 |      60 |   71.87 |                   
+  database.ts      |   68.96 |      100 |      60 |   68.96 | 60-74,166-170     
+  schema.ts        |     100 |      100 |     100 |     100 |                   
+  team-schema.ts   |     100 |      100 |     100 |     100 |                   
+ ...cture/gateways |   51.16 |      100 |   38.46 |   51.16 |                   
+  ...ed-gateway.ts |   42.85 |      100 |   28.57 |   42.85 | ...08-117,122-133 
+  node-clock.ts    |   63.63 |      100 |   33.33 |   63.63 | 16-17,27-28       
+  ...-generator.ts |   83.33 |      100 |   66.66 |   83.33 | 17-18             
+ lib               |       0 |      100 |     100 |       0 |                   
+  index.ts         |       0 |      100 |     100 |       0 | 49-126            
+ mcp               |      60 |    47.61 |      60 |      60 |                   
+  server.ts        |    69.5 |     52.8 |     100 |    69.5 | ...94,597-599,602 
+  team-gate.ts     |      12 |      100 |       0 |      12 | 22-45,49-50       
+  team-tools.ts    |   38.41 |    18.75 |     100 |   38.41 | ...92,195-205,208 
+ ports/gateways    |       0 |       75 |      75 |       0 |                   
+  clock.ts         |       0 |        0 |       0 |       0 |                   
+  ...ng-gateway.ts |       0 |        0 |       0 |       0 |                   
+  id-generator.ts  |       0 |        0 |       0 |       0 |                   
+  index.ts         |       0 |        0 |       0 |       0 | 1-9               
+ ...s/repositories |       0 |     87.5 |    87.5 |       0 |                   
+  ...repository.ts |       0 |        0 |       0 |       0 |                   
+  index.ts         |       0 |        0 |       0 |       0 | 1-12              
+  ...repository.ts |       0 |        0 |       0 |       0 |                   
+  ...repository.ts |       0 |        0 |       0 |       0 |                   
+  ...repository.ts |       0 |        0 |       0 |       0 |                   
+  ...repository.ts |       0 |        0 |       0 |       0 |                   
+  ...repository.ts |       0 |        0 |       0 |       0 |                   
+  ...repository.ts |       0 |        0 |       0 |       0 |                   
+ services          |   58.48 |    74.64 |   87.01 |   58.48 |                   
+  ...on-service.ts |   83.97 |    86.55 |   92.59 |   83.97 | ...05-607,658-661 
+  distill.ts       |       0 |        0 |       0 |       0 | 1-118             
+  ...ry-service.ts |     100 |      100 |     100 |     100 |                   
+  ...rn-service.ts |      95 |    85.71 |     100 |      95 | 110-112           
+  ...ce-service.ts |    93.1 |       75 |      75 |    93.1 | 61-62             
+  ...og-service.ts |   53.19 |    71.42 |     100 |   53.19 | 54-83             
+  ...on-service.ts |     100 |      100 |     100 |     100 |                   
+  sync.ts          |   28.03 |    34.88 |      60 |   28.03 | ...67-500,507-530 
+  ...on-service.ts |   96.49 |    81.63 |     100 |   96.49 | 160-161,181-182   
+  team-service.ts  |    28.7 |       40 |     100 |    28.7 | ...53-168,181-193 
+  ...nc-service.ts |    8.57 |      100 |      25 |    8.57 | ...02-150,158-246 
+  ...er-service.ts |   77.27 |    57.14 |      75 |   77.27 | 56-57,82-83,92-97 
+ shared            |   93.06 |    94.44 |    90.9 |   93.06 |                   
+  ...rt-runtime.ts |       0 |        0 |       0 |       0 | 1-20              
+  repo-identity.ts |     100 |       92 |     100 |     100 | 79,113            
+  runtime.ts       |     100 |      100 |     100 |     100 |                   
+  time.ts          |     100 |      100 |     100 |     100 |                   
+ shared/config     |   14.51 |        0 |       0 |   14.51 |                   
+  index.ts         |   14.51 |        0 |       0 |   14.51 | ...41-145,155-156 
+ shared/exceptions |   77.35 |       50 |   42.85 |   77.35 |                   
+  index.ts         |   77.35 |       50 |   42.85 |   77.35 | ...60,65-67,72-74 
+ types             |       0 |        0 |       0 |       0 |                   
+  fastembed.d.ts   |       0 |        0 |       0 |       0 |                   
+-------------------|---------|----------|---------|---------|-------------------

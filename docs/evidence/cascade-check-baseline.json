@@ -1,0 +1,169 @@
+﻿{
+  "ran_at": "2026-09-10T20:54:10.130Z",
+  "errors": 13,
+  "warnings": 14,
+  "findings": [
+    {
+      "severity": "warning",
+      "step": 1,
+      "predicate": "node-carries-frontmatter",
+      "detail": ".claude/adr/index.md has no sentinel-node frontmatter — the router must infer its scope from prose"
+    },
+    {
+      "severity": "warning",
+      "step": 1,
+      "predicate": "node-carries-frontmatter",
+      "detail": ".claude/core.md has no sentinel-node frontmatter — the router must infer its scope from prose"
+    },
+    {
+      "severity": "warning",
+      "step": 1,
+      "predicate": "node-carries-frontmatter",
+      "detail": ".claude/gates/index.md has no sentinel-node frontmatter — the router must infer its scope from prose"
+    },
+    {
+      "severity": "warning",
+      "step": 1,
+      "predicate": "node-carries-frontmatter",
+      "detail": ".claude/index.md has no sentinel-node frontmatter — the router must infer its scope from prose"
+    },
+    {
+      "severity": "warning",
+      "step": 1,
+      "predicate": "node-carries-frontmatter",
+      "detail": ".claude/standards/api.md has no sentinel-node frontmatter — the router must infer its scope from prose"
+    },
+    {
+      "severity": "error",
+      "step": 1,
+      "predicate": "no-unresolved-placeholders",
+      "detail": ".claude/standards/architecture.md still carries template placeholders: framework, domain"
+    },
+    {
+      "severity": "warning",
+      "step": 1,
+      "predicate": "node-carries-frontmatter",
+      "detail": ".claude/standards/architecture.md has no sentinel-node frontmatter — the router must infer its scope from prose"
+    },
+    {
+      "severity": "warning",
+      "step": 1,
+      "predicate": "node-carries-frontmatter",
+      "detail": ".claude/standards/cicd.md has no sentinel-node frontmatter — the router must infer its scope from prose"
+    },
+    {
+      "severity": "warning",
+      "step": 1,
+      "predicate": "node-carries-frontmatter",
+      "detail": ".claude/standards/project-specific.md has no sentinel-node frontmatter — the router must infer its scope from prose"
+    },
+    {
+      "severity": "warning",
+      "step": 1,
+      "predicate": "node-carries-frontmatter",
+      "detail": ".claude/standards/protocols.md has no sentinel-node frontmatter — the router must infer its scope from prose"
+    },
+    {
+      "severity": "warning",
+      "step": 1,
+      "predicate": "node-carries-frontmatter",
+      "detail": ".claude/standards/spec.md has no sentinel-node frontmatter — the router must infer its scope from prose"
+    },
+    {
+      "severity": "warning",
+      "step": 1,
+      "predicate": "node-carries-frontmatter",
+      "detail": ".claude/standards/testing.md has no sentinel-node frontmatter — the router must infer its scope from prose"
+    },
+    {
+      "severity": "error",
+      "step": 1,
+      "predicate": "five-categories-collectively-present",
+      "detail": "no sentinel node declares category \"architectural-identity\" — sessions will drift in that dimension"
+    },
+    {
+      "severity": "error",
+      "step": 1,
+      "predicate": "five-categories-collectively-present",
+      "detail": "no sentinel node declares category \"standards\" — sessions will drift in that dimension"
+    },
+    {
+      "severity": "error",
+      "step": 1,
+      "predicate": "five-categories-collectively-present",
+      "detail": "no sentinel node declares category \"constraints\" — sessions will drift in that dimension"
+    },
+    {
+      "severity": "error",
+      "step": 1,
+      "predicate": "five-categories-collectively-present",
+      "detail": "no sentinel node declares category \"tool-sequencing\" — sessions will drift in that dimension"
+    },
+    {
+      "severity": "error",
+      "step": 1,
+      "predicate": "five-categories-collectively-present",
+      "detail": "no sentinel node declares category \"routing\" — sessions will drift in that dimension"
+    },
+    {
+      "severity": "error",
+      "step": 2,
+      "predicate": "adr-index-references-resolve",
+      "detail": ".claude/adr/index.md points at docs/adrs/ADR-000-cnt-init.md, which does not exist"
+    },
+    {
+      "severity": "error",
+      "step": 2,
+      "predicate": "adr-index-references-resolve",
+      "detail": ".claude/adr/index.md points at docs/adrs/ADR-001-use-sqlite-with-vector-embeddings.md, which does not exist"
+    },
+    {
+      "severity": "error",
+      "step": 3,
+      "predicate": "cascade-artifact-not-a-stub",
+      "detail": "docs/PRD.md occupies a required cascade slot but is still an unfilled template (matched /\\bMy Project\\b/)"
+    },
+    {
+      "severity": "warning",
+      "step": 4,
+      "predicate": "no-orphan-references",
+      "detail": "docs/session-prompts/RM-004.md points at src/ports/gateways/janitor-service.ts, which does not exist"
+    },
+    {
+      "severity": "warning",
+      "step": 4,
+      "predicate": "no-orphan-references",
+      "detail": "docs/session-prompts/RM-004.md points at src/adapters/gateways/llm-janitor-service.ts, which does not exist"
+    },
+    {
+      "severity": "warning",
+      "step": 4,
+      "predicate": "no-orphan-references",
+      "detail": "docs/spec.md points at src/ports/gateways/janitor-service.ts, which does not exist"
+    },
+    {
+      "severity": "error",
+      "step": 6,
+      "predicate": "ci-workflow-exists",
+      "detail": "no .github/workflows/ — a CI pipeline described in standards but absent from the repo enforces nothing"
+    },
+    {
+      "severity": "error",
+      "step": 6,
+      "predicate": "hooks-installable",
+      "detail": ".githooks/pre-commit is absent — hook scripts that nothing dispatches to are aspirational (Defended scores 0)"
+    },
+    {
+      "severity": "error",
+      "step": 6,
+      "predicate": "quality-gate-config-exists",
+      "detail": "eslint.config.js is absent but a script or standard requires it"
+    },
+    {
+      "severity": "error",
+      "step": 6,
+      "predicate": "quality-gate-config-exists",
+      "detail": "stryker.config.json is absent but a script or standard requires it"
+    }
+  ]
+}

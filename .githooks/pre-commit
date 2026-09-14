@@ -1,0 +1,78 @@
+#!/usr/bin/env bash
+#
+# Dispatcher for the pre-commit gate.
+#
+# The hook scripts under .claude/hooks/ existed for months with nothing invoking them.
+# A hook script that nothing dispatches to is aspirational: the Defended property scores 0
+# until hooks actually run. This file is what makes them run.
+#
+# Install (once per clone):  pnpm run hooks:install
+#   → git config core.hooksPath .githooks
+#
+# A check that runs here costs zero context tokens. The same check performed by hand in a
+# session costs a thousand-plus every time the agent redoes it.
+#
+# Bypassing this hook with --no-verify is forbidden by
+# .claude/standards/tool-sequencing.md §6. If a gate is wrong, fix the gate.
+
+set -uo pipefail
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+cd "$REPO_ROOT" || exit 1
+
+FAILED=0
+run() {
+  local label="$1"; shift
+  printf '\n── %s\n' "$label"
+  if "$@"; then
+    printf '   ok\n'
+  else
+    printf '   FAILED: %s\n' "$label"
+    FAILED=1
+  fi
+}
+
+run_script() {
+  local label="$1" script="$2"
+  [ -f "$script" ] || { printf '\n── %s\n   skipped (absent: %s)\n' "$label" "$script"; return; }
+  run "$label" bash "$script"
+}
+
+# Nothing staged → nothing to gate.
+if git diff --cached --quiet; then
+  echo "pre-commit: no staged changes"
+  exit 0
+fi
+
+# 1. Secrets first: the only check whose failure is unrecoverable once pushed.
+run_script "secrets scan" ".claude/hooks/pre-commit-secrets.sh"
+
+# 2. Cascade / sentinel integrity. Dependency-free, so it runs before any install check.
+run "gs cascade check" node scripts/gs-cascade-check.mjs
+
+# 3. Types, then lint, then tests — cheapest first, so a failure surfaces early.
+#    (tool-sequencing.md §4 defines this order; it is not arbitrary.)
+if [ -d node_modules ]; then
+  run "typecheck" node node_modules/typescript/bin/tsc --noEmit
+  if [ -f eslint.config.js ]; then
+    run "lint" node node_modules/eslint/bin/eslint.js src tests
+  fi
+  run "tests" node node_modules/vitest/vitest.mjs run --passWithNoTests
+else
+  printf '\n── node_modules absent: typecheck, lint and tests skipped\n'
+  printf '   run `pnpm install` — CI will run them regardless\n'
+fi
+
+# 4. Structural hooks that do not need node_modules.
+run_script "import cycles"    ".claude/hooks/pre-commit-import-cycles.sh"
+run_script "function length"  ".claude/hooks/pre-commit-function-length.sh"
+run_script "branch check"     ".claude/hooks/pre-commit-branch-check.sh"
+
+if [ "$FAILED" -ne 0 ]; then
+  printf '\npre-commit: BLOCKED. Fix the failures above.\n'
+  printf 'Do not use --no-verify (tool-sequencing.md §6).\n'
+  exit 1
+fi
+
+printf '\npre-commit: all gates passed\n'
+exit 0

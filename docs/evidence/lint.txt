@@ -1,0 +1,63 @@
+command: npx eslint src tests
+exit code: 0
+run: 2026-09-13T05:16:33Z
+node: v24.18.0
+
+
+C:\workspace\PragmaWorks\mcp\chronicle\src\infrastructure\gateways\fastembed-gateway.ts
+  96:17  warning  Forbidden non-null assertion  @typescript-eslint/no-non-null-assertion
+  97:17  warning  Forbidden non-null assertion  @typescript-eslint/no-non-null-assertion
+
+C:\workspace\PragmaWorks\mcp\chronicle\src\services\coordination-service.ts
+  162:23  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  187:61  warning  Forbidden non-null assertion              @typescript-eslint/no-non-null-assertion
+  191:11  warning  Forbidden non-null assertion              @typescript-eslint/no-non-null-assertion
+  239:9   warning  Forbidden non-null assertion              @typescript-eslint/no-non-null-assertion
+  249:21  warning  Forbidden non-null assertion              @typescript-eslint/no-non-null-assertion
+  359:23  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  367:25  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  468:23  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  474:31  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  475:53  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  604:35  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  607:27  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  624:31  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  632:23  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  650:23  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  661:33  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  665:27  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  675:30  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  680:87  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  691:88  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  696:33  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  711:33  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  736:89  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  741:34  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\workspace\PragmaWorks\mcp\chronicle\src\services\sync.ts
+  295:10  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  322:10  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  328:10  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  368:10  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  373:10  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  410:38  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  431:38  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  460:33  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\workspace\PragmaWorks\mcp\chronicle\src\services\team-promotion-service.ts
+  118:20  warning  Forbidden non-null assertion  @typescript-eslint/no-non-null-assertion
+  126:32  warning  Forbidden non-null assertion  @typescript-eslint/no-non-null-assertion
+  193:21  warning  Forbidden non-null assertion  @typescript-eslint/no-non-null-assertion
+  193:66  warning  Forbidden non-null assertion  @typescript-eslint/no-non-null-assertion
+  194:53  warning  Forbidden non-null assertion  @typescript-eslint/no-non-null-assertion
+
+C:\workspace\PragmaWorks\mcp\chronicle\src\services\team-service.ts
+  188:20  warning  Forbidden non-null assertion  @typescript-eslint/no-non-null-assertion
+  188:39  warning  Forbidden non-null assertion  @typescript-eslint/no-non-null-assertion
+  188:65  warning  Forbidden non-null assertion  @typescript-eslint/no-non-null-assertion
+
+C:\workspace\PragmaWorks\mcp\chronicle\src\services\team-sync-service.ts
+  120:21  warning  Forbidden non-null assertion  @typescript-eslint/no-non-null-assertion
+
+✖ 43 problems (0 errors, 43 warnings)
+

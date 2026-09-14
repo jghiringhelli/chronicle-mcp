@@ -1,7 +1,13 @@
 /**
  * Chronicle Domain Types
  *
- * Core type definitions for the five-memory model.
+ * Core type definitions for the six-memory model (ADR-012).
+ * This file is the SINGLE SOURCE for the shape of the model: `MemoryType` and `StorageTier`
+ * are closed unions of persisted strings. Prose elsewhere enumerates these names rather than
+ * asserting a count — "five", "six" and "three-tier" were all in circulation at once before
+ * ADR-012 closed the set. Adding or removing a member requires an ADR superseding ADR-012 and
+ * a migration for rows holding the old value.
+ *
  * Domain layer has zero external imports.
  */
 
@@ -44,6 +50,37 @@ export type MemoryType =
   | 'architectural'
   | 'insight'
   | 'coordination';
+
+/**
+ * The three scopes a memory can belong to (ADR-018).
+ *
+ * A scope answers *who and what a memory is about*, and it is orthogonal to both the memory type
+ * (what kind of knowledge) and the storage tier (how permanent). Multi-machine sync is a property of
+ * every scope, not a scope of its own — a memory is never *about* a machine.
+ *
+ * - `project` — true about one repository, keyed on its derived identity (ADR-018 §2).
+ * - `person`  — true about me, anywhere. Syncs across my machines; never crosses to another person.
+ * - `team`    — what the team has agreed or learned. Crosses people by construction.
+ *
+ * Crossing to another person is always deliberate (ADR-019 §4): a `project` memory syncs across its
+ * author's machines and becomes visible to teammates only through `team share` or `team promote`. A
+ * repository is not a permission.
+ *
+ * These are PERSISTED values. Adding or removing a member requires an ADR superseding ADR-018 and a
+ * migration for rows holding the old value — the same rule MemoryType carries (ADR-012).
+ */
+export type MemoryScope =
+  | 'project'
+  | 'person'
+  | 'team';
+
+/**
+ * Default scope when a caller does not say.
+ *
+ * `project` rather than `person`, because the overwhelmingly common case is an agent working in a
+ * repository and learning something about it. A fact about the developer is the deliberate one.
+ */
+export const DEFAULT_SCOPE: MemoryScope = 'project';
 
 /** Storage tiers based on access frequency and permanence */
 export type StorageTier =

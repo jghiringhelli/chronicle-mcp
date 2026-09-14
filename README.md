@@ -25,14 +25,18 @@ Chronicle is a [Model Context Protocol](https://modelcontextprotocol.io) server 
 
 Chronicle uses six cognitive memory types, each with its own decay rate and default tier:
 
-| Type | What it stores | Decay | Default tier |
-|------|---------------|-------|-------------|
-| **Semantic** | Facts, concepts, how things work | Medium | Buffer |
-| **Episodic** | Events, what happened, past decisions | Fast | Buffer |
-| **Procedural** | How to do things, sequences, commands | None | Core |
-| **Architectural** | Why it was built this way, ADRs, tradeoffs | None | Core |
-| **Insight** | Patterns spotted across sessions, recurring lessons | Slow | Working |
-| **Coordination** | Team state, hand-offs, who-is-doing-what | Medium | Working |
+| Type | What it stores | Decay rate | Half-life | Default tier |
+|------|---------------|-----------|-----------|--------------|
+| **Episodic** | Events, what happened, past decisions | 0.10 | ~6.9 days | Buffer |
+| **Semantic** | Facts, concepts, how things work | 0.02 | ~34.7 days | Working |
+| **Coordination** | Team state, hand-offs, who-is-doing-what | 0.01 | ~69.3 days | Working |
+| **Procedural** | How to do things, sequences, commands | 0.00 | never | Core |
+| **Architectural** | Why it was built this way, ADRs, tradeoffs | 0.00 | never | Core |
+| **Insight** | Patterns spotted across sessions, recurring lessons | 0.00 | never | Core |
+
+The rates are the values in `src/domain/types.ts`, which is the single source for the model's
+shape; the half-lives are derived (`ln 2 / rate`). `confirmed: true` on any type sets decay to 0
+and places the memory in Core.
 
 Developer **preferences** (style, habits, tooling choices) are stored separately via the `pref` action — they live in their own table with no decay.
 
@@ -40,9 +44,12 @@ Developer **preferences** (style, habits, tooling choices) are stored separately
 
 ```
 Buffer (ephemeral)  →  Working (session-relevant)  →  Core (permanent)
-weight decays fast      accessed 3+ times               accessed 10+ times
-                                                         never decays
+weight decays fast      promoted at 3+ accesses          promoted at 10+ accesses
+                                                          never decays
 ```
+
+Promotion is evaluated at session end. A type's *default* tier is where it starts (table above);
+`procedural`, `architectural` and `insight` start in Core and so never need promoting.
 
 Memories promote automatically as you access them. Architectural and Procedural memories start in Core and never decay.
 
@@ -109,8 +116,8 @@ Optional fields:
 | Field | Purpose |
 |-------|---------|
 | `railwayUrl` | PostgreSQL connection string — enables cross-PC sync |
-| `teamId` | Team slug — enables Axon team coordination |
-| `teamToken` | Team license token — required to use Axon tools |
+| `teamId` | Team slug — enables the `axon` and `team` tools |
+| `teamToken` | Team license token — required for the `axon` and `team` tools |
 
 Full config with all features:
 ```json
@@ -168,18 +175,36 @@ Full config with all features:
 | `status` | Full team dashboard: contributors, queue, merge queue |
 | `queue` | Ranked work queue for the project |
 
+### `team` — shared knowledge *(requires teamToken)*
+
+Coordination (`axon`) and knowledge (`team`) share **one** license token and one Railway instance. Shared memories stay attributed to their author; insights are team-level syntheses curated by owners/leads.
+
+| Action | What it does |
+|--------|-------------|
+| `join` | Register your membership in the team (role defaults to `member`) |
+| `share` | Push a specific local memory (by ID) into the team pool |
+| `promote` | Assistant-driven: scan high-value local memories, dedupe against the pool, push the novel ones |
+| `recall` | Search the team pool plus synthesized team insights |
+| `log` | Record what a prompt was trying to do (pattern only; raw text stays local unless you opt in) |
+| `insights` | List team practices / antipatterns / lessons |
+| `stats` | Usage analytics (`scope: me \| team`) |
+| `sync` | Push the prompt buffer and pull team knowledge (also fires at `session end`) |
+| `members` | List team members and roles |
+| `assign_role` | *(owner/lead)* Set a member's role: `owner \| lead \| member` |
+| `curate_insight` | *(owner/lead)* Create or reinforce a team insight |
+
 ---
 
 ## Example session
 
 ```
 You: start a session for this project
-AI: [calls session_start({project: "my-app"})]
+AI: [calls session({action: "start", project: "my-app"})]
     → "3 core memories loaded: auth uses Lucia v3, Postgres on Railway,
        prefer functional patterns over classes. 1 trigger active: deploy"
 
 You: let's add Redis for caching
-AI: [calls check_triggers({action: "deploy", project: "my-app"})]
+AI: [calls chronicle({action: "check", trigger: "deploy", project: "my-app"})]
     → ⚠️  CRITICAL: Redis eviction policy resets on Railway deploy.
        Pin config in deploy hook. (last seen 12 days ago)
 ```
@@ -187,7 +212,8 @@ AI: [calls check_triggers({action: "deploy", project: "my-app"})]
 ```
 You: remember that we chose Zod over Valibot because Zod has better
      ecosystem support and our team already knows it
-AI: [calls remember({
+AI: [calls chronicle({
+      action: "remember",
       content: "chose Zod over Valibot — better ecosystem, team familiarity",
       memory_type: "architectural",
       project: "my-app",
@@ -219,7 +245,7 @@ When you set `railwayUrl`, Chronicle syncs your Working and Core tier memories p
 
 ```
 Machine A (home laptop)  →  Railway Postgres  →  Machine B (work laptop)
-  remembers + writes              ↑ sync                pulls on session_start
+  remembers + writes              ↑ sync                pulls on session start
 ```
 
 Only Working+Core memories sync (not ephemeral Buffer). Your local SQLite always has the full picture.
@@ -242,7 +268,7 @@ Only Working+Core memories sync (not ephemeral Buffer). Your local SQLite always
    psql "postgresql://..." -f path/to/chronicle-mcp/src/infrastructure/db/cloud-schema.sql
    ```
 
-Sync activates automatically on the next `session_start`. No restart needed.
+Sync activates automatically on the next `session({action: "start"})`. No restart needed.
 
 > **Tip:** If you use an AI assistant (Copilot, Claude) to do this setup, ask it to look up your Railway project, find the Postgres connection string, and write it into `~/.chronicle/config.json` directly.
 
@@ -298,12 +324,17 @@ MCP Client (Claude / Copilot / Cursor)
        │     └── PreferenceService — set / get
        ├── session tool
        │     └── SessionService    — start / end / recover
-       └── axon tool  (teamToken required)
-             ├── CoordinationService — contributors, work packages, assignments, merges
-             └── syncCoordination    — Railway push / pull (team state)
+       ├── axon tool  (teamToken required)
+       │     ├── CoordinationService — contributors, work packages, assignments, merges
+       │     └── syncCoordination    — Railway push / pull (team state)
+       └── team tool  (teamToken required)
+             ├── TeamService          — membership + roles (owner/lead/member)
+             ├── TeamSyncService      — shared memories, insights, prompt logs
+             ├── TeamPromotionService — assistant-driven promote + dedup
+             └── PatternService       — usage analytics
                     │
-             SQLite (better-sqlite3, local-first)
-             Railway Postgres (optional — cross-PC sync + team coordination)
+             SQLite (better-sqlite3, local-first + team cache)
+             Railway Postgres (optional — cross-PC sync + team coordination & knowledge)
 ```
 
 Domain is pure TypeScript with zero external imports. All repositories are synchronous (better-sqlite3). The MCP layer is async. Sync to Railway uses the `postgres` package with dynamic import.
@@ -408,6 +439,42 @@ Tokens are stored in the `team_licenses` table on your Railway instance. To revo
 UPDATE team_licenses SET revoked = TRUE WHERE token = 'chron_...';
 ```
 
+The user who runs `generate-token` is recorded as the team **owner** in `team_members`. A single team token authorises both the `axon` and `team` tools; what a member may do is governed by their DB role, not by holding a different token.
+
+---
+
+## Team knowledge & promotion
+
+Beyond coordinating *work*, the `team` tool shares *knowledge*. Each member's memories stay private by default; knowledge reaches the team in one of two ways:
+
+- **`share`** — push a specific memory you choose, by ID.
+- **`promote`** — the assistant scans your durable memories (confirmed truths and working/core-tier entries), de-duplicates them against what the team already holds, and pushes only the novel ones. Shared memories remain attributed to their author, so the same Railway instance can host several teams without mixing authorship.
+
+```
+# Assistant decides recent durable knowledge is worth sharing
+team({ action: "promote", project: "my-project" })
+→ { scanned: 8, promoted: [...], skipped: [{ id, reason: "duplicate", similarTo }] }
+
+# Anyone pulls the team pool + synthesized insights
+team({ action: "recall", query: "auth", project: "my-project" })
+
+# Owner/lead distils a recurring pattern into a team insight
+team({ action: "curate_insight", insight_type: "practice",
+       content: "Validate all inbound DTOs at the service boundary", project: "my-project" })
+```
+
+> De-duplication is currently **lexical** (token overlap). A semantic upgrade is a drop-in once a concrete embedding gateway populates memory embeddings — the threshold and comparison seam in `TeamPromotionService` are built for that swap.
+
+### Roles & curation
+
+`team_members.role` is one of `owner`, `lead`, or `member`. Owners and leads may `assign_role` and `curate_insight`; members may share, promote, recall, and log. Override a member's role with `team({ action: "assign_role", target_user_id, role })`.
+
+### Licensing
+
+The same model as PragmaWorks' other MCP tools: **free** for individuals, prototypes, and small research teams; **per-seat** for companies. `team_licenses` carries `tier` (`free`/`team`/`company`) and `seats` for this purpose.
+
+> **Migration note:** the standalone `chronicle-team` package is superseded by this release ([ADR-002](docs/adrs/ADR-002-fold-team-into-core.md)). Its features now ship inside `chronicle-mcp` behind the team token — install `chronicle-mcp` and add `teamId` + `teamToken` instead of running a second binary.
+
 ---
 
 ## Development
@@ -440,7 +507,9 @@ pnpm run test:coverage
 
 ## License
 
-MIT © [Juan Carlos Ghiringhelli](https://github.com/jghiringhelli)
+[PolyForm Small Business License 1.0.0](LICENSE) © Juan Carlos Ghiringhelli (PragmaWorks).
+
+Free for individuals, prototypes, research, and small businesses (under 100 people **and** under $1M/yr revenue). Larger companies need a commercial (per-seat) license — see [COMMERCIAL-LICENSE.md](COMMERCIAL-LICENSE.md) and contact [PragmaWorks](https://github.com/jghiringhelli). Personal local-only use is always free.
 
 ---
 
@@ -451,4 +520,8 @@ MIT © [Juan Carlos Ghiringhelli](https://github.com/jghiringhelli)
 
 ## Part of Generative Specification
 
-A free tool behind **Generative Specification (GS)** — the discipline for building software with AI that doesn't drift: you author a specification precise enough that a stateless AI derives correct code from it, and a harness verifies it against a live system.\n\n- \U0001F4C4 **White paper** (open access): https://doi.org/10.5281/zenodo.21726017\n- \U0001F9ED **Start here** — method, tools, testimonials: https://pragmaworks.dev\n- \U0001F528 **The Forge** — 2-day hands-on GS workshop for your team: https://forgeworkshop.dev\n
+A free tool behind **Generative Specification (GS)** — the discipline for building software with AI that doesn't drift: you author a specification precise enough that a stateless AI derives correct code from it, and a harness verifies it against a live system.
+
+- 📄 **White paper** (open access): https://doi.org/10.5281/zenodo.21726017
+- 🧭 **Start here** — method, tools, testimonials: https://pragmaworks.dev
+- 🔨 **The Forge** — 2-day hands-on GS workshop for your team: https://forgeworkshop.dev

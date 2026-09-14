@@ -1,0 +1,106 @@
+{
+  "ran_at": "2026-09-14T20:25:21.839Z",
+  "command": "node scripts/smoke-mcp.mjs",
+  "node": "v24.18.0",
+  "platform": "win32-x64",
+  "server": "dist/cli.js",
+  "chronicle_home": "throwaway temp directory (CHRONICLE_HOME) — the real ~/.chronicle is untouched",
+  "handshake_ms": {
+    "instanceA": 265,
+    "instanceB": 232
+  },
+  "passed": 18,
+  "failed": 0,
+  "results": [
+    {
+      "name": "ADR-022 the Node version guard is present in the built CLI",
+      "ok": true,
+      "detail": "guard text found in dist/cli.js"
+    },
+    {
+      "name": "UC-008 server starts over stdio with no configuration",
+      "ok": true,
+      "detail": "connect+handshake 265ms"
+    },
+    {
+      "name": "ADR-011 exactly 4 tools are registered",
+      "ok": true,
+      "detail": "axon, chronicle, session, team"
+    },
+    {
+      "name": "ADR-011 chronicle dispatches on an action enum",
+      "ok": true,
+      "detail": "9 actions: remember recall forget trigger check pref prefs stats decay"
+    },
+    {
+      "name": "UC-001 step 1 remember succeeds",
+      "ok": true,
+      "detail": "{\"id\":\"mem_cbe8694d-eff7-4cf3-a8d5-e401fb38da6f\",\"tier\":\"working\",\"weight\":0.5,\"scope\":\"project\",\"project\":\"chronicle-sm"
+    },
+    {
+      "name": "UC-001 semantic memory lands in the working tier (not buffer)",
+      "ok": true,
+      "detail": "got working"
+    },
+    {
+      "name": "ADR-016 a second instance recalls what the first one wrote",
+      "ok": true,
+      "detail": "found by tag"
+    },
+    {
+      "name": "ADR-016 concurrent reads and writes from two instances all succeed",
+      "ok": true,
+      "detail": "4/4 ok"
+    },
+    {
+      "name": "recall round-trip over MCP is under 200ms at smoke-test scale",
+      "ok": true,
+      "detail": "1ms (NOT an NFR-03 measurement — that needs 10k memories, see RM-104)"
+    },
+    {
+      "name": "ADR-018 remember derives the project from the repo when none is given",
+      "ok": true,
+      "detail": "{\"id\":\"mem_eace4dc0-541f-47a3-aa91-f59ef3627f45\",\"tier\":\"working\",\"weight\":0.5,\"scope\":\"project\",\"project\":\"github.com/jghiringhelli/chronicle-mcp\",\"p"
+    },
+    {
+      "name": "ADR-018 the derived id comes from the remote, not a fallback",
+      "ok": true,
+      "detail": "remote"
+    },
+    {
+      "name": "ADR-018 a memory defaults to project scope",
+      "ok": true,
+      "detail": "project"
+    },
+    {
+      "name": "ADR-018 a person-scoped memory is not pinned to a project",
+      "ok": true,
+      "detail": "{\"id\":\"mem_c94d41cc-dbbe-4674-87a9-f0e86f76abb0\",\"tier\":\"working\",\"weight\":0.5,\"scope\":\"person\",\"projectSource\":\"remote\"}"
+    },
+    {
+      "name": "ADR-018 recall returns project scope and person scope together",
+      "ok": true,
+      "detail": "project:true person:true"
+    },
+    {
+      "name": "F7 session start returns context",
+      "ok": true,
+      "detail": "{\"id\":\"sess_1770a634-548a-4e51-971d-5380ac3e766a\",\"project\":\"chronicle-smoke\",\"status\":\"active\",\"sta"
+    },
+    {
+      "name": "F7 session end applies decay and promotion",
+      "ok": true,
+      "detail": "{\"id\":\"sess_1770a634-548a-4e51-971d-5380ac3e766a\",\"status\":\"ended\",\"endedAt\":\"2026-09-14T20:25:21.80"
+    },
+    {
+      "name": "ADR-010 axon answers without a team configured instead of throwing",
+      "ok": true,
+      "detail": "{\"error\":\"Axon requires a Chronicle Team license. Add teamToken to ~/.chronicle/config.json. Generat"
+    },
+    {
+      "name": "forget removes a memory it wrote",
+      "ok": true,
+      "detail": "4 forgotten"
+    }
+  ]
+}

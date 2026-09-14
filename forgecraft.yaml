@@ -10,15 +10,20 @@ cascade:
     - step: functional_spec
       required: true
       rationale: >-
-        All projects require a functional specification (docs/PRD.md); it is the axiom set from
-        which all other artifacts are derived.
+        All projects require a functional specification. NOTE: the authoritative functional spec
+        for chronicle is docs/spec.md, not docs/PRD.md (ADR-013). docs/PRD.md is the product brief
+        — intent, users, success metrics — and is filled, not a template: the cascade check fails
+        the build on a stub in this slot.
       decidedAt: '2026-03-21'
       decidedBy: scaffold
     - step: architecture_diagrams
-      required: false
-      rationale: 'MVP stage: architecture diagram deferred — revisit at production phase.'
-      decidedAt: '2026-03-21'
-      decidedBy: scaffold
+      required: true
+      rationale: >-
+        C4 context and container views exist (docs/diagrams/) and the layer map is load-bearing:
+        the lint gate enforces dependency direction, so the diagram is the human-readable form of
+        a rule that now blocks the build. Promoted from optional on 2026-09-10.
+      decidedAt: '2026-09-10'
+      decidedBy: gs-compliance-pass
     - step: constitution
       required: true
       rationale: >-
@@ -27,17 +32,40 @@ cascade:
       decidedAt: '2026-03-21'
       decidedBy: scaffold
     - step: adrs
-      required: false
+      required: true
       rationale: >-
-        ADRs are optional (scope still evolving): decisions are not yet stable. Add them when scope
-        solidifies.
-      decidedAt: '2026-03-21'
-      decidedBy: scaffold
+        Scope has solidified and the cost of the old setting was measured: three shipped decisions
+        (the team fold, the consolidated tool surface, the six-type model) had no record, and
+        ADR-001 sat Proposed for five months while describing behaviour that was never built. Seven
+        ADRs now exist and the cascade check verifies the index resolves in both directions.
+        Promoted from optional on 2026-09-10 — see docs/gs-assessment.md, Auditable.
+      decidedAt: '2026-09-10'
+      decidedBy: gs-compliance-pass
     - step: behavioral_contracts
       required: true
       rationale: >-
         Library consumers depend on stable behavioral contracts (docs/use-cases.md); these are the
         triple-derivation seed: implementation contract, acceptance test, and user documentation.
+        Each UC carries a status line (green / red / unrun / blocked) so a reader can tell a pinned
+        contract from an aspirational one.
       decidedAt: '2026-03-21'
       decidedBy: scaffold
 releasePhase: development
+
+# ── GS compliance ───────────────────────────────────────────────
+# Scored against the seven-property rubric with anchors named per property.
+# Full assessment, evidence and treatment plan: docs/gs-assessment.md
+gs:
+  assessment: docs/gs-assessment.md
+  assessed_at: '2026-09-10'
+  score: 10            # of 14
+  maturity: L3
+  properties:
+    self_describing: 2
+    bounded: 2
+    composable: 2
+    auditable: 2
+    verifiable: 1      # MSI unmeasured; sync.ts and coordination-service.ts untested
+    defended: 1        # provisional — needs human confirmation; gates carry no provenance
+    executable: 0      # no behavioural contract has run against a live runtime
+  cascade_check: scripts/gs-cascade-check.mjs

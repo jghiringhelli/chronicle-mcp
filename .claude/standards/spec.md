@@ -1,3 +1,11 @@
+---
+node: spec
+type: sentinel-node
+scope: release phase, required cascade artifacts, spec lifecycle
+load: on-demand
+categories: [standards]
+routes_to: [root]
+---
 <!-- ForgeCraft sentinel: spec | 2026-04-20 | npx forgecraft-mcp refresh . --apply to update -->
 
 ## Active Release Phase: development
@@ -142,6 +150,19 @@ What will the AI need to know to work within this constraint?
 - Any change to the architectural constitution itself
 
 ### ADR Directory
+
+> **This project's actual convention** — the generic scaffold guidance below describes a new
+> greenfield project and does not describe chronicle. For chronicle:
+> - Active ADRs: `docs/adrs/active/ADR-NNN-slug.md`, **three** digits (`ADR-000` … `ADR-014`).
+>   Not the four-digit form used in the examples below.
+> - Index: @.claude/adr/index.md — gate-checked in both directions (every file listed, every
+>   row resolving). Adding an ADR without indexing it fails `pnpm run cascade`.
+> - Implementation-level decisions go to `docs/edrs/`, not here (@docs/edrs/index.md).
+> - The example ADRs named below (`ADR-0001-stack`, `ADR-0002-authentication`,
+>   `ADR-0003-architecture`) do **not** exist here and should not be looked for: chronicle has
+>   no authentication layer, no ORM and no Prisma schema. Read @.claude/adr/index.md for the
+>   real list.
+
 - Path: `docs/adrs/` (zero-padded, kebab-case: `ADR-0001-short-title.md`)
 - ADRs are immutable once Accepted. To change a decision: write a new ADR that supersedes the old one.
 - The old ADR is updated only to add `Superseded by ADR-NNNN` to its status.

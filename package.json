@@ -1,6 +1,6 @@
 {
   "name": "chronicle-mcp",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Cross-project AI memory MCP server with six cognitive memory types, a team knowledge layer, and agent-instructive tool descriptions",
   "type": "module",
   "main": "dist/index.js",
@@ -40,7 +40,9 @@
     "audit:supply-chain": "pnpm audit --prod --audit-level=high",
     "hooks:install": "git config core.hooksPath .githooks",
     "gates": "pnpm run cascade && pnpm run typecheck && pnpm run lint && pnpm run test:coverage && pnpm run deps:policy",
-    "prepare": "git config core.hooksPath .githooks || true"
+    "prepare": "git config core.hooksPath .githooks || true",
+    "release:check": "node scripts/check-release.mjs",
+    "prepublishOnly": "pnpm run release:check && pnpm run gates && pnpm run build && pnpm run smoke"
   },
   "files": [
     "dist",

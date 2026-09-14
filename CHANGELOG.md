@@ -8,7 +8,12 @@ A `CHANGELOG` that exists only as "we will add one" is not Auditable
 history; entries before that date are reconstructed and may be incomplete in detail, though the
 commits they cite are exact.
 
-## [Unreleased]
+## [0.5.0] — 2026-09-14
+
+**Breaking: the minimum supported Node is now 22.** `better-sqlite3@13` requires it, and on Node 20
+its prebuilt binding does not fail to load — it segfaults (ADR-022). Node 20 reached end of life on
+2026-04-30.
+
 
 ### Changed — BREAKING
 
@@ -166,6 +171,14 @@ commits they cite are exact.
   clean ✅" while the typecheck exited 2 and the suite was 30/41.
 - `forgecraft.yaml`: `adrs` and `architecture_diagrams` promoted from optional to required, each
   with the reason and date.
+
+## [0.4.0] — 2026-09
+
+Published to npm without a changelog entry; this note is back-filled on 2026-09-14 from the commit
+history and is deliberately brief, because a reconstructed record should not read like a written one.
+The substance of this release — the team knowledge layer folded into core, the three memory scopes,
+and the cloud mirror — is documented in ADR-002 and ADR-018 through ADR-021, which were written at
+the time.
 
 ## [0.3.2] — 2026-08
 

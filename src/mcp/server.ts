@@ -30,7 +30,7 @@ import { validateTeamToken } from './team-gate.js';
 import { NodeIdGenerator } from '../infrastructure/gateways/node-id-generator.js';
 import { NodeClock } from '../infrastructure/gateways/node-clock.js';
 import type { MemoryType, MemoryScope } from '../domain/types.js';
-import { resolveProject } from '../shared/repo-identity.js';
+import { resolveProject, resolveProjectIdentity } from '../shared/repo-identity.js';
 import { REINFORCEMENT_BOOSTS } from '../domain/types.js';
 
 /** Wire up all services and register MCP tools. */
@@ -493,8 +493,16 @@ export function createMcpServer(): McpServer {
          */
         case 'session_start': {
           const repoPath = args.project_dir ?? process.cwd();
+          /**
+           * Every other action falls back to the literal string `default` when no project is
+           * given, which is harmless for a caller that always passes one. A hook does not: it
+           * knows the directory, not the project name. So this action resolves identity from the
+           * directory using the same rule the rest of Chronicle uses (ADR-018 §2) — otherwise
+           * every session in every repository would register under one project called `default`.
+           */
+          const sessionProject = args.project ?? resolveProjectIdentity(repoPath).id;
           const contributor = coordSvc.registerSession({
-            project,
+            project: sessionProject,
             repoPath,
             role: (args.role ?? 'builder') as ContributorRole,
           });
@@ -504,7 +512,7 @@ export function createMcpServer(): McpServer {
             roleFilter: args.role_filter as ContributorRole | undefined,
           });
 
-          syncCoordination(project).catch(() => {});
+          syncCoordination(sessionProject).catch(() => {});
 
           if (!claimed) {
             return { content: [{ type: 'text', text: JSON.stringify({
@@ -522,7 +530,7 @@ export function createMcpServer(): McpServer {
             // The package names its own project; a session may claim work for a repository
             // it is not sitting in, and has to be told so rather than assume it is here.
             work_is_in_project: claimed.workPackage.project,
-            same_repo: claimed.workPackage.project === project,
+            same_repo: claimed.workPackage.project === sessionProject,
           }) }] };
         }
 

@@ -27,6 +27,9 @@ export type ContributorRole = 'specwright' | 'builder' | 'merger' | 'verifier' |
 export type WorkStatus = 'pending' | 'active' | 'blocked' | 'complete';
 export type AvailabilityState = 'available' | 'busy' | 'offline';
 
+/** A person, or an AI session that will ask for work on its own. */
+export type ContributorKind = 'human' | 'session';
+
 export interface Contributor {
   id: string;
   project: string;
@@ -38,6 +41,10 @@ export interface Contributor {
   availability: AvailabilityState;
   lastActiveAt: string;
   createdAt: string;
+  /** Defaults to 'human'; every row written before this existed is a person. */
+  kind: ContributorKind;
+  /** Absolute repository path a session works in. Undefined for a person. */
+  repoPath?: string;
 }
 
 export interface WorkPackage {
@@ -132,20 +139,67 @@ export class CoordinationService {
     email?: string;
     skills: string[];
     role: ContributorRole;
+    kind?: ContributorKind;
+    repoPath?: string;
     bandwidthHoursPerWeek?: number;
   }): Contributor {
     const id = randomUUID();
     const now = new Date().toISOString();
     this.db.prepare(`
       INSERT INTO contributors
-        (id, project, name, email, skills, role, bandwidth_hours_per_week, availability, last_active_at, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, 'available', ?, ?)
+        (id, project, name, email, skills, role, kind, repo_path,
+         bandwidth_hours_per_week, availability, last_active_at, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'available', ?, ?)
     `).run(
       id, input.project, input.name, input.email ?? null,
       JSON.stringify(input.skills), input.role,
+      input.kind ?? 'human', input.repoPath ?? null,
       input.bandwidthHoursPerWeek ?? 20, now, now,
     );
     return this.requireContributor(id);
+  }
+
+  /**
+   * Register the calling AI session as a contributor, or find the one already registered.
+   *
+   * Idempotent on `(project, repoPath, role)`, because this is meant to run from a
+   * SessionStart hook: every new session in a repository calls it, and the second call must
+   * not create a second contributor. That idempotence is the whole reason it exists as its
+   * own method rather than as a flag on `addContributor`.
+   *
+   * A session is marked available on every registration. A previous session that ended while
+   * holding work would otherwise leave its contributor row `busy` forever, and a `busy`
+   * contributor is never offered anything — the queue would look empty while being full.
+   */
+  registerSession(input: {
+    project: string;
+    repoPath: string;
+    role: ContributorRole;
+    name?: string;
+    skills?: string[];
+  }): Contributor {
+    const existing = this.db.prepare(
+      `SELECT * FROM contributors
+       WHERE project = ? AND repo_path = ? AND role = ? AND kind = 'session'
+       LIMIT 1`,
+    ).get(input.project, input.repoPath, input.role) as any;
+
+    const now = new Date().toISOString();
+    if (existing) {
+      this.db.prepare(
+        `UPDATE contributors SET availability = 'available', last_active_at = ? WHERE id = ?`,
+      ).run(now, existing.id);
+      return this.requireContributor(existing.id);
+    }
+
+    return this.addContributor({
+      project: input.project,
+      name: input.name ?? `session:${input.repoPath.split(/[\\/]/).filter(Boolean).pop() ?? input.project}`,
+      skills: input.skills ?? [],
+      role: input.role,
+      kind: 'session',
+      repoPath: input.repoPath,
+    });
   }
 
   updateAvailability(contributorId: string, availability: AvailabilityState): Contributor {
@@ -268,17 +322,33 @@ export class CoordinationService {
    * Mergers use: merge/<package-slug>
    * Specwrights use: spec/<package-slug>
    */
+  /**
+   * Take the next unblocked package and assign it.
+   *
+   * `project` is optional. Omitted, this searches every project — which is what a session
+   * asking "what should I pick up" means, and what relaying a prompt between repositories
+   * by hand was standing in for.
+   *
+   * With `contributorId` the caller assigns to itself and no availability search happens,
+   * so a session can claim work in a repository it is not registered under. That is
+   * deliberate: the package names the repository the work belongs to, and the session that
+   * claims it reads that from the package.
+   */
   assignNext(input: {
-    project: string;
+    project?: string;
     contributorId?: string;
     roleFilter?: ContributorRole;
   }): { workPackage: WorkPackage; contributor: Contributor; requiredBranch: string } | null {
-    const candidate = this.getNextUnblocked(input.project, input.roleFilter);
+    const claimant = input.contributorId ? this.getContributor(input.contributorId) : undefined;
+    if (input.contributorId && !claimant) return null;
+
+    // A self-claiming contributor takes work for its own role unless told otherwise.
+    const roleFilter = input.roleFilter ?? claimant?.role;
+    const candidate = this.getNextUnblocked(input.project, roleFilter);
     if (!candidate) return null;
 
-    const contributor = input.contributorId
-      ? this.getContributor(input.contributorId)
-      : this.getMostAvailable(input.project, candidate.roleRequired);
+    const contributor = claimant
+      ?? this.getMostAvailable(candidate.project, candidate.roleRequired);
     if (!contributor) return null;
 
     const now = new Date().toISOString();
@@ -653,16 +723,24 @@ export class CoordinationService {
 
   // ── Private helpers ───────────────────────────────────────────────────────
 
-  private getNextUnblocked(project: string, role?: ContributorRole): WorkPackage | undefined {
-    const row = role
-      ? this.db.prepare(
-          `SELECT * FROM work_packages WHERE project = ? AND status = 'pending' AND role_required = ?
-           ORDER BY priority_rank DESC LIMIT 1`,
-        ).get(project, role) as any
-      : this.db.prepare(
-          `SELECT * FROM work_packages WHERE project = ? AND status = 'pending'
-           ORDER BY priority_rank DESC LIMIT 1`,
-        ).get(project) as any;
+  /**
+   * The highest-ranked pending package, optionally narrowed to one project and one role.
+   *
+   * `project` is optional because the question a session asks at startup is "is there work
+   * for me anywhere", not "is there work for me here". Handing a prompt from one repository
+   * to another was the manual step this is meant to remove, and a query partitioned by
+   * project cannot express it.
+   */
+  private getNextUnblocked(project?: string, role?: ContributorRole): WorkPackage | undefined {
+    const where = ["status = 'pending'"];
+    const params: unknown[] = [];
+    if (project) { where.push('project = ?'); params.push(project); }
+    if (role) { where.push('role_required = ?'); params.push(role); }
+
+    const row = this.db.prepare(
+      `SELECT * FROM work_packages WHERE ${where.join(' AND ')}
+       ORDER BY priority_rank DESC, created_at ASC LIMIT 1`,
+    ).get(...params) as any;
     return row ? this.rowToWorkPackage(row) : undefined;
   }
 
@@ -705,6 +783,8 @@ export class CoordinationService {
       availability: row.availability as AvailabilityState,
       lastActiveAt: row.last_active_at,
       createdAt: row.created_at,
+      kind: (row.kind ?? 'human') as ContributorKind,
+      repoPath: row.repo_path ?? undefined,
     };
   }
 

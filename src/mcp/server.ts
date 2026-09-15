@@ -30,7 +30,7 @@ import { validateTeamToken } from './team-gate.js';
 import { NodeIdGenerator } from '../infrastructure/gateways/node-id-generator.js';
 import { NodeClock } from '../infrastructure/gateways/node-clock.js';
 import type { MemoryType, MemoryScope } from '../domain/types.js';
-import { resolveProject } from '../shared/repo-identity.js';
+import { resolveProject, resolveProjectIdentity } from '../shared/repo-identity.js';
 import { REINFORCEMENT_BOOSTS } from '../domain/types.js';
 
 /** Wire up all services and register MCP tools. */
@@ -374,6 +374,7 @@ export function createMcpServer(): McpServer {
     'Coordinate a development team — register contributors, decompose specs into ranked work packages, assign tasks, track progress.',
     {
       action: z.enum([
+        'session_start',
         'contributor_add',
         'spec_sync',
         'milestone_add',
@@ -386,6 +387,7 @@ export function createMcpServer(): McpServer {
         'status',
         'queue',
       ]).describe(
+        'session_start=register-this-session-and-claim-next-work(idempotent; call from a SessionStart hook) | ' +
         'contributor_add=register-dev | spec_sync=read-spec-files | milestone_add=create-milestone | ' +
         'decompose=break-spec-into-ranked-packages | assign=assign-next-unblocked-package | ' +
         'complete=mark-work-locally-done | request_merge=submit-for-merger-review | ' +
@@ -473,6 +475,64 @@ export function createMcpServer(): McpServer {
       }
 
       switch (args.action) {
+
+        /**
+         * The trigger the queue was missing.
+         *
+         * Every other action here waits to be called. `decompose` and `assign` have existed
+         * since April and the coordination tables have never held a row, because coordinating
+         * people means a person has to remember, and nobody did. This is the one action meant
+         * to be called by a hook rather than by a decision: a session starts, says where it is
+         * and what it can do, and gets back either work or nothing.
+         *
+         * Idempotent, because a SessionStart hook fires on every session.
+         *
+         * Returns `{ assigned: false }` rather than an error when the queue is empty — the
+         * common case is nothing to do, and a hook that reports a failure every time a session
+         * starts is a hook a user turns off.
+         */
+        case 'session_start': {
+          const repoPath = args.project_dir ?? process.cwd();
+          /**
+           * Every other action falls back to the literal string `default` when no project is
+           * given, which is harmless for a caller that always passes one. A hook does not: it
+           * knows the directory, not the project name. So this action resolves identity from the
+           * directory using the same rule the rest of Chronicle uses (ADR-018 §2) — otherwise
+           * every session in every repository would register under one project called `default`.
+           */
+          const sessionProject = args.project ?? resolveProjectIdentity(repoPath).id;
+          const contributor = coordSvc.registerSession({
+            project: sessionProject,
+            repoPath,
+            role: (args.role ?? 'builder') as ContributorRole,
+          });
+
+          const claimed = coordSvc.assignNext({
+            contributorId: contributor.id,
+            roleFilter: args.role_filter as ContributorRole | undefined,
+          });
+
+          syncCoordination(sessionProject).catch(() => {});
+
+          if (!claimed) {
+            return { content: [{ type: 'text', text: JSON.stringify({
+              assigned: false,
+              contributor_id: contributor.id,
+              message: 'Registered. No unblocked work is waiting for this role in any project.',
+            }) }] };
+          }
+
+          return { content: [{ type: 'text', text: JSON.stringify({
+            assigned: true,
+            contributor_id: contributor.id,
+            work_package: claimed.workPackage,
+            required_branch: claimed.requiredBranch,
+            // The package names its own project; a session may claim work for a repository
+            // it is not sitting in, and has to be told so rather than assume it is here.
+            work_is_in_project: claimed.workPackage.project,
+            same_repo: claimed.workPackage.project === sessionProject,
+          }) }] };
+        }
 
         case 'contributor_add': {
           const contributor = coordSvc.addContributor({

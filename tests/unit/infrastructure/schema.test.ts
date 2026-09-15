@@ -29,9 +29,9 @@ describe('schema version', () => {
    * `COLUMN_MIGRATIONS`, and update the hash below to the one the failure prints.
    */
   const EXPECTED = {
-    version: 1,
+    version: 2,
     // sha256 of `${SCHEMA_TABLES_SQL}${SCHEMA_INDEXES_SQL}`, first 16 hex chars.
-    fingerprint: 'ac47cec0c82e0710',
+    fingerprint: '55b38e3153545e5d',
   };
 
   it('matches the schema it was stamped for', () => {

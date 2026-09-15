@@ -103,6 +103,13 @@ CREATE TABLE IF NOT EXISTS contributors (
   email TEXT,
   skills TEXT NOT NULL DEFAULT '[]',
   role TEXT NOT NULL,
+  -- A contributor was assumed to be a person: name, email, skills, bandwidth. The queue then
+  -- sat empty for five months, because coordinating people means someone has to remember to
+  -- ask for an assignment, and nobody did. An AI session is the contributor that will: it
+  -- starts, asks what is waiting, and does it. kind says which of the two this row is, and
+  -- repo_path is where a session works -- the thing a person's row has no equivalent of.
+  kind TEXT NOT NULL DEFAULT 'human',
+  repo_path TEXT,
   bandwidth_hours_per_week REAL NOT NULL DEFAULT 20,
   availability TEXT NOT NULL DEFAULT 'available',
   last_active_at TEXT NOT NULL,
@@ -247,6 +254,8 @@ CREATE INDEX IF NOT EXISTS idx_memories_scope_project ON memories(scope, project
 CREATE INDEX IF NOT EXISTS idx_memories_weight ON memories(weight DESC);
 CREATE INDEX IF NOT EXISTS idx_triggers_action ON triggers(action);
 CREATE INDEX IF NOT EXISTS idx_contributors_project ON contributors(project);
+-- A session identifies itself by the repository it is working in, on every start.
+CREATE INDEX IF NOT EXISTS idx_contributors_repo_path ON contributors(repo_path);
 CREATE INDEX IF NOT EXISTS idx_work_packages_project ON work_packages(project);
 CREATE INDEX IF NOT EXISTS idx_work_packages_status ON work_packages(status);
 CREATE INDEX IF NOT EXISTS idx_assignments_package ON assignments(work_package_id);
@@ -274,5 +283,6 @@ ${SCHEMA_INDEXES_SQL}`;
  * fails with the value to use.
  *
  * 1 = the schema as of ADR-018 (memories.scope and its indexes).
+ * 2 = contributors.kind and contributors.repo_path — a contributor can be an AI session.
  */
-export const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 2;

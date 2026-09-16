@@ -239,11 +239,32 @@ jobs:
           CHRONICLE_CLOUD_URL: ${{ secrets.CHRONICLE_CLOUD_URL }}
         run: pnpm run cloud:verify-sync
 
+      # The token is passed IN rather than read from the database. `team_licenses` is admin-only by
+      # ADR-019 — a licence token is a credential, not team knowledge — and verify-isolation asserts
+      # as a PASS that an app role cannot read it. Without this the job asked for exactly what the
+      # security model exists to refuse and died on `permission denied for table team_licenses`.
+      # A team token is also the smaller of the two credentials: it reaches team-shared knowledge,
+      # which is shared by design, and reaches nobody's personal rows. If it is unset the script
+      # reports NOT VERIFIED and exits 0, rather than failing or quietly passing.
       - name: Team layer against the real mirror (read-only)
         if: steps.creds.outputs.present == 'true'
         env:
           CHRONICLE_CLOUD_URL: ${{ secrets.CHRONICLE_CLOUD_URL }}
+          CHRONICLE_TEAM_TOKEN: ${{ secrets.CHRONICLE_TEAM_TOKEN }}
         run: pnpm run cloud:verify-team
+
+      - name: Did the team layer actually get verified?
+        if: steps.creds.outputs.present == 'true'
+        run: |
+          node -e "
+          const r = require('./docs/evidence/team-cloud-verify.json');
+          if (r.verified === false) {
+            console.log('::warning::team layer NOT verified: ' + r.reason);
+          } else {
+            console.log('team layer verified: ' + r.passed + '/' + (r.passed + r.failed) +
+                        ' via ' + r.token_from);
+          }
+          "
 
       - name: Not verified, and saying so
         if: steps.creds.outputs.present != 'true'

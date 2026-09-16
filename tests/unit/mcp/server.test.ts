@@ -399,7 +399,9 @@ describe('MCP server surface', () => {
       // A gate that covers one action and not the rest is not a gate. These are real axon actions
       // (the first version of this test used `members`, which belongs to `team`, and got a schema
       // error rather than the gate — the enum is closed, which is itself worth knowing).
-      for (const action of ['queue', 'merges', 'decompose', 'assign']) {
+      // `session_start` is here because it is the one action a hook fires unattended: if the
+      // gate missed it, a machine with no licence would still be registering contributors.
+      for (const action of ['queue', 'merges', 'decompose', 'assign', 'session_start']) {
         const out = await call('axon', { action, project: 'x' });
         expect(String(out['error']), `axon ${action} was not gated`).toMatch(/licen[cs]e|token/i);
       }

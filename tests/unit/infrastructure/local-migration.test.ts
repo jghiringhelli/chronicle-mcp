@@ -160,3 +160,92 @@ describe('migrateLocalSchema', () => {
     });
   });
 });
+
+/**
+ * `contributors.kind` and `contributors.repo_path` — a contributor can be an AI session.
+ *
+ * Same class of break as `memories.scope`, and the reason the migration list exists: the
+ * schema file describes a fresh database, and every database that already exists needs the
+ * columns added. `idx_contributors_repo_path` is created on one of them, so an upgrade that
+ * skipped the ALTER would fail at startup rather than quietly.
+ */
+describe('contributors gains kind and repo_path', () => {
+  let dir: string;
+  const open: Database.Database[] = [];
+
+  /** `contributors` as it shipped in v0.3.0 — a person, and nothing else. */
+  const OLD_CONTRIBUTORS = `
+    CREATE TABLE contributors (
+      id TEXT PRIMARY KEY,
+      project TEXT NOT NULL,
+      name TEXT NOT NULL,
+      email TEXT,
+      skills TEXT NOT NULL DEFAULT '[]',
+      role TEXT NOT NULL,
+      bandwidth_hours_per_week REAL NOT NULL DEFAULT 20,
+      availability TEXT NOT NULL DEFAULT 'available',
+      last_active_at TEXT NOT NULL,
+      created_at TEXT NOT NULL
+    );`;
+
+  const columns = (db: Database.Database, table: string) =>
+    (db.prepare(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>).map((c) => c.name);
+
+  beforeEach(() => { dir = mkdtempSync(join(tmpdir(), 'chronicle-contrib-')); });
+  afterEach(() => {
+    while (open.length) open.pop()?.close();
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  const oldDb = () => {
+    const db = new Database(join(dir, 'chronicle.db'));
+    applyConcurrencyPragmas(db);
+    open.push(db);
+    db.exec(OLD_CONTRIBUTORS);
+    return db;
+  };
+
+  it('adds both columns to a database that predates them', () => {
+    const db = oldDb();
+    expect(columns(db, 'contributors')).not.toContain('kind');
+
+    migrateLocalSchema(db);
+
+    expect(columns(db, 'contributors')).toContain('kind');
+    expect(columns(db, 'contributors')).toContain('repo_path');
+  });
+
+  it('defaults every existing contributor to a person', () => {
+    const db = oldDb();
+    const now = new Date().toISOString();
+    db.prepare(
+      `INSERT INTO contributors (id, project, name, skills, role, last_active_at, created_at)
+       VALUES ('c1', 'api', 'Ada', '[]', 'builder', ?, ?)`,
+    ).run(now, now);
+
+    migrateLocalSchema(db);
+
+    const row = db.prepare(`SELECT kind, repo_path FROM contributors WHERE id = 'c1'`)
+      .get() as { kind: string; repo_path: string | null };
+    expect(row.kind).toBe('human');
+    expect(row.repo_path).toBeNull();
+  });
+
+  it('is idempotent', () => {
+    const db = oldDb();
+    migrateLocalSchema(db);
+    expect(migrateLocalSchema(db)).toEqual([]);
+  });
+
+  it('lets the index on the new column be created afterwards', () => {
+    // The exact failure mode from ADR-018: the index went in before the column existed.
+    // Asserted on the one index that touches a new column rather than on the whole block,
+    // which indexes tables this fixture deliberately does not have.
+    const db = oldDb();
+    const index = 'CREATE INDEX IF NOT EXISTS idx_contributors_repo_path ON contributors(repo_path);';
+    expect(() => db.exec(index)).toThrow(/no such column/);
+
+    migrateLocalSchema(db);
+    expect(() => db.exec(index)).not.toThrow();
+  });
+});

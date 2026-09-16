@@ -203,6 +203,27 @@ async function main() {
       String(err).slice(0, 140));
   }
 
+  // ── the unattended path is gated too ───────────────────────────────────────────
+  //
+  // `session_start` is the one axon action a SessionStart hook fires without anybody watching, on
+  // whatever machine the hook is installed on. Every other action is reached by a model that a
+  // person is reading. So a licence gate that covered the rest and missed this one would let an
+  // unlicensed machine register contributors and claim work quietly — the failure would be silent
+  // by construction, which is why it is worth a check at the real boundary rather than only a unit
+  // test with a mocked service.
+  try {
+    const started = await call(a.client, 'axon', { action: 'session_start' });
+    const gated = /licen[cs]e/i.test(started);
+    record('axon session_start is licence-gated, like every other action', gated,
+      gated ? started.replace(/\s+/g, ' ').slice(0, 90)
+            : `NOT GATED — an unlicensed machine registered a contributor: ${started.slice(0, 90)}`);
+  } catch (err) {
+    // Throwing is its own failure: a hook that raises on every session is a hook a user removes,
+    // which is the reasoning ADR-010 §3 gives for answering rather than throwing.
+    record('axon session_start is licence-gated, like every other action', false,
+      `threw instead of answering: ${String(err).slice(0, 110)}`);
+  }
+
   // ── cleanup ─────────────────────────────────────────────────────────────────────────────
   if (!KEEP) {
     const found = await call(a.client, 'chronicle', { action: 'recall', query: TAG, project: PROJECT, limit: 50 });

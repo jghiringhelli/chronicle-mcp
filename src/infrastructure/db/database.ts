@@ -129,6 +129,18 @@ const COLUMN_MIGRATIONS: ReadonlyArray<{
     definition: "TEXT NOT NULL DEFAULT 'project'",
     why: "ADR-018 §1 — three explicit scopes. 'project' is what an unscoped row meant.",
   },
+  {
+    table: 'contributors',
+    column: 'kind',
+    definition: "TEXT NOT NULL DEFAULT 'human'",
+    why: 'A contributor can be an AI session. Every existing row is a person.',
+  },
+  {
+    table: 'contributors',
+    column: 'repo_path',
+    definition: 'TEXT',
+    why: 'Where a session contributor works. Null for a person.',
+  },
 ];
 
 /**

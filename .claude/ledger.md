@@ -58,7 +58,18 @@ When the user says *"don't do that"* about a pattern produced here, append a lin
   in ADR-021 and spec §5 were whichever point of the curve the run happened to land on — and the decay
   pass actually takes ~600ms cold on this host, over its 500ms budget. Cold and steady are now
   reported separately, and the verdict is judged on cold, because that is the user's situation.
-- `[2026-09-14]` — A transformation is not a mapping. The RLS fix was going to derive the user id by
+- `[2026-09-16]` — Privileges and ownership are different things, and GRANT cannot bridge them.
+  `CREATE POLICY` and `ALTER TABLE … FORCE ROW LEVEL SECURITY` are owner-only; no grant confers
+  them. I had recorded in ADR-024 that granting `CREATE ON SCHEMA public` would make the next run the
+  last one needing Railway's credential — wrong, because the six person tables are owned by
+  `postgres`. The privileged run now also re-owns them to the `chronicle_admins` group, which is what
+  actually makes the claim true.
+- `[2026-09-16]` — A provisioning script must check it *can* provision before it starts. `--apply`
+  ran several GRANTs and then died halfway on `permission denied for schema public`, leaving a state
+  nobody designed. It now opens with a catalogue-only preflight that names every missing privilege
+  and ownership at once, and exits before touching anything. The first failure told me one blocker;
+  the preflight told me there were two.
+- - `[2026-09-14]` — A transformation is not a mapping. The RLS fix was going to derive the user id by
   parsing it back out of the role name — but `roleName()` sanitises `@` and `.` to `_` to satisfy
   Postgres, and that is one-way. It works for `gabo` and `jghiringhelli` and silently matches nothing
   for the first id containing a dot, which presents as a Chronicle that has forgotten everything. It

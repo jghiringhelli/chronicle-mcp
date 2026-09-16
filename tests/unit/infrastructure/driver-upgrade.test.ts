@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach } from 'vitest';
 import Database from 'better-sqlite3';
 import { execFileSync } from 'node:child_process';
 import { mkdtempSync, rmSync, existsSync, writeFileSync } from 'node:fs';
@@ -73,6 +73,26 @@ describe('a database written by better-sqlite3@11 opens with @13', () => {
   let dbPath: string;
   const open: Database.Database[] = [];
 
+  /**
+   * Installed ONCE for the whole file, in its own directory.
+   *
+   * On Node 24 there is no v11 prebuild, so `npm install` compiles it from source — which took
+   * 167.8s on the CI runner when each test installed its own copy. It is the same driver answering
+   * the same question twice; the per-test isolation that matters is the database file, not the
+   * node_modules tree, and that stays per-test below.
+   */
+  let driverDir: string;
+  let oldDriverPath: string | null = null;
+
+  beforeAll(() => {
+    driverDir = mkdtempSync(join(tmpdir(), 'chronicle-driver-v11-'));
+    oldDriverPath = installOldDriver(driverDir);
+  }, 360_000);
+
+  afterAll(() => {
+    rmSync(driverDir, { recursive: true, force: true });
+  });
+
   beforeEach(() => {
     dir = mkdtempSync(join(tmpdir(), 'chronicle-driver-'));
     dbPath = join(dir, 'chronicle.db');
@@ -84,7 +104,6 @@ describe('a database written by better-sqlite3@11 opens with @13', () => {
   });
 
   it('reads rows the old driver wrote, with the schema migrated forward', () => {
-    const oldDriverPath = installOldDriver(dir);
     if (!oldDriverPath) {
       // v11 has no Node 24 prebuild and needs a C++ toolchain to build from source — which is the
       // very problem ADR-015 removed. On a machine without one, this cannot run.
@@ -139,7 +158,6 @@ describe('a database written by better-sqlite3@11 opens with @13', () => {
   it('reads a WAL-mode database the old driver left behind', () => {
     // WAL files are written by the driver and read by whatever opens next. A format mismatch here
     // would look like data loss, which is the failure mode worth ruling out explicitly.
-    const oldDriverPath = installOldDriver(dir);
     if (!oldDriverPath) {
       console.warn('\n  SKIPPED: better-sqlite3@11 unavailable; this assertion did NOT run.\n');
       expect(oldDriverPath).toBeNull();

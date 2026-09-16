@@ -54,17 +54,47 @@ const cleanup = () => rmSync(HOME, { recursive: true, force: true });
 const sql = postgres(url, { max: 1, idle_timeout: 5, connect_timeout: 15, onnotice: () => {} });
 
 /** Read the team's identity and licence straight from the mirror. Never logged. */
+/**
+ * The team, and a token to act as a member of it.
+ *
+ * The token used to come from `team_licenses`. Since ADR-024 that table is admin-only — and it
+ * should be: `verify-isolation.mjs` asserts as a PASS that an app role *cannot* read it, because a
+ * licence token is a credential rather than team knowledge (ADR-019). So this script was asking for
+ * exactly what the security model exists to refuse, and against a confined role it aborted with
+ * `permission denied for table team_licenses`.
+ *
+ * `CHRONICLE_TEAM_TOKEN` is how a confined caller is given one instead. That is the smaller
+ * credential of the two on purpose: a team token reaches team-shared knowledge, which is shared by
+ * design, and reaches nobody's personal rows. Reading the table stays the path for an admin running
+ * this by hand, so a developer needs no extra setup.
+ *
+ * When neither is available the script does NOT fail and does NOT quietly pass — it reports that the
+ * team layer was not verified, which is the only honest third answer.
+ */
 async function readTeamIdentity() {
   const [team] = await sql`SELECT id FROM teams ORDER BY created_at LIMIT 1`;
   if (!team) throw new Error('no team row in the mirror — nothing to verify against');
-  const [lic] = await sql`
-    SELECT token, created_by FROM team_licenses
-    WHERE team_id = ${team.id} AND revoked = false
-    ORDER BY created_at DESC LIMIT 1
-  `;
-  if (!lic) throw new Error(`team ${team.id} has no active licence token`);
+
   const members = await sql`SELECT user_id, role FROM team_members WHERE team_id = ${team.id}`;
-  return { teamId: team.id, token: lic.token, owner: lic.created_by, members };
+
+  const envToken = process.env['CHRONICLE_TEAM_TOKEN']?.trim();
+  if (envToken) {
+    return { teamId: team.id, token: envToken, owner: null, members, tokenFrom: 'CHRONICLE_TEAM_TOKEN' };
+  }
+
+  try {
+    const [lic] = await sql`
+      SELECT token, created_by FROM team_licenses
+      WHERE team_id = ${team.id} AND revoked = false
+      ORDER BY created_at DESC LIMIT 1
+    `;
+    if (!lic) throw new Error(`team ${team.id} has no active licence token`);
+    return { teamId: team.id, token: lic.token, owner: lic.created_by, members, tokenFrom: 'team_licenses' };
+  } catch (err) {
+    const denied = /permission denied/i.test(err instanceof Error ? err.message : String(err));
+    if (!denied) throw err;
+    return { teamId: team.id, token: null, owner: null, members, tokenFrom: null };
+  }
 }
 
 async function connect(identity) {
@@ -111,8 +141,35 @@ async function probe(client, label, args, check) {
 
 async function main() {
   const identity = await readTeamIdentity();
-  console.log(`team: ${identity.teamId}   owner: ${identity.owner}   members: ` +
+  console.log(`team: ${identity.teamId}   owner: ${identity.owner ?? '(not readable)'}   members: ` +
     identity.members.map((m) => `${m.user_id}(${m.role})`).join(', '));
+
+  // No token, and no right to read one. Say so and stop. The two wrong answers here are failing —
+  // a red nobody can fix, because the permission is deliberate — and exiting 0, which is a pass for
+  // work that did not happen. The evidence records `verified: false` so a later reader cannot
+  // mistake this run for a verification.
+  if (!identity.token) {
+    console.log([
+      '',
+      'NOT VERIFIED - the team layer was not exercised.',
+      '  This role cannot read team_licenses, which is deliberate (ADR-019: a licence token is a',
+      '  credential, not team knowledge) and asserted as a PASS by scripts/verify-isolation.mjs.',
+      '  Set CHRONICLE_TEAM_TOKEN to a valid token to run these checks, or run this as an admin.',
+    ].join('\n'));
+    mkdirSync(join(ROOT, 'docs', 'evidence'), { recursive: true });
+    writeFileSync(join(ROOT, 'docs', 'evidence', 'team-cloud-verify.json'), JSON.stringify({
+      ran_at: new Date().toISOString(),
+      verified: false,
+      reason: 'no CHRONICLE_TEAM_TOKEN, and this role may not read team_licenses',
+      team: identity.teamId,
+      members: identity.members.map((m) => ({ user_id: m.user_id, role: m.role })),
+      passed: 0, failed: 0, results: [],
+    }, null, 2) + '\n', 'utf8');
+    await sql.end({ timeout: 5 });
+    process.exit(0);
+  }
+
+  console.log(`token: from ${identity.tokenFrom}`);
   console.log(`store: throwaway (${HOME})\n`);
 
   const client = await connect(identity);
@@ -186,7 +243,9 @@ async function main() {
     command: 'node scripts/verify-team-cloud.mjs' + (WRITE ? ' --write' : ''),
     node: process.version,
     target: (() => { const u = new URL(url); return `${u.hostname}:${u.port}/${u.pathname.slice(1)}`; })(),
+    verified: true,
     team: identity.teamId,
+    token_from: identity.tokenFrom,
     members: identity.members.map((m) => ({ user_id: m.user_id, role: m.role })),
     mode: WRITE ? 'read-write' : 'read-only',
     passed: results.length - failed.length,

@@ -1,18 +1,18 @@
 {
-  "ran_at": "2026-09-12T03:10:18.650Z",
+  "ran_at": "2026-09-16T16:16:09.949Z",
   "command": "node scripts/verify-cloud-sync.mjs",
   "node": "v24.18.0",
   "target": "crossover.proxy.rlwy.net:28455/railway",
   "simulated_machines": 2,
   "caveat": "Two deviceIds on one host. Exercises the cursor, conflict policy and scope rules; does NOT prove behaviour across two real hosts.",
-  "throwaway_user": "zz-verify-1789182601538",
+  "throwaway_user": "ci",
   "passed": 16,
   "failed": 0,
   "results": [
     {
       "name": "ADR-018 session end reports the mirror when a remote is configured",
       "ok": true,
-      "detail": "{\"id\":\"sess_4fa5ce42-67f6-487f-80f2-05e3904d3f65\",\"status\":\"ended\",\"endedAt\":\"2026-09-12T03:10:01.908Z\",\"maintenance\":{\"memoriesDecayed\":0,\"memoriesPr"
+      "detail": "{\"id\":\"sess_114b462d-c191-4e9f-adeb-f24db627466a\",\"status\":\"ended\",\"endedAt\":\"2026-09-16T16:15:51.850Z\",\"maintenance\":{\"memoriesDecayed\":0,\"memoriesPr"
     },
     {
       "name": "ADR-018 session end pushed this machine's memories to the mirror",
@@ -27,7 +27,7 @@
     {
       "name": "ADR-018 machine A keeps its own local watermark",
       "ok": true,
-      "detail": "device-A-1789182601538 v2"
+      "detail": "device-A-1789575350268 v2"
     },
     {
       "name": "a second machine starts with nothing locally",
@@ -57,7 +57,7 @@
     {
       "name": "ADR-018 each machine keeps its own watermark, not a shared one",
       "ok": true,
-      "detail": "A: device-A-1789182601538  B: device-B-1789182601538"
+      "detail": "A: device-A-1789575350268  B: device-B-1789575350268"
     },
     {
       "name": "the cloud sync_cursor table stays empty, because nothing uses it",
@@ -77,7 +77,7 @@
     {
       "name": "EDR-003 B's more-recently-accessed version won on the mirror",
       "ok": true,
-      "detail": "weight 0.750 -> 0.869, accessed 2026-09-12T03:10:09.528Z -> 2026-09-12T03:10:14.158Z"
+      "detail": "weight 0.750 -> 0.869, accessed 2026-09-16T16:15:59.323Z -> 2026-09-16T16:16:04.451Z"
     },
     {
       "name": "EDR-003 a staler push does NOT overwrite the newer version",

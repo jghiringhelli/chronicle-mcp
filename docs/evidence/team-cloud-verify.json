@@ -1,9 +1,11 @@
 {
-  "ran_at": "2026-09-11T02:58:56.662Z",
+  "ran_at": "2026-09-16T16:32:59.888Z",
   "command": "node scripts/verify-team-cloud.mjs",
   "node": "v24.18.0",
   "target": "crossover.proxy.rlwy.net:28455/railway",
+  "verified": true,
   "team": "argoscode",
+  "token_from": "CHRONICLE_TEAM_TOKEN",
   "members": [
     {
       "user_id": "jghiringhelli",
@@ -41,7 +43,7 @@
     {
       "name": "the pull wrote nothing into the shared pool",
       "ok": true,
-      "detail": "team_shared_memories 1 -> 1, prompt_logs 1 -> 1"
+      "detail": "team_shared_memories 1 -> 1, prompt_logs 0 -> 0"
     },
     {
       "name": "a teammate's shared memory is recallable after the pull",
@@ -61,7 +63,7 @@
     {
       "name": "team stats answers for the personal scope",
       "ok": true,
-      "detail": "{\"userId\":\"jghiringhelli\",\"teamId\":\"argoscode\",\"totalLogged\":0,\"byOutcome\":{},\"byCategory\":{},\"sharedMemoriesCount\":0,\"goodRate\":0"
+      "detail": "{\"userId\":\"jcghiri@gmail.com\",\"teamId\":\"argoscode\",\"totalLogged\":0,\"byOutcome\":{},\"byCategory\":{},\"sharedMemoriesCount\":0,\"goodRat"
     }
   ]
 }

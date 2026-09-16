@@ -122,27 +122,55 @@ try {
   //
   // Nobody's data is read here. The variable is set to a value matching no user, and read back: if
   // the read-back changes, the override works and that is the whole finding.
-  const NONCE = `${SEED}-nonce`;
-  let overrode = false;
-  let setError = '';
+  // The claim a client can still make, and the access it must no longer buy.
+  //
+  // Before ADR-024 the policy read `current_setting('chronicle.user_id')`, so re-pointing that
+  // variable handed the session another person's rows. The variable still EXISTS and any session can
+  // still set it — that was never preventable, a custom GUC carries no privilege — so asserting that
+  // the SET fails would be testing a mechanism nobody promised. What matters is whether the claim
+  // buys anything, and after the fix the policy resolves identity through `chronicle_role_map` keyed
+  // on `current_user`, which a session cannot change without credentials for the other role.
+  //
+  // So: lie about who you are, as loudly as possible, then try every operation that used to work.
+  await sqlA.unsafe(`SET chronicle.user_id = '${b}'`);
+
+  const lyingRead = await sqlA`SELECT id FROM memories WHERE user_id = ${b}`;
+  const lyingUpdate = await sqlA`UPDATE memories SET weight = 0.1 WHERE user_id = ${b}`;
+  let lyingInsert = 'no error';
   try {
-    await sqlA.unsafe(`SET chronicle.user_id = '${NONCE}'`);
-    const [after] = await sqlA`SELECT current_setting('chronicle.user_id', true) AS v`;
-    overrode = after.v === NONCE;
+    await sqlA`
+      INSERT INTO memories (id, user_id, content, memory_type, tier, weight, decay_rate,
+        access_count, created_at, last_accessed_at, scope, tags, confirmed, updated_at)
+      VALUES (${`${SEED}-lying`}, ${b}, 'written while claiming to be someone else', 'semantic',
+        'core', 0.9, 0, 0, NOW(), NOW(), 'person', '{}', true, NOW())`;
   } catch (err) {
-    setError = err instanceof Error ? err.message : String(err);
+    lyingInsert = err instanceof Error ? err.message : String(err);
   }
   await sqlA.unsafe('RESET chronicle.user_id');
 
+  const claimBuysNothing =
+    lyingRead.length === 0 && lyingUpdate.count === 0 && lyingInsert !== 'no error';
+
   record(
-    'an app role CANNOT re-point chronicle.user_id at another person',
-    !overrode,
-    overrode
-      ? 'IT CAN. The row filter follows whatever the client claims, so an app credential is ' +
-        'confined by default and not by a boundary — whoever holds one can act as any user id. ' +
-        'Treat an app connection string as equivalent to full access to the person tables.'
-      : (setError ? `SET refused: ${setError.slice(0, 80)}` : 'the pin held'),
+    `claiming to be ${b} via chronicle.user_id buys ${a}'s app role nothing`,
+    claimBuysNothing,
+    claimBuysNothing
+      ? 'read 0 rows, updated 0 rows, insert refused by the policy — identity comes from ' +
+        'current_user through chronicle_role_map, not from the session (ADR-024)'
+      : `LEAK: read ${lyingRead.length} row(s), updated ${lyingUpdate.count}, ` +
+        `insert ${lyingInsert === 'no error' ? 'SUCCEEDED' : 'refused'}`,
   );
+
+  // And the map itself must not be a way around the map.
+  let mapWrite = 'no error';
+  try {
+    await sqlA`UPDATE chronicle_role_map SET user_id = ${b} WHERE role_name = current_user`;
+  } catch (err) {
+    mapWrite = err instanceof Error ? err.message : String(err);
+  }
+  record('an app role cannot rewrite its own row in chronicle_role_map', mapWrite !== 'no error',
+    mapWrite.slice(0, 90));
+
 
   // ── Team tables stay shared — that is the feature, not a leak ──────────────────────────────
   const sharedPool = await sqlA`SELECT count(*)::int AS n FROM team_shared_memories`;
@@ -170,6 +198,55 @@ try {
   record('an ADMIN role sees both people\'s rows — the boundary, not a bug (ADR-020)',
     adminSees[0].n === 2,
     `${adminSees[0].n} of 2 seeded rows visible to ${roles[a].admin_role}`);
+
+  // ── Can this suite detect a leak at all? ─────────────────────────────────────────
+  //
+  // Every check above passes. That is exactly the position this suite was in on 2026-09-11, when it
+  // reported 12/12 against a policy that trusted whatever the client claimed — and a confident
+  // number on an untested property is what kept the hole invisible for three days.
+  //
+  // So the suite proves it can still fail. A throwaway table gets the OLD policy form
+  // (`current_setting('chronicle.user_id')`), and the same lie that buys nothing against the real
+  // tables is replayed against it. If the lie works there, the detection logic is sound and the real
+  // tables are safe because of the policy, not because the check stopped looking.
+  //
+  // Built and dropped by the admin connection, named so it is obviously disposable, and it never
+  // holds anybody's data — only two rows this script wrote.
+  const PROBE = 'chronicle_leak_probe';
+  let selfTest = 'did not run';
+  try {
+    await sqlAdmin.unsafe(`DROP TABLE IF EXISTS ${PROBE}`);
+    await sqlAdmin.unsafe(`CREATE TABLE ${PROBE} (id text PRIMARY KEY, user_id text NOT NULL)`);
+    await sqlAdmin.unsafe(`ALTER TABLE ${PROBE} ENABLE ROW LEVEL SECURITY`);
+    await sqlAdmin.unsafe(`ALTER TABLE ${PROBE} FORCE ROW LEVEL SECURITY`);
+    // Deliberately the vulnerable form this project shipped before ADR-024.
+    await sqlAdmin.unsafe(`
+      CREATE POLICY ${PROBE}_own ON ${PROBE}
+      USING (user_id = current_setting('chronicle.user_id', true))
+      WITH CHECK (user_id = current_setting('chronicle.user_id', true))`);
+    await sqlAdmin.unsafe(`GRANT SELECT, INSERT, UPDATE, DELETE ON ${PROBE} TO ${roles[a].app_role}`);
+    await sqlAdmin`INSERT INTO ${sqlAdmin(PROBE)} (id, user_id) VALUES (${`${SEED}-probe`}, ${b})`;
+
+    // The same lie, against a table that trusts it.
+    await sqlA.unsafe(`SET chronicle.user_id = '${b}'`);
+    const leaked = await sqlA.unsafe(`SELECT id FROM ${PROBE} WHERE user_id = '${b}'`);
+    await sqlA.unsafe('RESET chronicle.user_id');
+
+    selfTest = leaked.length > 0 ? 'detected' : 'BLIND';
+  } catch (err) {
+    selfTest = `errored: ${err instanceof Error ? err.message : String(err)}`;
+  } finally {
+    await sqlAdmin.unsafe(`DROP TABLE IF EXISTS ${PROBE}`);
+  }
+
+  record(
+    'the leak check can still detect a leak (replayed against a deliberately vulnerable table)',
+    selfTest === 'detected',
+    selfTest === 'detected'
+      ? 'the old policy form leaks on demand, so the pass above is the policy holding, not the ' +
+        'check having stopped looking'
+      : `self-test ${selfTest} — treat every other result in this run as unverified`,
+  );
 
   // ── Cleanup, as admin, since each app role can only reach its own ─────────────────────────
   const cleaned = await sqlAdmin`DELETE FROM memories WHERE content LIKE ${`${SEED}%`}`;

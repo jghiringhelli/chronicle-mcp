@@ -1,5 +1,5 @@
 {
-  "ran_at": "2026-09-14T15:40:08.021Z",
+  "ran_at": "2026-09-16T16:14:45.197Z",
   "command": "node scripts/verify-isolation.mjs",
   "target": "crossover.proxy.rlwy.net:28455/railway",
   "people": [
@@ -7,8 +7,8 @@
     "jghiringhelli"
   ],
   "model": "Two admins by decision (ADR-020). RLS confines the day-to-day app roles; admins bypass it.",
-  "passed": 12,
-  "failed": 1,
+  "passed": 15,
+  "failed": 0,
   "results": [
     {
       "name": "each app role can write its own row",
@@ -18,7 +18,7 @@
     {
       "name": "gabo's app role sees ONLY its own seeded row",
       "ok": true,
-      "detail": "1 row(s): iso-1789400402214-gabo"
+      "detail": "1 row(s): iso-1789575274721-gabo"
     },
     {
       "name": "gabo's app role cannot see jghiringhelli's rows even when asking for them directly",
@@ -46,9 +46,14 @@
       "detail": "0 row(s) deleted"
     },
     {
-      "name": "an app role CANNOT re-point chronicle.user_id at another person",
-      "ok": false,
-      "detail": "IT CAN. The row filter follows whatever the client claims, so an app credential is confined by default and not by a boundary — whoever holds one can act as any user id. Treat an app connection string as equivalent to full access to the person tables."
+      "name": "claiming to be jghiringhelli via chronicle.user_id buys gabo's app role nothing",
+      "ok": true,
+      "detail": "read 0 rows, updated 0 rows, insert refused by the policy — identity comes from current_user through chronicle_role_map, not from the session (ADR-024)"
+    },
+    {
+      "name": "an app role cannot rewrite its own row in chronicle_role_map",
+      "ok": true,
+      "detail": "permission denied for table chronicle_role_map"
     },
     {
       "name": "team tables remain readable by every app role (ADR-019 §4)",
@@ -69,6 +74,11 @@
       "name": "an ADMIN role sees both people's rows — the boundary, not a bug (ADR-020)",
       "ok": true,
       "detail": "2 of 2 seeded rows visible to chronicle_admin_gabo"
+    },
+    {
+      "name": "the leak check can still detect a leak (replayed against a deliberately vulnerable table)",
+      "ok": true,
+      "detail": "the old policy form leaks on demand, so the pass above is the policy holding, not the check having stopped looking"
     },
     {
       "name": "seeded rows cleaned up",

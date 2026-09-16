@@ -38,9 +38,35 @@ if (!url) { console.error('Set CHRONICLE_CLOUD_URL.'); process.exit(1); }
 if (!existsSync(SERVER)) { console.error('dist/cli.js absent — build first.'); process.exit(1); }
 
 const STAMP = Date.now();
-const USER = `zz-verify-${STAMP}`;
 const TAG = `sync-${STAMP}`;
 const PROJECT = 'github.com/zz-verify/sync-probe';
+
+/**
+ * Who this run is allowed to be.
+ *
+ * A throwaway `zz-verify-<timestamp>` is the right answer when connecting as an admin or as the
+ * database owner: it cannot collide with a real person's rows, and it is deleted at the end.
+ *
+ * It is the WRONG answer for an RLS-confined role. Since ADR-024 the row filter resolves identity
+ * through `chronicle_role_map` keyed on `current_user`, so `chronicle_app_ci` may only write rows
+ * with `user_id = 'ci'` — every insert under a throwaway id is refused by the policy, and the whole
+ * verification fails for a reason that has nothing to do with what it is verifying.
+ *
+ * So ask the database. If the connected role is mapped, use the id it is entitled to; otherwise fall
+ * back to the throwaway. That also means this script never needs to know which credential it was
+ * handed, which is the point — the CI job passes an app role, a developer passes an admin one, and
+ * neither has to remember to pass a matching user id alongside it.
+ */
+async function resolveUser(sql) {
+  try {
+    const [row] = await sql`
+      SELECT user_id FROM chronicle_role_map WHERE role_name = current_user`;
+    if (row?.user_id) return { user: row.user_id, confined: true };
+  } catch {
+    // No map table, or no permission to read it — an older database, or a role outside the scheme.
+  }
+  return { user: `zz-verify-${STAMP}`, confined: false };
+}
 
 const results = [];
 const record = (name, ok, detail) => {
@@ -50,6 +76,13 @@ const record = (name, ok, detail) => {
 
 const homes = [];
 const sql = postgres(url, { max: 2, idle_timeout: 5, connect_timeout: 15, onnotice: () => {} });
+
+const { user: USER, confined: CONFINED } = await resolveUser(sql);
+console.log(
+  CONFINED
+    ? `identity: '${USER}', taken from chronicle_role_map for this role — RLS confines these writes`
+    : `identity: '${USER}', a throwaway id — this role is not RLS-confined`,
+);
 
 /** One simulated machine: its own store, its own deviceId, the same person. */
 async function machine(label) {

@@ -12,6 +12,12 @@ routes_to: [root]
 > Always loaded. The stateless reader cannot remember that it hit a trap yesterday;
 > this node is how the repository remembers *for* it. Append-only: entries are never
 > deleted, only superseded with a dated line. This is the ratchet.
+>
+> Because it is always loaded it also has a read budget — 300 lines, enforced by
+> `scripts/gs-cascade-check.mjs` step 1. Append-only and bounded are both real
+> constraints, so when it fills, the oldest entries move to
+> `.claude/ledger-archive.md`. Moved, never dropped: an archived lesson binds exactly
+> as much as one here.
 
 ---
 
@@ -20,37 +26,10 @@ routes_to: [root]
 Behavioural deviations that were corrected once and must not recur. One dated line each.
 When the user says *"don't do that"* about a pattern produced here, append a line.
 
-- `[2026-09-10]` — Never hand-type a status claim. A "passing" / "done" / "✅" line is
-  admissible only when it cites an execution record under `docs/evidence/` (run id or
-  timestamp). Status is a function over evidence, never prose.
-  *Origin: `Status.md` claimed "Tests: 39/39 passing" and "Typecheck: clean" while `tsc`
-  exited 2 and 11 of 41 tests failed.*
-- `[2026-09-10]` — Never ship a capability without a use case and, if it is an
-  architectural choice, an ADR. The `axon` tool surface and the cloud sync service both
-  landed with neither, which made them ghost code under the cascade check.
-- `[2026-09-10]` — Never leave a required cascade artifact as an unfilled template.
-  An empty `docs/PRD.md` in the functional-spec slot scores worse than an absent one:
-  it reports the shape of rigour with none of the guarantee.
-- `[2026-09-10]` — When the spec and the code disagree, the change is not done. Fix the
-  spec in the same commit or revert the code. `docs/spec.md §6` listed cloud sync, team
-  memory and the dashboard as out of scope while all three were implemented.
-- `[2026-09-10]` — Never describe a gate in a standards file without emitting it. The
-  repo's own `cicd.md` demanded `.github/workflows/ci.yml` and a mutation gate; neither
-  existed. Emit the file, then reference it.
-- `[2026-09-10]` — Reject any count claim about the memory model that is not derived from
-  `src/domain/types.ts`. "Five", "six" and "three-tier" were all in circulation at once.
-- `[2026-09-10]` — Before calling a default a defect, check the driver's own defaults, not just
-  SQLite's. `busy_timeout` and `foreign_keys` were diagnosed as missing; `better-sqlite3` already
-  sets both. WAL was the only load-bearing pragma, and it was already there. The real gap was that
-  nothing *pinned* any of it (ADR-016).
-- `[2026-09-10]` — A threshold that has never run is an aspiration, not a ratchet position. Set a
-  gate's floor to the measured value and raise it; never lower a floor that has held. Coverage and
-  MSI were both declared and never evaluated — 80% and 65% against actuals of 15% and 9%.
-- `[2026-09-10]` — Exercise the real boundary before believing the unit suite. 119 green unit
-  tests did not find that `session(action:'end', project)` ignored `project` and failed with
-  `Session not found: ` on an empty id. One run of `scripts/smoke-mcp.mjs` did.
-- `[2026-09-10]` — Do not retype uncovered code to satisfy a new lint rule. Characterise it with
-  tests first, then type it. A scoped, expiring waiver is the correct interim (exc-009).
+
+> Entries before 2026-09-12 live in `.claude/ledger-archive.md` — moved, not deleted, so this node
+> stays inside its read budget. They bind exactly as much as the ones below.
+
 - `[2026-09-13]` — One reading is not a measurement, and a median is not one either when there is a
   warm-up curve. The benchmark sampled NFR-03 thirty times and NFR-02/NFR-04 **once**, and that
   inconsistency decided verdicts: ten cold starts gave 349…220ms and five decay passes gave
@@ -58,6 +37,21 @@ When the user says *"don't do that"* about a pattern produced here, append a lin
   in ADR-021 and spec §5 were whichever point of the curve the run happened to land on — and the decay
   pass actually takes ~600ms cold on this host, over its 500ms budget. Cold and steady are now
   reported separately, and the verdict is judged on cold, because that is the user's situation.
+- `[2026-09-16]` — When you fix the mechanism, re-read the test. The acceptance check asserted that
+  an app role *cannot re-point `chronicle.user_id`*. After ADR-024 the policy stopped reading that
+  variable, so the assertion became true-but-irrelevant and still failed — it was testing the
+  mechanism, not the property. Rewritten to make the claim as loudly as possible and then verify it
+  buys nothing: read 0 rows, update 0 rows, insert refused.
+- `[2026-09-16]` — A suite that only passes has not shown it can fail. Every isolation check went
+  green after the fix, which is precisely the position the suite was in at 12/12 while the hole was
+  open. It now builds a throwaway table with the OLD vulnerable policy and replays the same lie
+  against it: the lie works there and not on the real tables, so the pass is the policy holding
+  rather than the check having stopped looking.
+- `[2026-09-16]` — A security fix changes who your tools are allowed to be. `verify-cloud-sync`
+  wrote under a throwaway `zz-verify-<ts>` id, which an RLS-confined role may not do — the whole
+  verification would have failed for a reason unrelated to what it verifies. It now asks
+  `chronicle_role_map` who the connected role is entitled to be, so the same script works whether it
+  is handed an app credential or an admin one.
 - `[2026-09-16]` — Privileges and ownership are different things, and GRANT cannot bridge them.
   `CREATE POLICY` and `ALTER TABLE … FORCE ROW LEVEL SECURITY` are owner-only; no grant confers
   them. I had recorded in ADR-024 that granting `CREATE ON SCHEMA public` would make the next run the
@@ -141,33 +135,6 @@ When the user says *"don't do that"* about a pattern produced here, append a lin
 - `[2026-09-12]` — A skipped test must say so loudly. `driver-upgrade.test.ts` cannot install
   `better-sqlite3@11` on a machine with no C++ toolchain — ADR-015's original problem — so it warns on
   stderr and asserts the skip. A green tick for an assertion that never ran is worse than no test.
-- `[2026-09-11]` — `userId` is an identity, not a convenience. It keys team membership and every
-  synced row, and it was being re-derived from `git config user.email` whenever the config file was
-  recreated — which silently orphaned this machine's membership in its own team. Derive once, then
-  treat as immutable; changing it means migrating the rows it owns.
-- `[2026-09-11]` — `BYPASSRLS` does not grant table access. It lets a role ignore policies; the role
-  still needs SELECT. The first isolation verification failed on the admin with
-  `permission denied for table memories` for exactly this reason.
-- `[2026-09-11]` — State an isolation guarantee at the strength it actually holds. Two admins means
-  RLS does not hide them from each other, and a test that omitted that would imply a guarantee that
-  does not exist. `verify-isolation.mjs` asserts the admin DOES see everything, on purpose.
-- `[2026-09-10]` — An error that cannot say why it failed is an error nobody can act on.
-  `StorageError` stashed its cause in `context` and nothing printed it, so a real cloud failure
-  reached the user as `Error: Team sync failed`. The cause now goes in the message.
-- `[2026-09-10]` — A test that writes to the real store is a test nobody runs twice. Point
-  `CHRONICLE_HOME` at a temp directory for any run that touches a database. The first
-  `scripts/smoke-mcp.mjs` left rows in `~/.chronicle/chronicle.db`, which also meant its
-  concurrency checks were racing whatever the real store happened to hold.
-- `[2026-09-10]` — "Optional dependency" does not mean "not installed". `optionalDependencies`
-  install by default; the flag only says "do not fail the install if it cannot be built". An
-  accepted risk premised on a package being absent is an accepted risk premised on nothing
-  (ADR-017 supersedes ADR-003 on exactly this).
-- `[2026-09-10]` — Prove a gate blocks by making it block. Committing a deliberate violation is the
-  only evidence that a hook is wired; it is also how the four silently-disabled hook scripts below
-  were found, after the hook had already been declared working.
-
----
-
 ## Known Pitfalls
 
 Technology traps, not behavioural ones. Three parts each: what goes wrong, the wrong

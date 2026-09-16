@@ -145,6 +145,78 @@ try {
   console.log(`target: ${target.hostname}:${target.port}/${target.pathname.slice(1)} as ${target.username}`);
   console.log(APPLY ? 'mode:   APPLY\n' : 'mode:   dry run (pass --apply to change anything)\n');
 
+  // ── 0. Can this connection actually do the job? ────────────────────────────────────
+  //
+  // Asked up front because the alternative is what happened on 2026-09-14: `--apply` ran, issued
+  // several GRANTs, and then died with `permission denied for schema public` partway through. A
+  // provisioning script that fails halfway leaves a state nobody designed. Everything here is a
+  // catalogue read — it changes nothing and runs in dry mode too.
+  const [priv] = await sql`
+    SELECT
+      current_user                                                      AS role,
+      current_database()                                                AS db,
+      (SELECT rolsuper    FROM pg_roles WHERE rolname = current_user)    AS is_superuser,
+      (SELECT rolbypassrls FROM pg_roles WHERE rolname = current_user)   AS bypasses_rls,
+      (SELECT rolcreaterole FROM pg_roles WHERE rolname = current_user)  AS can_create_roles,
+      has_schema_privilege(current_user, 'public', 'CREATE')             AS can_create_in_public,
+      has_database_privilege(current_user, current_database(), 'CREATE') AS can_create_schemas`;
+
+  // Altering a table's RLS and adding a policy requires OWNERSHIP, not a privilege — so ask who owns
+  // the tables and whether this role is that owner (directly, or through a group it belongs to).
+  const ownership = await sql`
+    SELECT c.relname AS table_name,
+           pg_get_userbyid(c.relowner) AS owner,
+           pg_has_role(current_user, c.relowner, 'USAGE') AS can_act_as_owner
+    FROM pg_class c
+    JOIN pg_namespace n ON n.oid = c.relnamespace
+    WHERE n.nspname = 'public' AND c.relkind = 'r' AND c.relname = ANY(${PERSON_TABLES})
+    ORDER BY c.relname`;
+
+  console.log('preflight:');
+  note(`connected as ${priv.role} on ${priv.db}`);
+  note(`superuser=${priv.is_superuser}  bypassrls=${priv.bypasses_rls}  createrole=${priv.can_create_roles}`);
+  note(`CREATE on schema public: ${priv.can_create_in_public}   CREATE on database: ${priv.can_create_schemas}`);
+
+  const notOwned = ownership.filter((r) => !r.can_act_as_owner);
+  if (ownership.length === 0) {
+    note('none of the person tables exist yet — nothing to re-own');
+  } else if (notOwned.length === 0) {
+    note(`owns (or can act as owner of) all ${ownership.length} person tables`);
+  } else {
+    note(`CANNOT act as owner of: ${notOwned.map((r) => `${r.table_name} (owned by ${r.owner})`).join(', ')}`);
+  }
+
+  // The two things --apply cannot do without.
+  const blockers = [];
+  if (!priv.can_create_in_public) {
+    blockers.push(`CREATE on schema public — needed to create ${ROLE_MAP_TABLE}. PostgreSQL 15+ ` +
+      'stopped granting this to PUBLIC, so only the schema owner or a superuser has it.');
+  }
+  if (notOwned.length > 0) {
+    blockers.push(`ownership of ${notOwned.map((r) => r.table_name).join(', ')} — needed for ` +
+      'ALTER TABLE ... FORCE ROW LEVEL SECURITY and CREATE POLICY, which are owner-only operations.');
+  }
+
+  if (blockers.length > 0) {
+    console.error('\nthis connection cannot provision. Missing:\n');
+    for (const b of blockers) console.error(`  - ${b}`);
+    console.error(
+      `\nUse Railway's own connection string for this run — put DATABASE_PUBLIC_URL in\n` +
+      `  ${adminUrlFile}\n` +
+      'Railway dashboard → the Postgres service → Variables → DATABASE_PUBLIC_URL (the PUBLIC one).\n' +
+      'After one successful --apply the admin roles are granted CREATE on schema public AND the\n' +
+      'tables are re-owned to the chronicle_admins group, so this is the last run that needs it.\n' +
+      '(The grant alone is not enough: CREATE POLICY and FORCE ROW LEVEL SECURITY are owner-only,\n' +
+      'and no GRANT confers them.)\n\n' +
+      'Nothing was changed.',
+    );
+    process.exitCode = 1;
+    await sql.end({ timeout: 5 });
+    process.exit(1);
+  }
+  note('this connection can provision');
+  console.log('');
+
   // Who are the people? The mirror already knows — no need to be told.
   const members = await sql`SELECT user_id, role FROM team_members ORDER BY user_id`;
   if (members.length === 0) throw new Error('no team_members rows — nothing to provision roles for');
@@ -173,11 +245,27 @@ try {
     await sql.unsafe(`GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO chronicle_admins`);
     // And for tables created later, so a future migration does not silently lock the admins out.
     await sql.unsafe(`ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO chronicle_admins`);
+
+    // Ownership, not just privileges. `CREATE POLICY` and `ALTER TABLE ... FORCE ROW LEVEL SECURITY`
+    // are owner-only operations — no GRANT confers them — so while the tables belong to `postgres`,
+    // every future policy change would need Railway's own credential again. Handing them to the
+    // admin GROUP is what makes this the last privileged run.
+    //
+    // Safe for the people using the database: a superuser ignores ownership entirely, so Railway's
+    // own connection is unaffected, and `chronicle_admins` members carry BYPASSRLS so FORCE RLS does
+    // not lock them out of their own tables.
+    for (const tbl of [...PERSON_TABLES, ...TEAM_TABLES, ...ADMIN_ONLY_TABLES, ROLE_MAP_TABLE]) {
+      const [present] = await sql`
+        SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name=${tbl}`;
+      if (present) await sql.unsafe(`ALTER TABLE ${tbl} OWNER TO chronicle_admins`);
+    }
   }
   note('chronicle_admins (NOLOGIN group) — carries the table privileges; admin rights by membership');
 
-  // ── 2. Per-person roles ───────────────────────────────────────────────────────────────────
   // ── 1b. The role → user id map, which the policies key off ───────────────────────────
+  //
+  // Created here, before any role needs mapping. The ownership sweep in step 1 runs earlier and so
+  // skips this table; it takes its owner explicitly below instead.
   console.log('\nrole map:');
   note(`${ROLE_MAP_TABLE} — binds a login role to the user id it owns (ADR-024)`);
   if (APPLY) {
@@ -189,6 +277,9 @@ try {
     // Admins manage it; everyone else may read it and nothing more. Readable because the policy
     // subquery runs as the querying role — and role names are not a secret, the passwords are.
     await sql.unsafe(`GRANT ALL ON ${ROLE_MAP_TABLE} TO chronicle_admins`);
+    // Re-owned here rather than in the sweep above, because that sweep runs before this table
+    // exists. Ownership is what lets a later admin-only run alter it.
+    await sql.unsafe(`ALTER TABLE ${ROLE_MAP_TABLE} OWNER TO chronicle_admins`);
   }
 
   // ── 2. Per-person roles ────────────────────────────────────────────────────────────

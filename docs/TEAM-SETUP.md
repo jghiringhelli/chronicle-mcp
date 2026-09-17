@@ -28,11 +28,17 @@ Coordination and knowledge are **gated by one team token** and share **one** clo
 
 ## 1. Prerequisites (every person)
 
-- **Node.js ≥ 20**
-- **git identity set** — Chronicle derives your `userId` from it, so it's stable across
-  your machines:
+- **Node.js ≥ 22.** Not a preference: `better-sqlite3@13` requires it, and on Node 20 its binding
+  does not fail to load, it **segfaults** (ADR-022). Chronicle refuses to start on anything older and
+  tells you why, rather than crashing.
+- **A `userId` that matches your database role.** Chronicle derives one from your git email on
+  first run, but on a team database that is **not** good enough: since ADR-024 the row filter looks
+  your identity up by database role, so your `userId` must be exactly the one the owner mapped for
+  you (`gabo`, not `gabo@example.com`). Get it from the owner and set it explicitly in §4. A
+  mismatch is not a permission error you can read — it is a Chronicle that silently sees none of
+  your rows.
   ```bash
-  git config --global user.email "you@example.com"
+  git config --global user.email "you@example.com"   # still worth setting; not the source of truth
   ```
 - An MCP-capable assistant: **Claude Code** or **GitHub Copilot** (agent mode) — see §6.
 - Install the server globally:
@@ -52,7 +58,13 @@ Coordination and knowledge are **gated by one team token** and share **one** clo
    postgresql://postgres:PASSWORD@HOST.proxy.rlwy.net:PORT/railway
    ```
    Chronicle connects with TLS (`sslmode=require`) automatically.
-3. Keep this string secret. It is the `railwayUrl` everyone on the team will use.
+3. Keep this string secret, and **do not hand it to anyone** — not even a teammate. It is the
+   superuser: it owns the schema and ignores row-level security entirely. It is used exactly twice,
+   by the owner, in §2 and §2b, and never appears in anybody's config.
+
+   > *This section used to say it was "the `railwayUrl` everyone on the team will use". That was
+   > true and it was the problem: while a client connects as `postgres`, RLS is not in force for it,
+   > so every teammate could read every other teammate's private memories. See ADR-019 and ADR-023.*
 4. Apply the schema once (idempotent — `CREATE TABLE IF NOT EXISTS`):
    ```bash
    DB_URL="postgresql://...public-url..." npx tsx scripts/init-cloud-db.ts
@@ -61,6 +73,43 @@ Coordination and knowledge are **gated by one team token** and share **one** clo
 > The **team** tables auto-create on first team action, but the **individual sync**
 > tables (`users`, `memories`, `insights`, `session_summaries`, `sync_cursor`) do not —
 > run the init script once so personal cross-PC sync works on a fresh database.
+
+---
+
+## 2b. One-time: give each person their own database role (owner)
+
+The superuser string is not what anyone connects with. Each person gets a confined role whose
+identity the database enforces — they can read and write their own rows, the shared team tables, and
+nothing else.
+
+```bash
+# Put Railway's DATABASE_PUBLIC_URL in ~/.chronicle/railway-admin.url (one line), then:
+node scripts/apply-rls.mjs              # dry run: prints the plan, changes nothing
+node scripts/apply-rls.mjs --apply
+```
+
+It reads the roster from `team_members`, so add people to the team first (§5). For each it creates:
+
+| role | what it is for |
+|---|---|
+| `chronicle_app_<id>` | what that person's Chronicle connects with, every day |
+| `chronicle_admin_<id>` | migrations and inspection; bypasses RLS by design (ADR-020) |
+
+Connection strings are written to `~/.chronicle/cloud-roles.json` and **never printed**. Passwords
+already issued are preserved — pass `--rotate` only when you intend to invalidate them.
+
+Verify it actually confines, from the confined side:
+
+```bash
+node scripts/verify-isolation.mjs       # expects 15/15
+```
+
+That suite also proves it can still *detect* a leak, by replaying the same attack against a
+throwaway table carrying the old vulnerable policy. If it ever reports `BLIND`, treat every other
+result in the run as unverified.
+
+**Hand each teammate only their own `app_connection_string`, over a private channel.** Never paste
+one into a chat, an issue, or a commit.
 
 ---
 
@@ -95,16 +144,21 @@ Create/edit `~/.chronicle/config.json` (on Windows: `C:\Users\<you>\.chronicle\c
 
 ```json
 {
-  "userId": "you@example.com",
-  "railwayUrl": "postgresql://postgres:PASSWORD@HOST.proxy.rlwy.net:PORT/railway",
+  "userId": "gabo",
+  "deviceId": "gabo-laptop",
+  "railwayUrl": "postgresql://chronicle_app_gabo:PASSWORD@HOST.proxy.rlwy.net:PORT/railway?sslmode=require",
   "teamId": "<team-slug>",
   "teamToken": "chron_xxxxxxxx..."
 }
 ```
 
-- `userId` is auto-filled from your git email on first run — set it explicitly only if
-  you want to override.
-- `deviceId` and `dbPath` are auto-generated; you don't need to add them.
+- `userId` **must match the role the owner mapped for you**. Chronicle would otherwise derive it
+  from your git email, and the database would refuse every write — quietly, as an empty store.
+- `railwayUrl` is **your own `chronicle_app_*` string**, not the superuser one. If it says
+  `postgres:` you have the wrong string; ask the owner for yours.
+- `deviceId` is auto-generated, but set it by hand when you use more than one machine — it is what
+  cross-PC sync keys its watermark on, and a readable name makes `sync_cursor` legible.
+- `dbPath` is auto-generated; you don't need to add it.
 - Omit `railwayUrl`/`teamId`/`teamToken` and Chronicle still works fully **local-only**
   (private memory, no team features).
 
@@ -124,7 +178,7 @@ team({ action: "members" })         → confirm you and your teammates are liste
 The owner can promote someone to help curate:
 
 ```
-team({ action: "assign_role", target_user_id: "coworker@example.com", role: "lead" })
+team({ action: "assign_role", target_user_id: "gabo", role: "lead" })
 ```
 
 ---

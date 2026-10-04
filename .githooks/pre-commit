@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+"$(dirname "$0")/employer-guard" pre-commit "$@" || exit 1 # employer-guard
 #
 # Dispatcher for the pre-commit gate.
 #

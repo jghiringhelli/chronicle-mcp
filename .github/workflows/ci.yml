@@ -18,9 +18,12 @@ on:
     branches: [master, main]
   pull_request:
   workflow_dispatch:
-  schedule:
-    # Nightly, for the jobs that need a live credential and should not run on every push.
-    - cron: '0 6 * * *'
+  # No schedule while the project is in development. The nightly run existed for the jobs that
+  # need a live credential, but a cron on a repository nobody is pushing to reports the weather
+  # rather than the code: it failed 32 nights running (2026-09-22 to 2026-10-23) with no commit in
+  # between, for two causes that were both already known. A red badge nobody can act on is one
+  # people stop reading. Run those jobs on demand from the Actions tab (workflow_dispatch), and
+  # restore the cron when the mirror is back and the project is being shipped rather than built.
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -200,7 +203,7 @@ jobs:
 
   # Generative execution against the REAL cloud mirror (ADR-018 §3, ADR-019, ADR-020).
   #
-  # Secret-gated and scheduled rather than per-push, for three reasons: it needs a live Postgres
+  # Secret-gated and run on demand rather than per-push, for three reasons: it needs a live Postgres
   # credential, it writes to a database a partner shares, and a push-triggered job on a fork would
   # expose the secret. A missing secret produces an explicit skip, not a failure — a red X nobody can
   # fix is noise, but a silent pass would be a lie.
@@ -208,6 +211,7 @@ jobs:
     name: Cloud verification (real Postgres)
     runs-on: ubuntu-latest
     needs: verify
+    # 'schedule' is kept so the job returns with the cron, without a second edit.
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     steps:
       - uses: actions/checkout@v4

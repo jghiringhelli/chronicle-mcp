@@ -38,7 +38,7 @@ carries the local context a change actually needs.
 | ADR-023 | App-role RLS is a default, not a boundary; any DB credential is full access | Accepted · corrects ADR-019 §3 and ADR-020 | @docs/adrs/active/ADR-023-rls-is-a-default-not-a-boundary.md |
 | ADR-024 | Bind rows to a role via a lookup table, not by parsing the role name | Accepted · amends ADR-023 §4 (the SQL, not the decision) | @docs/adrs/active/ADR-024-role-map-not-string-surgery.md |
 | ADR-025 | A commissioned GS report is evidence, not gate output; `reports/gs-*.md` is tracked | Accepted · narrows `.gitignore:12`, derives from ADR-013 | @docs/adrs/active/ADR-025-gs-reports-are-evidence.md |
-| ADR-026 | Prompt history is a local staging buffer with a lifecycle; the cloud table never holds raw text | **Proposed** · reads ADR-019 §1 as a boundary, not an erasure; retention is the open parameter | @docs/adrs/active/ADR-026-prompt-history-is-a-staging-buffer.md |
+| ADR-026 | Prompt history is a local staging buffer with a lifecycle; the cloud table never holds raw text | Accepted · reads ADR-019 §1 as a boundary, not an erasure; retention 7 days, 0 evicts on analysis | @docs/adrs/active/ADR-026-prompt-history-is-a-staging-buffer.md |
 
 ## Numbering — why it jumps from 003 to 010
 

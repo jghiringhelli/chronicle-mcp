@@ -97,4 +97,61 @@ describe('PromptLogService', () => {
     const [staged] = repo.getPendingPromptLogs();
     expect(staged?.rawContent).toBe('the raw prompt');
   });
+
+  // ── EDR-005: the three stages — staged, analysed, evicted ────────────────────────────────
+
+  describe('the lifecycle', () => {
+    it('a fresh row is staged and unanalysed', () => {
+      svc.log({ pattern: 'a', shareContent: true, rawContent: 'text a' });
+      expect(repo.getUnanalysedPromptLogs()).toHaveLength(1);
+    });
+
+    it('marking analysed takes the row out of the unanalysed set, idempotently', () => {
+      const a = svc.log({ pattern: 'a' });
+      repo.markPromptLogsAnalysed([a.id]);
+      expect(repo.getUnanalysedPromptLogs()).toHaveLength(0);
+      // Twice must not corrupt anything: an agent may call the apply phase again.
+      repo.markPromptLogsAnalysed([a.id]);
+      expect(repo.getUnanalysedPromptLogs()).toHaveLength(0);
+    });
+
+    it('status and analysed_at are independent — pushed does not mean analysed', () => {
+      const a = svc.log({ pattern: 'a' });
+      repo.markPromptLogsPushed([a.id]);
+      expect(repo.getPendingPromptLogs()).toHaveLength(0);   // pushed
+      expect(repo.getUnanalysedPromptLogs()).toHaveLength(1); // and still unanalysed
+    });
+
+    it('retention 0 evicts on analysis', () => {
+      const a = svc.log({ pattern: 'a' });
+      repo.markPromptLogsAnalysed([a.id]);
+      // No remote configured, so an unpushed pattern has nowhere to go and the row is evictable.
+      expect(svc.evictAnalysed(0)).toBe(1);
+      expect(repo.getUnanalysedPromptLogs()).toHaveLength(0);
+      expect(repo.getPendingPromptLogs()).toHaveLength(0);
+    });
+
+    it('retention keeps an analysed row until the window elapses', () => {
+      const a = svc.log({ pattern: 'a' });
+      repo.markPromptLogsAnalysed([a.id]);
+      expect(svc.evictAnalysed(7)).toBe(0);          // analysed just now — inside the window
+      expect(svc.evictAnalysed(-1)).toBe(1);         // a cutoff in the future releases it
+    });
+
+    it('never evicts an unanalysed row, whatever the retention', () => {
+      svc.log({ pattern: 'a' });
+      expect(svc.evictAnalysed(0)).toBe(0);
+      expect(repo.getUnanalysedPromptLogs()).toHaveLength(1);
+    });
+
+    it('keeps an analysed-but-unpushed row while a remote is configured', () => {
+      const a = svc.log({ pattern: 'a' });
+      repo.markPromptLogsAnalysed([a.id]);
+      cfg.railwayUrl = 'postgres://stand-in/db';
+      // The pattern has not reached the team yet; evicting would lose it, not just the text.
+      expect(svc.evictAnalysed(0)).toBe(0);
+      repo.markPromptLogsPushed([a.id]);
+      expect(svc.evictAnalysed(0)).toBe(1);
+    });
+  });
 });

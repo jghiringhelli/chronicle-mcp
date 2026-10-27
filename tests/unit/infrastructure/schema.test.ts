@@ -29,9 +29,11 @@ describe('schema version', () => {
    * `COLUMN_MIGRATIONS`, and update the hash below to the one the failure prints.
    */
   const EXPECTED = {
-    version: 2,
+    // 3 since 2026-10-27: prompt_log_buffer.analysed_at, the prompt-history lifecycle (EDR-005).
+    // The column is in COLUMN_MIGRATIONS too, which is what reaches a database that already exists.
+    version: 3,
     // sha256 of `${SCHEMA_TABLES_SQL}${SCHEMA_INDEXES_SQL}`, first 16 hex chars.
-    fingerprint: '55b38e3153545e5d',
+    fingerprint: 'db8be0ee4b5db701',
   };
 
   it('matches the schema it was stamped for', () => {

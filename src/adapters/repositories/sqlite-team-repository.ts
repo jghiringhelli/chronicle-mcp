@@ -36,6 +36,7 @@ interface PromptLogRow {
   id: string; user_id: string; team_id: string; project: string | null;
   pattern: string; outcome: string; category: string; tags: string;
   share_content: number; raw_content: string | null; logged_at: string; status: string;
+  analysed_at?: string | null;
 }
 
 /** A team-shared memory mirrored into the local cache. */
@@ -80,6 +81,7 @@ function rowToPromptLog(row: PromptLogRow): PromptLog {
     tags: Object.freeze(JSON.parse(row.tags) as string[]),
     shareContent: !!row.share_content, rawContent: row.raw_content ?? undefined,
     loggedAt: row.logged_at, status: row.status as PromptLog['status'],
+    analysedAt: row.analysed_at ?? undefined,
   };
 }
 
@@ -310,6 +312,61 @@ export class SqliteTeamRepository implements TeamRepository {
       this.db.prepare(`UPDATE prompt_log_buffer SET status = 'pushed' WHERE id IN (${placeholders})`).run(...ids);
     } catch (err) {
       throw new StorageError('Failed to mark prompt logs pushed', err);
+    }
+  }
+
+  /**
+   * The staged rows distillation has not read yet (EDR-005), oldest first.
+   *
+   * Independent of `status`: a row whose pattern already reached the team still needs analysing,
+   * because that is a different event.
+   */
+  getUnanalysedPromptLogs(limit = 200): PromptLog[] {
+    try {
+      return (this.db.prepare(
+        'SELECT * FROM prompt_log_buffer WHERE analysed_at IS NULL ORDER BY logged_at ASC LIMIT ?'
+      ).all(limit) as PromptLogRow[]).map(rowToPromptLog);
+    } catch (err) {
+      throw new StorageError('Failed to get unanalysed prompt logs', err);
+    }
+  }
+
+  /**
+   * Record that distillation has read these rows. Idempotent — a second call refreshes the instant
+   * and changes nothing else, because an agent may run the apply phase twice.
+   */
+  markPromptLogsAnalysed(ids: string[], at = new Date().toISOString()): void {
+    if (ids.length === 0) return;
+    try {
+      const placeholders = ids.map(() => '?').join(', ');
+      this.db.prepare(
+        `UPDATE prompt_log_buffer SET analysed_at = ? WHERE id IN (${placeholders})`
+      ).run(at, ...ids);
+    } catch (err) {
+      throw new StorageError('Failed to mark prompt logs analysed', err);
+    }
+  }
+
+  /**
+   * Delete analysed rows whose retention window has elapsed, freeing the space for the next stretch
+   * of history (EDR-005). Returns how many went.
+   *
+   * `requirePushed` keeps a row whose pattern has not reached the team: evicting it would lose the
+   * pattern and not merely the text. With no remote configured the caller passes false, because
+   * `pending` is then terminal and the row would otherwise never be evictable.
+   */
+  evictAnalysedPromptLogs(before: string, requirePushed: boolean): number {
+    try {
+      const pushedClause = requirePushed ? " AND status = 'pushed'" : '';
+      // `<=`, not `<`: with a retention of 0 the cutoff and `analysed_at` land in the same
+      // millisecond, and a strict comparison would never free the row — so "evict on analysis",
+      // which is the whole point of 0, would silently keep everything. Caught by its own test.
+      const result = this.db.prepare(
+        `DELETE FROM prompt_log_buffer WHERE analysed_at IS NOT NULL AND analysed_at <= ?${pushedClause}`
+      ).run(before);
+      return result.changes;
+    } catch (err) {
+      throw new StorageError('Failed to evict analysed prompt logs', err);
     }
   }
 

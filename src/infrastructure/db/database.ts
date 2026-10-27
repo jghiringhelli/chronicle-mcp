@@ -141,6 +141,15 @@ const COLUMN_MIGRATIONS: ReadonlyArray<{
     definition: 'TEXT',
     why: 'Where a session contributor works. Null for a person.',
   },
+  {
+    table: 'prompt_log_buffer',
+    column: 'analysed_at',
+    definition: 'TEXT',
+    why:
+      'EDR-005 — the staged/analysed/evicted lifecycle. Nullable with no default on purpose: a row ' +
+      'that predates this column has not been analysed, and NULL is the accurate way to say so. ' +
+      'It is a timestamp rather than a flag because retention needs to know when, not just whether.',
+  },
 ];
 
 /**

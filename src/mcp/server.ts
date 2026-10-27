@@ -21,6 +21,7 @@ import type { ContributorRole } from '../services/coordination-service.js';
 import { syncCoordination, syncMemories, syncInsights, pushSessionSummary } from '../services/sync.js';
 import { TeamService } from '../services/team-service.js';
 import { PromptLogService } from '../services/prompt-log-service.js';
+import { buildDistillPrompt, applyDistillResult, getExistingInsights } from '../services/distill.js';
 import { TeamSyncService } from '../services/team-sync-service.js';
 import { PatternService } from '../services/pattern-service.js';
 import { TeamPromotionService } from '../services/team-promotion-service.js';
@@ -267,11 +268,15 @@ export function createMcpServer(): McpServer {
       'Call session RECOVER to resume an active session by ID or project name — useful when work was interrupted.',
     ].join('\n'),
     {
-      action:  z.enum(['start', 'end', 'recover']).describe('start=load-core-memories | end=decay-and-promote | recover=resume-interrupted-session'),
+      action:  z.enum(['start', 'end', 'recover', 'distill']).describe('start=load-core-memories | end=decay-and-promote | recover=resume-interrupted-session | distill=synthesize-profile/lessons/playbook(two-phase)'),
       project: z.string().optional(),
       device:  z.string().optional(),
       id:      z.string().optional(),
       summary: z.string().optional(),
+      result:  z.string().optional()
+        .describe('distill phase 2: the JSON object you synthesized from the prompt phase 1 returned ({profile, lesson, playbook, bias}). Omit it to get the prompt.'),
+      prompt_log_ids: z.array(z.string()).optional()
+        .describe('distill phase 2: the ids phase 1 returned, so exactly those rows are marked analysed'),
     },
     async (args) => {
       switch (args.action) {
@@ -345,6 +350,54 @@ export function createMcpServer(): McpServer {
               ...(mirrored ? { mirror: mirrored } : {}),
             }) }],
           };
+        }
+
+        // EDR-005 / ADR-026 — the chronicle's middle step: aggregate the session's memories and the
+        // staged prompt history into profile, lessons and playbook. Two phases because this server
+        // has no sampling channel: the calling agent is the model, so its own turn is the round-trip.
+        case 'distill': {
+          const distillProject = args.project ?? resolveProject().id;
+
+          // Phase 2: apply what the agent synthesized, then move the lifecycle on.
+          if (args.result !== undefined) {
+            let updates: Record<string, string>;
+            try {
+              updates = JSON.parse(args.result) as Record<string, string>;
+            } catch (err) {
+              return { content: [{ type: 'text', text: JSON.stringify({
+                error: `result is not JSON: ${err instanceof Error ? err.message : String(err)}`,
+                hint: 'Pass the object phase 1 asked for: {"profile": "...", "lesson": "...", "playbook": "..."}',
+              }) }] };
+            }
+            applyDistillResult(updates, distillProject);
+            // Exactly the ids phase 1 covered, never "everything unanalysed now" — a row staged
+            // during the agent's turn has not been read and must not be marked as if it had.
+            const analysed = args.prompt_log_ids ?? [];
+            if (analysed.length > 0) promptLogSvc.markAnalysed(analysed);
+            const evicted = promptLogSvc.evictAnalysed();
+            return { content: [{ type: 'text', text: JSON.stringify({
+              applied: Object.keys(updates).filter(k => ['profile', 'lesson', 'playbook', 'bias'].includes(k)),
+              project: distillProject,
+              promptHistory: { analysed: analysed.length, evicted },
+            }) }] };
+          }
+
+          // Phase 1: hand back the prompt and the ids it covers.
+          const staged = promptLogSvc.stagedForAnalysis();
+          const recent = memSvc.recall({ query: '', project: distillProject, limit: 50 });
+          if (staged.length === 0 && recent.length === 0) {
+            return { content: [{ type: 'text', text: JSON.stringify({
+              nothingToDistill: true,
+              project: distillProject,
+              message: 'No staged prompt history and no memories for this project — nothing to synthesize.',
+            }) }] };
+          }
+          return { content: [{ type: 'text', text: JSON.stringify({
+            prompt: buildDistillPrompt(recent, getExistingInsights(distillProject), staged),
+            promptLogIds: staged.map(p => p.id),
+            covers: { memories: recent.length, promptHistory: staged.length },
+            next: 'Synthesize the JSON the prompt asks for, then call session distill again with `result` and these `prompt_log_ids`.',
+          }) }] };
         }
 
         case 'recover': {

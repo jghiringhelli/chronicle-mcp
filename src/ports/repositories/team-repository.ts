@@ -90,6 +90,15 @@ export interface TeamRepository {
   /** Mark entries as pushed so they are not sent twice. */
   markPromptLogsPushed(ids: string[]): void;
 
+  /** Staged rows distillation has not read yet, oldest first (EDR-005). */
+  getUnanalysedPromptLogs(limit?: number): PromptLog[];
+
+  /** Record that distillation read these rows. Idempotent. */
+  markPromptLogsAnalysed(ids: string[], at?: string): void;
+
+  /** Delete analysed rows older than `before`; `requirePushed` protects an unpushed pattern. */
+  evictAnalysedPromptLogs(before: string, requirePushed: boolean): number;
+
   /** Count buffered entries by outcome, for a contributor within a team. */
   countPromptLogsByOutcome(userId: string, teamId: string): Record<string, number>;
 

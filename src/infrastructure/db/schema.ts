@@ -220,7 +220,11 @@ CREATE TABLE IF NOT EXISTS prompt_log_buffer (
   share_content INTEGER NOT NULL DEFAULT 0,
   raw_content TEXT,
   logged_at TEXT NOT NULL,
-  status TEXT NOT NULL DEFAULT 'pending'
+  -- status and analysed_at are two independent lifecycles, never to be conflated (EDR-005).
+  -- status: did the PATTERN reach the team.  analysed_at: has distillation read the LOCAL text.
+  -- A row can be pushed and unanalysed, or analysed and unpushed; both are normal.
+  status TEXT NOT NULL DEFAULT 'pending',
+  analysed_at TEXT
 );
 
 CREATE TABLE IF NOT EXISTS team_sync_cursor (
@@ -285,4 +289,4 @@ ${SCHEMA_INDEXES_SQL}`;
  * 1 = the schema as of ADR-018 (memories.scope and its indexes).
  * 2 = contributors.kind and contributors.repo_path — a contributor can be an AI session.
  */
-export const SCHEMA_VERSION = 2;
+export const SCHEMA_VERSION = 3;

@@ -1,7 +1,7 @@
 ---
 id: ADR-026
 type: adr
-status: draft
+status: active
 tier: T1
 properties: [defended, auditable, verifiable]
 obligations: 5
@@ -11,7 +11,7 @@ depends_on: [ADR-019, ADR-012]
 # ADR-026: Prompt history is a local staging buffer with a lifecycle, not a column that exists or does not
 
 **Date:** 2026-10-27
-**Status:** Proposed — the design is the owner's; one parameter is left open below and needs his answer.
+**Status:** Accepted 2026-10-27 — "hagamos esas tres capas". The retention parameter is settled below.
 
 ## Context
 
@@ -90,9 +90,21 @@ Three things are missing and none of them is a redesign:
   Staged rows accumulate indefinitely, marked `pushed`.
 - **No retention rule exists**, which is the open parameter below.
 
-## The open decision
+## The retention decision — settled
 
-**When is a staged row done?** Two defensible answers and they are not the same product:
+**Both answers are available and the recoverable one is the default.** `promptRetentionDays`
+defaults to **7**, matching the `buffer` storage tier (ADR-012) so the system carries one retention
+concept rather than two; **`0` means delete on analysis**, which is the minimal-residency option.
+The default is the recoverable one because with `0` a single failed distillation run loses that
+stretch of history and there is no second pass over it — and this is a buffer whose contents cannot
+be reconstructed from anywhere else.
+
+The boundary is inclusive (`analysed_at <= cutoff`), which is load-bearing rather than cosmetic:
+with `0` the cutoff and `analysed_at` fall in the same millisecond, and a strict comparison would
+never release the row, so "evict on analysis" would have silently kept everything. Its own test
+caught that.
+
+The two answers as they were weighed:
 
 - **On analysis.** The row is deleted the moment distillation has read it. Minimal residency, and
   the buffer is genuinely a buffer. The cost: one failed distillation run and that stretch of
@@ -101,12 +113,8 @@ Three things are missing and none of them is a redesign:
   existing `buffer` storage tier (ADR-012), so the system would have one retention concept rather
   than two. The cost: raw prompt text sits on disk for a week after it has stopped being needed.
 
-A third option, keeping until the user asks for deletion, is rejected in advance: "keep until
-someone objects" is how a staging area becomes an archive, and this one holds the most sensitive
-data in the system.
-
-**This ADR does not choose.** The owner does, and the number goes in this section before the status
-moves to Accepted.
+A third option, keeping until the user asks for deletion, is rejected: "keep until someone objects"
+is how a staging area becomes an archive, and this one holds the most sensitive data in the system.
 
 ## Alternatives Considered
 
@@ -130,11 +138,16 @@ and eviction is the part that is missing either way.
   survives a new deployment without anyone remembering a migration step.
 - The chronicle's input is preserved: the raw text is staged locally and is available to the
   distillation step whenever it is wired.
-- **Raw prompt text now accumulates on disk with no eviction**, and that is strictly worse than
-  before this ADR only in the sense that it is now intentional and recorded. It was already
-  happening. Until the lifecycle lands, the honest statement is that `prompt_log_buffer` grows
-  without bound, and anyone uncomfortable with that should not pass `share_content: true`.
-- `share_content` keeps a name that no longer describes it.
+- **The buffer no longer grows without bound.** `analysed_at` plus `evictAnalysed` close the loop
+  the same day this ADR opened it: a row is staged, read by distillation, and deleted once retention
+  releases it. EDR-005 holds the unit.
+- **Distillation reads both sources.** `buildDistillPrompt` takes the staged prompt history as a
+  third argument beside the memories, so the chronicle synthesises from what was attempted and not
+  only from what was recorded.
+- `share_content` keeps a name that no longer describes it — it now means "stage the raw text
+  locally", and renaming a published MCP parameter is a breaking change deferred on purpose.
+- An agent must call `session distill` for any of this to happen. Nothing distils automatically,
+  because this server has no sampling channel and cannot start a model turn by itself.
 
 ## Verification
 
@@ -147,8 +160,23 @@ and eviction is the part that is missing either way.
 - **Verified 2026-10-27.** `cloud:inspect` against the live database reports
   `raw_content / share_content: ABSENT`, and the one real row in `prompt_logs` carries a pattern and
   no text.
-- **Not verified, and it is the gap this ADR exists to close:** that a staged row is ever analysed or
-  ever evicted. Neither path exists, so there is nothing to measure. No instrument currently asserts
-  the absence of those two columns either — the three RLS verifiers do not check them, and
-  `cloud:inspect` is not a gate. An assertion belongs in `verify-team-cloud.mjs`, where it would run
-  in CI.
+- **Verified 2026-10-27, the lifecycle.** 326 tests pass, thirteen of them on
+  `prompt-log-service` and sixteen on `local-migration`: a fresh row is unanalysed; marking is
+  idempotent; `status` and `analysed_at` are independent; retention `0` evicts on analysis and `7`
+  does not; an unanalysed row is never evicted; an analysed-but-unpushed row is kept while a remote
+  is configured and released when none is; and `analysed_at` is added to a buffer built *without*
+  it, with the pre-existing row left valid and reading as unanalysed.
+- **Verified 2026-10-27 through the real wire.** `pnpm run smoke` is 22/22, three of them new:
+  phase 1 returns a prompt containing the profile section plus the ids it covers, phase 2 applies
+  `profile` and `lesson` and reports what it analysed and evicted, and a non-JSON `result` is
+  refused with a hint rather than a stack trace. Driven as an MCP client, because a two-phase action
+  is precisely the shape that unit tests pass and the wire breaks.
+- **Not verified:** the prompt-history half of the distillation input. The smoke run reports
+  `promptHistory:0`, because `team log` needs a configured team and the smoke environment has none,
+  so only the memory half crossed the wire. The unit tests cover the staging and eviction of those
+  rows; nothing has yet distilled a real staged row end to end.
+- **Still not asserted by any gate:** the absence of `raw_content` and `share_content` from the
+  cloud table. The three RLS verifiers do not check them and `cloud:inspect` is not a gate. The
+  assertion belongs in `verify-team-cloud.mjs`, where CI would run it.
+- **Not verified, and no test can:** that the synthesis is any good. This ADR guarantees the
+  lifecycle, not the quality of what the model writes into the profile.

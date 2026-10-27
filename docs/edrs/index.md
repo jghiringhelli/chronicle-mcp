@@ -29,6 +29,7 @@ An EDR is not a post-mortem: a bug worth remembering goes to `docs/decisions/`.
 | EDR-002 | SQLite memory repository — keyword recall and row mapping | `src/adapters/repositories/sqlite-memory-repository.ts`, `src/infrastructure/db/schema.ts` | active |
 | EDR-003 | Cloud sync — boundary-triggered, last-write-wins mirror | `src/services/sync.ts`, `src/infrastructure/db/cloud-schema.sql` | active |
 | EDR-004 | Coordination service — decomposition, ranking, assignment | `src/services/coordination-service.ts`, `src/infrastructure/db/team-schema.ts` | active |
+| EDR-005 | Prompt history lifecycle — staged, analysed, evicted | `src/services/prompt-log-service.ts`, `src/services/distill.ts`, `src/adapters/repositories/sqlite-team-repository.ts`, `src/infrastructure/db/database.ts` | active |
 
 ## Rules
 

@@ -1,13 +1,21 @@
 /**
- * DistillService — LLM-powered intelligence layer synthesis.
+ * DistillService — the intelligence layer synthesis: profile, lessons, playbook.
  *
- * At session_end, takes the memories captured during the session and asks
- * the LLM (via MCP sampling) to update the developer profile, lessons, and playbook.
+ * Reads the memories captured during the session **and** the prompt history staged in
+ * `prompt_log_buffer` (EDR-005), and asks a model to update the developer profile, the lessons and
+ * the playbook. The distilled output goes to the local `insights` table and syncs to Railway; the
+ * raw prompt text that fed it never does (ADR-019 §1, ADR-026).
  *
- * The distilled output is stored in the local `insights` table and synced to Railway.
+ * **Two phases, because this server cannot sample.** There is no MCP sampling support here and the
+ * client would have to offer it, so the halves are exposed as one action with two modes:
+ * `session(action:'distill')` returns `buildDistillPrompt`'s output and the ids it covers;
+ * `session(action:'distill', result)` runs `applyDistillResult`, marks those ids analysed and
+ * evicts what retention releases. The calling agent *is* the model, so its own turn is the
+ * round-trip. The shape mirrors `gs step`: without arguments it says what it needs, with them it acts.
  */
 
 import type { Memory } from '../domain/entities/memory.js';
+import type { PromptLog } from '../domain/entities/prompt-log.js';
 import { getDatabase } from '../infrastructure/db/database.js';
 import crypto from 'node:crypto';
 
@@ -24,21 +32,36 @@ export interface InsightUpdate {
  */
 export function buildDistillPrompt(
   newMemories: Memory[],
-  existingInsights: Record<string, string>
+  existingInsights: Record<string, string>,
+  promptHistory: readonly PromptLog[] = []
 ): string {
   const memoriesList = newMemories
     .map(m => `- [${m.memoryType}] ${m.content}${m.project ? ` (project: ${m.project})` : ''}`)
     .join('\n');
 
+  // EDR-005: two sources, two jobs. The memories carry the facts; the staged prompt history carries
+  // the work and the style — what was attempted and how it went — which is the half that makes this
+  // a chronicle rather than a store. The raw text is included when it was staged, and it never
+  // leaves this machine: this string is handed to the calling agent, not written anywhere.
+  const historyList = promptHistory
+    .map(p => {
+      const head = `- [${p.outcome}/${p.category}] ${p.pattern}`;
+      return p.rawContent ? `${head}\n    verbatim: ${p.rawContent}` : head;
+    })
+    .join('\n');
+  const historySection = historyList === ''
+    ? ''
+    : `\n## Prompt history staged this stretch (what was attempted, and how it went):\n${historyList}\n`;
+
   const existingProfile  = existingInsights['profile']  ?? '(none yet)';
   const existingLessons  = existingInsights['lesson']   ?? '(none yet)';
   const existingPlaybook = existingInsights['playbook'] ?? '(none yet)';
 
-  return `You are updating a developer's persistent memory profile. Based on NEW MEMORIES from this session, update the intelligence layer.
+  return `You are updating a developer's persistent memory profile. Based on NEW MEMORIES and the PROMPT HISTORY from this session, update the intelligence layer.
 
 ## New memories captured this session:
 ${memoriesList}
-
+${historySection}
 ## Current intelligence layer:
 ### Developer Profile (preferences, patterns, tendencies):
 ${existingProfile}

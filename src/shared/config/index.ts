@@ -34,6 +34,12 @@ export interface ChronicleConfig {
   teamId?: string;
   /** Team license token — required to use Axon (team coordination) tools. */
   teamToken?: string;
+  /**
+   * Days to keep an analysed prompt-history row before evicting it (EDR-005). Default 7, matching
+   * the `buffer` storage tier so retention is one concept rather than two. **0 evicts on analysis**
+   * — minimal residency, at the cost of no second pass if a distillation run fails.
+   */
+  promptRetentionDays?: number;
 }
 
 /**

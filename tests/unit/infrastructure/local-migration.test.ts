@@ -249,3 +249,82 @@ describe('contributors gains kind and repo_path', () => {
     expect(() => db.exec(index)).not.toThrow();
   });
 });
+
+/**
+ * EDR-005 — `prompt_log_buffer.analysed_at`.
+ *
+ * The prompt-history lifecycle needs to know which staged rows distillation has already read. Added
+ * to the schema file alone it would never reach a database that already exists, and every clone that
+ * has ever logged a prompt is such a database.
+ */
+describe('migrateLocalSchema — prompt_log_buffer.analysed_at', () => {
+  let dir: string;
+  const open: Database.Database[] = [];
+
+  /** `prompt_log_buffer` as it existed before EDR-005 — push lifecycle only, no `analysed_at`. */
+  const OLD_BUFFER = `
+    CREATE TABLE prompt_log_buffer (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      team_id TEXT NOT NULL,
+      project TEXT,
+      pattern TEXT NOT NULL,
+      outcome TEXT NOT NULL DEFAULT 'neutral',
+      category TEXT NOT NULL DEFAULT 'general',
+      tags TEXT NOT NULL DEFAULT '[]',
+      share_content INTEGER NOT NULL DEFAULT 0,
+      raw_content TEXT,
+      logged_at TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'pending'
+    );`;
+
+  const columns = (db: Database.Database, table: string) =>
+    (db.prepare(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>).map((c) => c.name);
+
+  beforeEach(() => { dir = mkdtempSync(join(tmpdir(), 'chronicle-buffer-')); });
+  afterEach(() => {
+    while (open.length) open.pop()?.close();
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  const oldDb = () => {
+    const db = new Database(join(dir, 'chronicle.db'));
+    applyConcurrencyPragmas(db);
+    open.push(db);
+    db.exec(OLD_BUFFER);
+    return db;
+  };
+
+  it('adds analysed_at to a buffer that predates the lifecycle', () => {
+    const db = oldDb();
+    expect(columns(db, 'prompt_log_buffer')).not.toContain('analysed_at');
+
+    migrateLocalSchema(db);
+
+    expect(columns(db, 'prompt_log_buffer')).toContain('analysed_at');
+  });
+
+  it('leaves an already-staged row valid, and reads as unanalysed', () => {
+    const db = oldDb();
+    db.prepare(
+      `INSERT INTO prompt_log_buffer (id, user_id, team_id, pattern, tags, logged_at)
+       VALUES ('p1', 'u1', 't1', 'something older than the lifecycle', '[]', ?)`,
+    ).run(new Date().toISOString());
+
+    migrateLocalSchema(db);
+
+    const row = db.prepare(`SELECT pattern, status, analysed_at FROM prompt_log_buffer WHERE id = 'p1'`)
+      .get() as { pattern: string; status: string; analysed_at: string | null };
+    // NULL is the accurate answer for a row nothing has analysed, which is why the column has no
+    // default. The row keeps its data and its push status.
+    expect(row.analysed_at).toBeNull();
+    expect(row.status).toBe('pending');
+    expect(row.pattern).toBe('something older than the lifecycle');
+  });
+
+  it('is idempotent', () => {
+    const db = oldDb();
+    migrateLocalSchema(db);
+    expect(migrateLocalSchema(db)).toEqual([]);
+  });
+});

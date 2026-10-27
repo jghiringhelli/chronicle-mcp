@@ -34,7 +34,10 @@ export interface PromptLog {
   readonly shareContent: boolean;
   readonly rawContent?: string;
   readonly loggedAt: string;
+  /** Did the PATTERN reach the team. Independent of `analysedAt` (EDR-005). */
   readonly status: PromptLogStatus;
+  /** When distillation read the local text, ISO; undefined while still staged. */
+  readonly analysedAt?: string;
 }
 
 export interface CreatePromptLogInput {

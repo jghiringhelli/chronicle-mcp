@@ -193,6 +193,33 @@ async function main() {
   record('F7 session end applies decay and promotion', ended.length > 0,
     ended.replace(/\s+/g, ' ').slice(0, 100));
 
+  // ── the chronicle's middle step: distillation, both phases (EDR-005, ADR-026) ────────────
+  // Driven as a real client on purpose. A two-phase action is exactly the shape unit tests pass
+  // and integration breaks: phase 1 has to hand back something phase 2 accepts, and only a round
+  // trip through the wire proves it.
+  const phase1 = await call(a.client, 'session', { action: 'distill', project: PROJECT });
+  const built = JSON.parse(phase1);
+  record('distill phase 1 returns a prompt and the ids it covers',
+    typeof built.prompt === 'string' && built.prompt.includes('Developer Profile') && Array.isArray(built.promptLogIds),
+    `memories:${built.covers?.memories ?? 0} promptHistory:${built.covers?.promptHistory ?? 0}`);
+
+  const phase2 = await call(a.client, 'session', {
+    action: 'distill',
+    project: PROJECT,
+    result: JSON.stringify({ profile: `${TAG} you prefer evidence over assertion`, lesson: `${TAG} a gate nobody saw fail is not evidence` }),
+    prompt_log_ids: built.promptLogIds ?? [],
+  });
+  const applied = JSON.parse(phase2);
+  record('distill phase 2 applies the synthesis and moves the lifecycle on',
+    Array.isArray(applied.applied) && applied.applied.includes('profile') && applied.applied.includes('lesson')
+      && typeof applied.promptHistory?.evicted === 'number',
+    `applied:${(applied.applied ?? []).join(',')} analysed:${applied.promptHistory?.analysed} evicted:${applied.promptHistory?.evicted}`);
+
+  // A malformed result must be refused with a usable message, not a stack trace.
+  const bad = await call(a.client, 'session', { action: 'distill', project: PROJECT, result: 'not json at all' });
+  record('distill refuses a non-JSON result with a hint instead of throwing',
+    /"error"/.test(bad) && /hint/.test(bad), bad.replace(/\s+/g, ' ').slice(0, 90));
+
   // ── axon is inert without a team configured (ADR-010 §3) ────────────────────────────────
   try {
     const axon = await call(a.client, 'axon', { action: 'status', project: PROJECT });

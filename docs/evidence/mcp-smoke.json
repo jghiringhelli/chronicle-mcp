@@ -1,15 +1,15 @@
 {
-  "ran_at": "2026-09-16T15:22:13.412Z",
+  "ran_at": "2026-10-27T21:35:03.959Z",
   "command": "node scripts/smoke-mcp.mjs",
   "node": "v24.18.0",
   "platform": "win32-x64",
   "server": "dist/cli.js",
   "chronicle_home": "throwaway temp directory (CHRONICLE_HOME) — the real ~/.chronicle is untouched",
   "handshake_ms": {
-    "instanceA": 254,
-    "instanceB": 228
+    "instanceA": 412,
+    "instanceB": 403
   },
-  "passed": 19,
+  "passed": 22,
   "failed": 0,
   "results": [
     {
@@ -20,7 +20,7 @@
     {
       "name": "UC-008 server starts over stdio with no configuration",
       "ok": true,
-      "detail": "connect+handshake 254ms"
+      "detail": "connect+handshake 412ms"
     },
     {
       "name": "ADR-011 exactly 4 tools are registered",
@@ -35,7 +35,7 @@
     {
       "name": "UC-001 step 1 remember succeeds",
       "ok": true,
-      "detail": "{\"id\":\"mem_5d2862f2-aafe-4cd4-99ea-f8aaf12610ef\",\"tier\":\"working\",\"weight\":0.5,\"scope\":\"project\",\"project\":\"chronicle-sm"
+      "detail": "{\"id\":\"mem_cd2e65cf-ad17-40fc-bda9-f167287b169f\",\"tier\":\"working\",\"weight\":0.5,\"scope\":\"project\",\"project\":\"chronicle-sm"
     },
     {
       "name": "UC-001 semantic memory lands in the working tier (not buffer)",
@@ -60,7 +60,7 @@
     {
       "name": "ADR-018 remember derives the project from the repo when none is given",
       "ok": true,
-      "detail": "{\"id\":\"mem_ddad9d21-cbf4-4a8d-8a4b-5f061e89ede3\",\"tier\":\"working\",\"weight\":0.5,\"scope\":\"project\",\"project\":\"github.com/jghiringhelli/chronicle-mcp\",\"p"
+      "detail": "{\"id\":\"mem_cb999c33-9c4b-47d6-881c-64e40e160608\",\"tier\":\"working\",\"weight\":0.5,\"scope\":\"project\",\"project\":\"github.com/jghiringhelli/chronicle-mcp\",\"p"
     },
     {
       "name": "ADR-018 the derived id comes from the remote, not a fallback",
@@ -75,7 +75,7 @@
     {
       "name": "ADR-018 a person-scoped memory is not pinned to a project",
       "ok": true,
-      "detail": "{\"id\":\"mem_e3fcc7b6-56de-487c-9bd9-71347c0798f3\",\"tier\":\"working\",\"weight\":0.5,\"scope\":\"person\",\"projectSource\":\"remote\"}"
+      "detail": "{\"id\":\"mem_8722fab9-af3a-4d97-b21e-716ad3654664\",\"tier\":\"working\",\"weight\":0.5,\"scope\":\"person\",\"projectSource\":\"remote\"}"
     },
     {
       "name": "ADR-018 recall returns project scope and person scope together",
@@ -85,12 +85,27 @@
     {
       "name": "F7 session start returns context",
       "ok": true,
-      "detail": "{\"id\":\"sess_004224d6-b1ea-4fae-93da-46dda2c22ca2\",\"project\":\"chronicle-smoke\",\"status\":\"active\",\"sta"
+      "detail": "{\"id\":\"sess_d8b859b3-33d5-4ce3-9318-d1e48372d1c1\",\"project\":\"chronicle-smoke\",\"status\":\"active\",\"sta"
     },
     {
       "name": "F7 session end applies decay and promotion",
       "ok": true,
-      "detail": "{\"id\":\"sess_004224d6-b1ea-4fae-93da-46dda2c22ca2\",\"status\":\"ended\",\"endedAt\":\"2026-09-16T15:22:13.38"
+      "detail": "{\"id\":\"sess_d8b859b3-33d5-4ce3-9318-d1e48372d1c1\",\"status\":\"ended\",\"endedAt\":\"2026-10-27T21:35:03.91"
+    },
+    {
+      "name": "distill phase 1 returns a prompt and the ids it covers",
+      "ok": true,
+      "detail": "memories:3 promptHistory:0"
+    },
+    {
+      "name": "distill phase 2 applies the synthesis and moves the lifecycle on",
+      "ok": true,
+      "detail": "applied:profile,lesson analysed:0 evicted:0"
+    },
+    {
+      "name": "distill refuses a non-JSON result with a hint instead of throwing",
+      "ok": true,
+      "detail": "{\"error\":\"result is not JSON: Unexpected token 'o', \\\"not json at all\\\" is not valid JSON\""
     },
     {
       "name": "ADR-010 axon answers without a team configured instead of throwing",

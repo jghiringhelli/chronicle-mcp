@@ -3,8 +3,13 @@
 Second field report on gs-companion, after Restored Glory's of 2026-10-26 (beta.6, a GameMaker
 project). This one is a TypeScript/pnpm MCP server on Windows, run as real work rather than a demo:
 the plugin took the repository from brownfield step 01 to step 03 and three commits landed as a
-result. **Twelve frictions and four requests.** Every file:line below exists; every quoted string is
+result. **Twelve frictions and six requests.** Every file:line below exists; every quoted string is
 the text as it came out.
+
+The two requests that matter are structural and are the same mistake in two places: paths and gates
+hardcoded per stack where a resolver and a declarative form already exist — **Request 5** (declare
+the artifact map before step 06) and **Request 6** (gates as data in the ForgeCraft shape, not as
+per-language code).
 
 *Format note: I could not read `reports/gs-companion-feedback-2026-10-26.md` — it lives in the
 Restored Glory repository, not here — so this follows the seven sections asked for rather than
@@ -493,7 +498,100 @@ note is the thing the person reads instead of the tool output.
 have. The over-specification is in the **paths**, not the artifacts: `docs/spec/SPEC.md` and
 `STATUS.md` as literals, when a resolver for both already exists in the same codebase (§c.5).
 
-**Missing — four things, in order of how much they cost here:**
+### The instruments are not stack-agnostic, and ForgeCraft already solved this
+
+This is the largest architectural request in the report, and it is not a new idea: it is the shape
+`.forgecraft/` already uses, which `.claude/core.md:21` in this very repository defers to —
+*"NOT a spec/gate enforcer. Structural enforcement is ForgeCraft's job."*
+
+**The architecture is agnostic by design and the implementation is not.** ADR-002 defines a real
+adapter contract — a `LanguageRuntime` of 40 members plus a `LanguageAdapter` analysis half
+(`src/adapters/index.ts:16-56`) — with three adapters: `typescript`, `python`, and `command` as the
+generic escape hatch. The design is right. Four things undo it:
+
+1. **The same twenty gates are written twice, as code, once per language.**
+   `src/harness/templates/git-hooks/lang/typescript.mjs:118-139` is a `GATES` array of 20 entries;
+   `lang/python.mjs` is a second array of **the same 20**. They are the same *functions* —
+   file length, function length, cyclomatic complexity, type strictness, coverage, forbidden
+   patterns — each hard-bound to a named instrument:
+
+   ```js
+   { gate: "file-length", published: "file length", level: "blocking",
+     checks: [{ instrument: "eslint", rules: ["max-lines"] }], needs: "maxFileLines" },
+   ```
+
+   A third stack means a third copy of the same twenty. The function and the tool are one object.
+
+2. **The instruments are named for their tools, in the generic evidence list every audit reads.**
+   `src/harness/templates/git-hooks/lang/typescript.mjs:263` →
+   `["eslint", "tsc", "coverage", "madge", "npm-audit", "gitleaks"]`;
+   `src/harness/templates/git-hooks/lang/python.mjs:221` →
+   `["ruff", "py-lines", "mypy", "py-coverage", "py-imports", "pip-audit", "gitleaks"]`.
+   The *function* — lint, types, coverage, import cycles, dependency advisories, secrets — is implicit
+   in a product name, so an audit of a Go repository cannot report "dependency advisories: not
+   measured" without someone first inventing the id `go-audit`.
+
+3. **Unknown stacks are silently treated as TypeScript, twice.**
+   `src/adapters/index.ts:64-67` is `ANALYSIS[runtime.id] ?? ANALYSIS.typescript!`, and
+   `src/harness/templates/git-hooks/gs-lang.mjs:25` ends `?? typescript` — the doc comment one line
+   above the function, at `gs-lang.mjs:20`, says it outright: *"else TypeScript"*. So a Go,
+   Rust, Java or C# repository does not get "I do not know this stack"; it gets TypeScript's
+   production paths, test-file detection, oracle conventions and CODEOWNERS routes, reported as
+   fact. Everywhere else this tool refuses to guess — "not measured" with a reason — and here it
+   guesses silently, which is the one place it matters most.
+
+4. **The language declaration is at a hardcoded path.**
+   `src/harness/templates/git-hooks/gs-lang.mjs:18` is
+   `const CONFIG = "scripts/git-hooks/config/language"`, not `harnessDir(repo)/config/language`.
+   chronicle's hooks are at `.githooks`, so **this repository could never declare its language even
+   after step 06** — the same path-hardcoding as §c.4, §c.5 and §c.8, in the runtime half that the
+   target repository's own hooks execute.
+
+**What ForgeCraft does instead.** A gate is declared data, and the tool is one swappable field:
+
+```yaml
+id: no-direct-db-in-routes
+title: No direct database calls in route handlers
+description: >-
+  ... The Bounded property requires that each module's responsibilities and
+  dependencies are derivable from its contents alone.
+category: Bounded
+gsProperty: Bounded
+phase: development
+hook: commit
+check: "! grep -rn 'prisma\\.' src/routes/ --include='*.ts' | grep -v '//'"
+passCriterion: Route handlers do not import or call database clients directly.
+tags: [NODE, TYPESCRIPT, JAVASCRIPT, API, EXPRESS, FASTIFY]
+status: approved
+```
+
+Five properties of that shape are the whole answer:
+
+- **The functionality is the record; the tool is the `check` string.** Swap `grep` for an AST query
+  or a different linter and the gate, its rationale, its GS property and its pass criterion do not
+  move.
+- **Applicability is a tag, not a fork.** `tags: [API, ANY]` on
+  `api/health-endpoint-responds.yaml`; `tags: [NODE, TYPESCRIPT, …]` on the one above.
+- **Scope is a directory**, and the default is universal:
+  `.forgecraft/gates/registry/{universal,node,api}/`. A gate with no stack reason to be specific
+  lives in `universal/` and applies to everything — which is what most of those twenty are.
+- **`gsProperty` ties each gate to the seven properties**, so a stack with few instruments reports
+  thin coverage of a property rather than silence.
+- **There is a lifecycle**: `gates/project/{active,promoted,retired}` locally, `status: approved`
+  in the record, and a public registry to promote into —
+  `github.com/jghiringhelli/quality-gates`, "Community quality gates registry for the Generative
+  Specification methodology". A project-local gate that generalises gets promoted; gs-companion has
+  no path from "I discovered a rule here" to "the method knows this rule".
+
+**Request 6.** Move the twenty gates out of `lang/*.mjs` into declared records of the ForgeCraft
+shape — `id`, `gsProperty`, `phase`, `hook`, `check`, `passCriterion`, `tags`, `status` — defaulting
+to universal, with the instrument as data rather than a code path. Then a new stack is a set of
+`check` strings and a tag, not 370 lines implementing a 40-member interface, and the three places
+that fall back to TypeScript can honestly answer "unknown stack: these gates have no instrument
+here" instead of measuring a Go repository with `tsc`. The registry to publish them into already
+exists and is public.
+
+**Missing — four more things, in order of how much they cost here:**
 
 1. **A way to declare the artifact map before step 06.** Requests 5. This is the whole of c.4, c.5 and
    c.8.
@@ -588,9 +686,21 @@ Three commits, all through the repository's own gates, none with `--no-verify`:
 - **Coverage and mutation are 45 days old**, and the ratchet floors are two measurements behind, so
   roughly 19 points of line coverage can regress unnoticed.
 
-### If one thing gets fixed
+### If two things get fixed
 
-**Request 5.** Let the artifact map be declared before step 06. Three of the twelve frictions and the
-single blocker are the same defect: the steps and `trust.ts` hardcode paths that a resolver in the
-same codebase already knows how to find. chronicle is a well-governed repository that the tool cannot
-govern, for no reason other than that its spec is called `docs/spec.md`.
+**Request 5 — declare the artifact map before step 06.** Three of the twelve frictions and the single
+blocker are one defect: the steps and `trust.ts` hardcode paths that a resolver in the same codebase
+already knows how to find. chronicle is a well-governed repository that the tool cannot govern, for
+no reason other than that its spec is called `docs/spec.md`.
+
+**Request 6 — gates as data, in the shape `.forgecraft/` already uses.** Twenty functional gates are
+written twice as per-language code and bound to tool names, and three code paths silently treat an
+unknown stack as TypeScript. The separation of *what must hold* from *what measures it* is not a new
+design to invent: it is running in `.forgecraft/gates/registry/{universal,node,api}/` today, with a
+public registry to promote into. Adopting it is what makes the tool stack-agnostic in fact rather
+than in architecture.
+
+The two are related. Request 5 is about *where a repository's artifacts live*; Request 6 is about
+*what a repository's gates are measured with*. Both are currently answered by a literal in the
+tool's source instead of a declaration in the project, and both have a working precedent — the
+artifact map in this same codebase, and ForgeCraft next door.

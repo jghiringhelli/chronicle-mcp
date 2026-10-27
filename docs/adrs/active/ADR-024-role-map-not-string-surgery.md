@@ -128,7 +128,11 @@ the first thing to re-measure rather than assume.
   refused to start rather than touching the data.
 - All three verifiers returned to their pre-outage numbers on the restored mirror: isolation 15/15,
   cross-machine sync 16/16, team layer 9/9. The role map, the licence row and both members survived,
-  and `prompt_logs` still has no `raw_content` or `share_content` column.
+  and `prompt_logs` still has no `raw_content` or `share_content` column — confirmed by
+  `cloud:inspect` (`scripts/inspect-cloud-db.mjs:150-157`), **not** by `verify-team-cloud.mjs`,
+  which does not check those columns. The distinction matters and is pursued in
+  `reports/gs-audit-2026-10-27.md` DEFENDED item 0: the absence is a migration that was run once,
+  while the schema file and the prompt-log service both still believe the columns exist.
 - The lesson recorded here is not about RLS. A gate whose failure is indistinguishable from an
   infrastructure outage will be read as noise, and this one was: it failed nightly for 34 days and
   nobody looked, because nothing in the message said "the service is not running". Worth making

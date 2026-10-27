@@ -75,7 +75,7 @@
     "node": ">=22"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.30.0",
+    "@modelcontextprotocol/sdk": "^1.31.0",
     "better-sqlite3": "^13.0.3",
     "postgres": "^3.4.9",
     "zod": "^4.0.0"
@@ -98,18 +98,11 @@
   },
   "pnpm": {
     "auditConfig": {
-      "_comment": "Accepted advisories, each recorded in ADR-017. This is an allowlist, not a disabled gate: `pnpm audit --prod --audit-level=high` still fails on any advisory not listed here. Every entry is transitive through @modelcontextprotocol/sdk and unfixable from this repository — the SDK bundles express, hono and ajv for its HTTP transports. Re-check on every SDK bump and delete the ids that clear.",
+      "_comment": "Accepted advisories, each recorded in ADR-017. This is an allowlist, not a disabled gate: `pnpm audit --prod --audit-level=high` still fails on any advisory not listed here. Every entry is transitive through @modelcontextprotocol/sdk and not fixable by changing a direct dependency. Re-check on every SDK bump and delete the ids that clear: the bump to 1.32.1 on 2026-10-23 cleared seven of the ten entries this list used to hold. Two others (proxy-addr, fast-uri) were never unfixable at all; the patched versions satisfied their parents all along and the lockfile was simply stale, so refresh the lockfile before concluding that an advisory is stuck.",
       "ignoreGhsas": [
         "GHSA-j3q9-mxjg-w52f",
         "GHSA-88fw-hqm2-52qc",
-        "GHSA-v2hh-gcrm-f6hx",
-        "GHSA-7p8r-x3mc-p8w7",
-        "GHSA-mwp4-54f8-5fhr",
-        "GHSA-q3j6-qgpj-74h6",
-        "GHSA-v39h-62p7-jpjc",
-        "GHSA-f65p-4m7j-42xc",
-        "GHSA-jqff-g426-hqxp",
-        "GHSA-4c8g-83qw-93j6"
+        "GHSA-mwp4-54f8-5fhr"
       ]
     }
   }

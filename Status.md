@@ -11,7 +11,7 @@ depends_on: [SPEC, GS-ASSESSMENT]
 
 # Status — chronicle
 
-**Last updated:** 2026-09-10 · **Version:** 0.3.2 · **Branch:** `chore/gs-compliance`
+**Last updated:** 2026-10-27 · **Version:** 0.4.0 · **Branch:** `pilot/companion-2026-10`
 
 > **How to read this file.** Every line is either a **measurement** citing a record under
 > `docs/evidence/`, or an explicit **unrun**. No line may say "passing", "clean" or "✅"
@@ -22,30 +22,81 @@ depends_on: [SPEC, GS-ASSESSMENT]
 
 ---
 
+## Current Phase
+
+**Phase: brownfield adoption, GS step `03-spec-from-code`.** Steps 01 and 02 are closed and
+verified by `gs status`; step 03 is blocked on one collision described under
+**Brownfield Baseline** below. The product phase is unchanged: v0.4.0 feature-complete for the
+shipped surface, v0.5.0 prepared and unpublished.
+
+## Brownfield Baseline
+
+GS Audit overall grade from Step 02: **B- (SAVED), engineering layer C+**, measured 2026-10-27
+against commit `45b68e2` and recorded in `reports/gs-audit-2026-10-27.md`.
+
+Property grades: Self-describing B+ · Auditable B · Verifiable C+ · Executable B · Defended B ·
+Bounded C · Composable B+. The audit's three priorities, in its order of leverage: declare the
+size limits where an instrument can read them, close the `prepublishOnly` advisory hole, give the
+integration layer a home. Its fifteen-item remediation plan is the contract for the sessions that
+follow, and the items are not repeated here.
+
+**Step 03 is blocked, deliberately.** The harness asks for `docs/spec/SPEC.md`; this repository's
+authoritative spec is `docs/spec.md` and ADR-013 makes it the single source. Writing a second
+specification document to satisfy a path would break the rule the step exists to serve, so it has
+not been written. The sanctioned way out is `gs step --lock adopt`, which is gated behind step 06
+and therefore unreachable from here. Recorded as friction in
+`reports/gs-companion-feedback-2026-10-27.md`.
+
+## Last Session
+
+**2026-10-27 — the GS audit, and the first two brownfield steps closed.** Ran the gs-companion
+plugin (2.0.0-beta.9) against this repository as a real user rather than a demo. `gs status` moved
+chronicle from `01-cold-read` through `02-gs-audit` to `03-spec-from-code`, and step 02 is verified:
+68 structural fields present and 43 citations checked against the files. The audit it commissioned
+is `reports/gs-audit-2026-10-27.md` — B- overall, with the three findings that were not already
+written down anywhere: this file's gate table disagreeing with its own evidence, no size limit
+declared where any instrument can read it, and `prepublishOnly` never running `pnpm audit`. ADR-025
+was needed before the audit could even be committed, because `.gitignore` classified it as gate
+output. Nine of the plugin's fifteen instruments reported `not measured` against a repository that
+has them all installed; the two pnpm/Windows causes are diagnosed in
+`reports/gs-companion-feedback-2026-10-27.md`, which is the other product of the session.
+
+The session log below keeps the earlier entries, newest first.
+
+---
+
 ## Gates — measured
 
-Every gate runs, and every gate passes. All runs on Node 24.18.0, win32-x64, 2026-09-10.
+Every gate runs, and every gate passes. Rows dated 2026-09-10 unless stated; Node 24.18.0,
+win32-x64.
 
 | Gate | Command | Result | Record |
 |---|---|---|---|
 | Cascade / sentinel | `pnpm run cascade` | **0 errors, 4 warnings** | `docs/evidence/cascade-check-after.json` |
 | Typecheck | `pnpm run typecheck` | **exit 0** | `docs/evidence/typecheck.txt` |
 | Lint (cycles + layers) | `pnpm run lint` | **0 errors**, 32 warnings (exc-009) | `docs/evidence/lint.txt` |
-| Tests | `pnpm run test:coverage` | **119 passed / 119** | `docs/evidence/test-coverage.txt` |
-| Coverage | `pnpm run test:coverage` | **41.17% lines** (floor 41, target 80) | `docs/evidence/test-coverage.txt` |
-| Mutation | `pnpm run test:mutation` | **MSI 20.67%** (floor 20, target 65) | `docs/evidence/mutation.txt` |
+| Tests | `vitest run` (pre-commit) | **314 passed / 314**, 2026-10-27 at `09d68e5` | this table's own run record |
+| Coverage | `pnpm run test:coverage` | **59.98% lines** (floor 41, target 80) | `docs/evidence/test-coverage.txt` |
+| Mutation | `pnpm run test:mutation` | **MSI 36.92%** (floor 20, target 65) | `docs/evidence/mutation.txt` |
 | Dependency policy | `pnpm run deps:policy` | **ok** | `docs/evidence/dependency-policy.txt` |
 | Build | `pnpm run build` | **exit 0** | `docs/evidence/build.txt` |
 | **MCP generative execution** | `pnpm run smoke` | **12 / 12 checks** | `docs/evidence/mcp-smoke.json` |
-| Supply chain | `pnpm audit --prod --audit-level=high` | **unrun** | — |
+| Supply chain | `pnpm audit --prod --audit-level=high` | **exit 0**, 3 advisories allow-listed, 2026-10-26 | `package.json` `auditConfig.ignoreGhsas` |
 
 **Coverage and mutation are ratchet floors, not the targets.** Both thresholds had been declared
 for months (80% lines, 65% MSI) and **neither had ever been evaluated** — the coverage provider
 could not load, and Stryker was never installed. The first real measurements were 15.24% and 9.14%.
-They now stand at 41.17% and 20.67%, and the thresholds are set to those values as floors that may
-only rise. A threshold nobody can pass is a disabled gate; a floor at the measured value blocks
-regressions from today forward. The 80/65 targets stay on record in
-`.claude/standards/testing.md`.
+A threshold nobody can pass is a disabled gate; a floor at the measured value blocks regressions
+from today forward. The 80/65 targets stay on record in `.claude/standards/testing.md`.
+
+**The floors are two measurements behind, and that is a live defect.** They sit at 41 and 20 in
+`vitest.config.ts` and `stryker.config.json`, which were the values measured on 2026-09-10. The
+records committed three days later read **59.98%** and **36.92**, and this table said 41.17 and
+20.67 until 2026-10-27 — wrong against its own citations, in the flattering direction, which is why
+it survived 47 days. The ratchet has therefore not ratcheted: roughly 19 points of line coverage and
+16 of mutation score could regress today without a gate noticing. Raising the two floors to the
+recorded values is item 4 of `reports/gs-audit-2026-10-27.md`, and it needs a fresh coverage run
+first, because 16 tests have been added since the record.
 
 **What moved the numbers.** 78 new tests: `coordination-service` (45, from zero — 771 lines),
 `sync` (15, from zero — 522 lines), `session-service` (11) and `database-concurrency` (7).
@@ -105,7 +156,29 @@ anchor named for each property, the evidence, and the tiered treatment plan:
 
 ---
 
-## Next — in order
+## In Progress
+
+- **v0.5.0, prepared and unpublished.** `package.json` and `pnpm-lock.yaml` carry the SDK at 1.32.1
+  and the advisory allow-list cut from ten entries to three; both are uncommitted in the working
+  tree. The suite is green against that SDK (314/314, `09d68e5`). Publishing needs `npm login`.
+- **PR #7, open.** Removes the nightly CI trigger, which had reported 35 consecutive failures from
+  two causes that were not code changes. The cron keeps firing until it merges.
+- **ADR-024's record,** updated 2026-10-26 with the Railway outage and the recovery; uncommitted.
+- **GS brownfield adoption,** at step 03 and blocked as described under Brownfield Baseline.
+
+## Completed
+
+Since the 2026-09-10 entry below, in commit order: the RLS boundary applied and verified
+(ADR-023, ADR-024, `ef8b9f3`); the onboarding manual corrected to stop handing out the superuser
+string (`3b32a0f`); an employer-identity guard added to the tracked hooks (`45b68e2`); the nightly
+CI trigger removed (`a52a4d7`, PR #7); the Railway mirror recovered after a 34-day outage, with
+isolation 15/15, cross-machine sync 16/16 and the team layer 9/9; and the GS audit of 2026-10-27
+with ADR-025 to let the repository keep it (`09d68e5`, `e020a6f`).
+
+## Next Session Entry Point
+
+Raise the two ratchet floors: run `pnpm run test:coverage` and `pnpm run test:mutation`, then set
+`vitest.config.ts` and `stryker.config.json` to the measured values — item 1 and item 4 of the audit.
 
 From the treatment plan in `docs/gs-assessment.md`. P1 items are what make every claim above
 admissible:

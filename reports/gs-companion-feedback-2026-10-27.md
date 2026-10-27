@@ -3,7 +3,7 @@
 Second field report on gs-companion, after Restored Glory's of 2026-10-26 (beta.6, a GameMaker
 project). This one is a TypeScript/pnpm MCP server on Windows, run as real work rather than a demo:
 the plugin took the repository from brownfield step 01 to step 03 and three commits landed as a
-result. **Twelve frictions and six requests.** Every file:line below exists; every quoted string is
+result. **Twelve frictions and seven requests.** Every file:line below exists; every quoted string is
 the text as it came out.
 
 The two requests that matter are structural and are the same mistake in two places: paths and gates
@@ -162,7 +162,22 @@ Once the note could compute, it was specific and correct:
 
 It counted my commits, typed them, and noticed the step transition. Nothing here is a guess.
 
-### b.6 `checkpoint_record` states its own limit
+### b.6 Section 6 of the canonical prompt found a real release hole
+
+Worth recording because it is the commission paying for itself. The audit prompt's SECTION 6 asks
+for "Dependency risk: known-vulnerable or unmaintained dependencies (note if a lockfile audit is
+possible)", and following it is what turned up the one finding in this repository with a path to a
+published artifact: **`prepublishOnly` ran `deps:policy`, the approved-library check, and never
+`pnpm audit`.** `docs/dependency-policy.md` rule 1 says a new HIGH "blocks the build"; ten scripts in
+the publish chain and not one ran an audit, so the one build where blocking protects a consumer was
+the only build that rule did not block. It was not hypothetical: two unignored HIGH advisories were
+live in the lockfile the same day. Fixed in `ef01970`.
+
+A well-governed repository with 20 ADRs, four git hooks and seven CI jobs had that hole, and the
+thing that found it was a prompt section asking a plain question. That is the argument for the
+commission being fixed and hashed rather than improvised per repository.
+
+### b.7 `checkpoint_record` states its own limit
 
 Its description says: *"this server cannot prove the person typed it, so the record is a claim; the
 person must approve this tool call (do not allow-list it)."* A tool that tells you what its own
@@ -630,6 +645,39 @@ exists and is public.
 4. **A `skipSuite` equivalent on the hook CLI entry.** `handleHook` takes the option; `hook.js` cannot
    pass it, so there is no way to opt into the hooks without also paying for a full test run per turn
    (§c.10).
+
+5. **A check that a gate is *wired*, not only that it passes.** See Request 7 below — this is the
+   one finding from fixing chronicle that generalises to the tool.
+
+**Request 7 — measure whether each declared gate is reachable from the chain that runs it.**
+
+A gate that exists but is not wired is indistinguishable from a gate that passes. `audit:supply-chain`
+existed in this repository, was declared normative as rule 1 of `docs/dependency-policy.md`, and was
+absent from `prepublishOnly`. Nothing detected it, because every instrument asked *does the gate pass*
+and none asked *does the gate run*.
+
+gs-companion already knows two members of this family and is missing the third:
+
+- the unrendered `{{max_function_length}}` placeholder that left four hooks exiting 0 over no check
+  at all — recorded in `.claude/ledger.md` as strictly worse than the same hole in prose, "because it
+  produces a green check over no check";
+- F-002's "reporting what was not installed", which is the same honesty applied to instruments;
+- **missing: reporting what is installed but never invoked.** The twenty gates of
+  `src/harness/templates/git-hooks/lang/typescript.mjs:118-139` are declared with a `hook` level
+  (`blocking`), but nothing verifies that the generated hook or CI job actually calls each one. A
+  gate dropped from a chain is silent.
+
+The design that caught it here is the part worth copying, and it is the same lesson as Request 6.
+`scripts/check-dependency-policy.mjs` rule 10 resolves the publish chain **transitively** — walking
+`pnpm run <name>` references from `prepublishOnly` — and asks whether *any* script it reaches runs an
+audit. It checks the property, not a literal in one named script; verified by moving the call into
+`gates` instead, where the rule also passes. gs-companion's gates are literal-bound today
+(`checks: [{ instrument: "eslint", rules: ["max-lines"] }]`), so a wiring check written the same way
+would ask "is some reachable step running this instrument" rather than "is this string present".
+
+And it was made to fail on purpose before being trusted, which `.claude/ledger.md` insists on and
+which §b.1 shows the plugin already doing for citations: the red output is quoted in
+`docs/decisions/2026-10-27-audit-at-publish-not-at-every-commit.md`.
 
 ---
 

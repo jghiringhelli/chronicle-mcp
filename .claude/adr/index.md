@@ -38,6 +38,7 @@ carries the local context a change actually needs.
 | ADR-023 | App-role RLS is a default, not a boundary; any DB credential is full access | Accepted · corrects ADR-019 §3 and ADR-020 | @docs/adrs/active/ADR-023-rls-is-a-default-not-a-boundary.md |
 | ADR-024 | Bind rows to a role via a lookup table, not by parsing the role name | Accepted · amends ADR-023 §4 (the SQL, not the decision) | @docs/adrs/active/ADR-024-role-map-not-string-surgery.md |
 | ADR-025 | A commissioned GS report is evidence, not gate output; `reports/gs-*.md` is tracked | Accepted · narrows `.gitignore:12`, derives from ADR-013 | @docs/adrs/active/ADR-025-gs-reports-are-evidence.md |
+| ADR-026 | Prompt history is a local staging buffer with a lifecycle; the cloud table never holds raw text | **Proposed** · reads ADR-019 §1 as a boundary, not an erasure; retention is the open parameter | @docs/adrs/active/ADR-026-prompt-history-is-a-staging-buffer.md |
 
 ## Numbering — why it jumps from 003 to 010
 
@@ -50,7 +51,7 @@ gate can detect, because each file is individually well-formed. The gap is the s
 lines of work met, and it is left visible rather than renumbered: ADRs are immutable after
 acceptance.
 
-**The next ADR on this branch is ADR-026.**
+**The next ADR on this branch is ADR-027.**
 
 Two records that read similarly and are not the same decision: **ADR-010** put `axon`
 *coordination* in core (the earlier choice); **ADR-002** folded chronicle-team's *knowledge* layer

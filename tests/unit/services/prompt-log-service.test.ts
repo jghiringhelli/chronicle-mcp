@@ -59,4 +59,42 @@ describe('PromptLogService', () => {
     // Buffer remains pending because nothing was pushed.
     expect(repo.getPendingPromptLogs()).toHaveLength(1);
   });
+
+  /**
+   * ADR-019 §1: the raw prompt text is a LOCAL staging area, and the cloud `prompt_logs` is the
+   * sharing boundary. `migrate-cloud-db.mjs` dropped both columns there, so a statement that names
+   * them is two defects in one line: it breaks the push against the real database, and on a fresh
+   * one it would carry prompt text into a database a partner reads.
+   *
+   * This asserts the statement we EMIT, not what a fake returns — the fake is only a recorder.
+   */
+  it('never names raw_content or share_content in the statement it sends to the cloud', async () => {
+    const statements: string[] = [];
+    vi.doMock('postgres', () => ({
+      default: () => {
+        const sql = (strings: TemplateStringsArray) => {
+          statements.push(strings.join('?'));
+          return Promise.resolve([]);
+        };
+        (sql as unknown as { end: () => Promise<void> }).end = () => Promise.resolve();
+        return sql;
+      },
+    }));
+    cfg.railwayUrl = 'postgres://stand-in/db';
+
+    svc.log({ pattern: 'stage it', shareContent: true, rawContent: 'the raw prompt' });
+    await svc.pushBuffer();
+
+    expect(statements.length).toBeGreaterThan(0);
+    const insert = statements.join('\n');
+    expect(insert).toMatch(/INSERT INTO prompt_logs/);
+    expect(insert).not.toMatch(/raw_content/);
+    expect(insert).not.toMatch(/share_content/);
+  });
+
+  it('keeps the raw text in the local buffer, which is where analysis will read it', () => {
+    svc.log({ pattern: 'stage it', shareContent: true, rawContent: 'the raw prompt' });
+    const [staged] = repo.getPendingPromptLogs();
+    expect(staged?.rawContent).toBe('the raw prompt');
+  });
 });

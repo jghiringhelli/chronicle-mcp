@@ -139,9 +139,14 @@ CREATE TABLE IF NOT EXISTS prompt_logs (
   outcome TEXT NOT NULL DEFAULT 'neutral',
   category TEXT NOT NULL DEFAULT 'general',
   tags TEXT[] NOT NULL DEFAULT '{}',
-  share_content BOOLEAN NOT NULL DEFAULT FALSE,
-  raw_content TEXT,
   logged_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  -- No raw_content and no share_content, deliberately (ADR-019 §1). This table is the sharing
+  -- boundary: the distilled pattern crosses it and the prompt text does not. The raw text lives
+  -- only in the local prompt_log_buffer, where it is staged for analysis and then evicted.
+  -- These two columns existed here until 2026-10-27 and were dropped from the live database by
+  -- scripts/migrate-cloud-db.mjs. Removing them from this DDL too is what makes the guarantee a
+  -- property rather than a migration somebody has to remember: CREATE TABLE IF NOT EXISTS would
+  -- otherwise hand every fresh team database the columns back (ledger.md, pitfall 2). See ADR-026.
 );
 
 CREATE TABLE IF NOT EXISTS team_insights (

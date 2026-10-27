@@ -3,6 +3,20 @@
  *
  * Local-first: logs are written to prompt_log_buffer (SQLite) immediately.
  * Push is called at session_end or manually via the team tool.
+ *
+ * Two tables, two different jobs, and the difference is the whole privacy boundary:
+ *
+ * - `prompt_log_buffer` (local SQLite) is a **staging area**. It carries `raw_content` so the
+ *   prompt history can be read back and distilled into profile, lessons and playbook. It is
+ *   meant to be transient — analysed, then emptied to make room for the next stretch of history.
+ * - `prompt_logs` (cloud Postgres) is the **sharing boundary**. Only the distilled pattern,
+ *   outcome, category and tags cross it. The raw text does not, and the columns that once held it
+ *   were dropped rather than defaulted off (ADR-019 §1).
+ *
+ * What is not built yet: the analysis step that reads the staged rows, and the eviction that frees
+ * them. `markPromptLogsPushed` moves a row to 'pushed', which records that the *pattern* reached
+ * the team — not that anyone is finished with the local raw text. Until that lands, staged rows
+ * accumulate.
  */
 
 import { getConfig } from '../shared/config/index.js';
@@ -59,16 +73,16 @@ export class PromptLogService {
     try {
       const pushed: string[] = [];
       for (const log of pending) {
+        // ADR-019 §1: the distilled pattern crosses the boundary; the raw text never does. The
+        // columns are absent from the cloud table on purpose, so naming them here would both fail
+        // against the real database and, on a fresh one, carry prompt text into a shared store.
         await sql`
           INSERT INTO prompt_logs
-            (id, user_id, team_id, project, pattern, outcome, category, tags,
-             share_content, raw_content, logged_at)
+            (id, user_id, team_id, project, pattern, outcome, category, tags, logged_at)
           VALUES (
             ${log.id}, ${log.userId}, ${log.teamId}, ${log.project ?? null},
             ${log.pattern}, ${log.outcome}, ${log.category},
-            ${log.tags as string[]}, ${log.shareContent},
-            ${log.shareContent ? (log.rawContent ?? null) : null},
-            ${log.loggedAt}
+            ${log.tags as string[]}, ${log.loggedAt}
           )
           ON CONFLICT (id) DO NOTHING
         `;

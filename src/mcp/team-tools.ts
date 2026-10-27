@@ -50,7 +50,7 @@ export function registerTeamTools(
     [
       'Shared team knowledge built on Chronicle. Requires a Chronicle Team license (teamToken + teamId).',
       '',
-      'SHARE a memory the rest of the team should inherit; RECALL pulls the team pool plus synthesized insights; LOG records what a prompt was trying to do (pattern only — raw text stays local unless you opt in).',
+      'SHARE a memory the rest of the team should inherit; RECALL pulls the team pool plus synthesized insights; LOG records what a prompt was trying to do — the team only ever receives the pattern, and raw text, if staged at all, stays on this machine.',
       '',
       'Memories in the shared pool stay attributed to their author; INSIGHTS are team-level syntheses curated by owners/leads.',
     ].join('\n'),
@@ -74,7 +74,7 @@ export function registerTeamTools(
       pattern:       z.string().optional().describe('What the prompt was trying to achieve'),
       outcome:       z.enum(['good', 'bad', 'neutral']).optional(),
       category:      z.string().optional(),
-      share_content: z.boolean().optional().describe('Also share raw prompt text — explicit opt-in only'),
+      share_content: z.boolean().optional().describe('Stage the raw prompt text in the LOCAL buffer so it can be distilled later — it is never sent to the team database (ADR-019 §1). Opt-in only.'),
       raw_content:   z.string().optional(),
       // stats
       scope: z.enum(['me', 'team']).optional().describe('me=personal | team=aggregate (default: team)'),

@@ -9,7 +9,12 @@ tmpclaude-*
 # Gate output. The REPORT is generated; the EVIDENCE is committed.
 # docs/evidence/ is deliberately NOT ignored: a status claim with no committed execution
 # record is not admissible (docs/evidence/README.md).
-reports/
+# ADR-025: a report commissioned by a canonical GS prompt is a dated judgement no rerun
+# reproduces, so it is evidence and is tracked. Everything else here stays ignored.
+# `reports/*` and not `reports/`: git cannot re-include a file whose parent directory
+# is itself excluded, so the negation below only works against the contents form.
+reports/*
+!reports/gs-*.md
 .stryker-tmp/
 
 # Local tool caches

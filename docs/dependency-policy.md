@@ -28,9 +28,13 @@ depends_on: [ADR-001]
    The only accepted exceptions are the ids listed in `package.json` →
    `pnpm.auditConfig.ignoreGhsas`, every one of which MUST be (a) transitive through a dependency
    this project cannot replace, (b) annotated with its path, and (c) recorded in an ADR. Today that
-   is ten advisories reached through `@modelcontextprotocol/sdk` (ADR-017).
+   is **three** advisories reached through `@modelcontextprotocol/sdk` (ADR-017).
    **An allowlist that only grows is a blindfold:** every SDK bump MUST re-run the audit and delete
-   the ids that have cleared.
+   the ids that have cleared. *(Was ten until 2026-10-27. Seven cleared and nobody had looked;
+   two of the three the list called "unfixable from this repository" were nothing of the kind —
+   the declared ranges already admitted the patched versions and the lockfile was simply stale.
+   Which is the rule above, restated as a measurement: an allowlist is only honest while someone
+   re-runs it.)*
 2. Every runtime dependency MUST appear in the Approved Runtime table below. Adding one
    requires adding its row — name, why, what it replaces — in the same commit.
 3. Nothing in the Forbidden table may be introduced, at any version.
@@ -64,6 +68,18 @@ depends_on: [ADR-001]
    `>=22`; this package claimed `>=20`; Node 20 segfaulted rather than failing to load. Checked by
    `scripts/check-dependency-policy.mjs` against the installed tree, so it is offline and reflects
    this lockfile rather than the registry.)*
+
+10. The publish chain MUST reach the rule 1 audit. `prepublishOnly`, or some script it calls, MUST
+    run `pnpm audit`. Rule 1 says a new HIGH blocks *the build*; until 2026-10-27 `prepublishOnly`
+    ran `deps:policy` — the approved-library check — and never the advisory check, so the one build
+    that matters most was the only one rule 1 did not block. *(Added 2026-10-27. Checked by
+    `scripts/check-dependency-policy.mjs`, which resolves the script chain transitively and asks
+    whether **any** script it reaches runs an audit — the property, not a literal in one script, so
+    moving the call into `gates` later still satisfies it. The gap was live: zod
+    `GHSA-mrhx-c7xc-m3w5` and body-parser `GHSA-27r3-jxmh-p828` were both unignored HIGH in this
+    lockfile while `prepublishOnly` was green. See
+    `docs/decisions/2026-10-27-audit-at-publish-not-at-every-commit.md` for why it is here and not
+    in `gates`.)*
 
 > Rules 7 and 9 are both about native dependencies and they are not the same rule. 7 asks *what
 > shape* the range may take, given how the dependency ships its binaries. 9 asks *where it starts*,

@@ -193,6 +193,45 @@ for (const [name, host] of Object.entries(MAJOR_LOCKED_TO)) {
   }
 }
 
+// Rule 10 — the publish chain must reach the rule 1 audit.
+//
+// Rule 1 says a new HIGH "blocks the build". `prepublishOnly` ran `deps:policy` — this file, the
+// approved-library check — and never `pnpm audit`, so the one build that matters most was the one
+// rule 1 did not block. Checked as a property, not as a literal: any script the publish chain
+// reaches transitively may be the one that runs the audit, so moving it into `gates` later still
+// satisfies this.
+const scripts = pkg.scripts ?? {};
+const RUNS_AUDIT = /\b(?:pnpm|npm|yarn)\s+audit\b/;
+const RUN_REF = /\b(?:pnpm|npm|yarn)\s+run\s+([\w:-]+)/g;
+
+/** Every script name `prepublishOnly` reaches, itself included; cycles terminate on `seen`. */
+function publishChain() {
+  const seen = new Set();
+  const queue = ['prepublishOnly'];
+  while (queue.length > 0) {
+    const name = queue.shift();
+    if (name === undefined || seen.has(name) || !(name in scripts)) continue;
+    seen.add(name);
+    for (const match of String(scripts[name]).matchAll(RUN_REF)) queue.push(match[1]);
+  }
+  return [...seen];
+}
+
+if (!('prepublishOnly' in scripts)) {
+  fail(10, 'package.json has no "prepublishOnly" script — nothing gates a publish');
+} else {
+  const chain = publishChain();
+  if (!chain.some((name) => RUNS_AUDIT.test(String(scripts[name])))) {
+    fail(
+      10,
+      `no script the publish chain reaches runs an advisory audit, so rule 1 does not block a publish. ` +
+      `Reached: ${chain.join(' → ')}. Add "pnpm run audit:supply-chain" to "prepublishOnly" (or to a ` +
+      `script it calls). On 2026-10-27 two new HIGH advisories — zod GHSA-mrhx-c7xc-m3w5 and ` +
+      `body-parser GHSA-27r3-jxmh-p828 — were live in this lockfile while prepublishOnly was green.`,
+    );
+  }
+}
+
 if (violations.length === 0) {
   console.log('dependency-policy: ok');
   process.exit(0);

@@ -1,5 +1,5 @@
 {
-  "ran_at": "2026-09-16T16:14:45.197Z",
+  "ran_at": "2026-10-26T17:38:46.244Z",
   "command": "node scripts/verify-isolation.mjs",
   "target": "crossover.proxy.rlwy.net:28455/railway",
   "people": [
@@ -18,7 +18,7 @@
     {
       "name": "gabo's app role sees ONLY its own seeded row",
       "ok": true,
-      "detail": "1 row(s): iso-1789575274721-gabo"
+      "detail": "1 row(s): iso-1793036318538-gabo"
     },
     {
       "name": "gabo's app role cannot see jghiringhelli's rows even when asking for them directly",

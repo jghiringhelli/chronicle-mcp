@@ -95,13 +95,41 @@ the first thing to re-measure rather than assume.
 
 ## Verification
 
-- **Not yet applied.** `scripts/apply-rls.mjs --apply` needs Railway's own connection string:
-  creating the table requires CREATE on schema `public`, which PostgreSQL 15+ does not grant, and
-  which `chronicle_admin_*` does not have. The attempt failed at exactly that point with
-  `permission denied for schema public`, before any policy was touched, so the mirror is unchanged
-  and still in the state ADR-023 describes.
-- The script now also grants `CREATE ON SCHEMA public` to `chronicle_admins`, so this is the last run
-  that needs Railway's credential.
-- **The acceptance test is already written and currently red**: `scripts/verify-isolation.mjs` check
-  `an app role CANNOT re-point chronicle.user_id at another person`. Applying this must turn it green
-  **and leave the other twelve green** — a fix that confines by breaking access is not a fix.
+- **Applied 2026-09-16**, in `ef8b9f3` (PR #5). The first attempt failed exactly where this ADR
+  predicted — `permission denied for schema public`, before any policy was touched — so the script
+  gained a preflight that reads privileges and ownership from the catalogue before it writes
+  anything. The preflight found **two** blockers rather than the one named above: the `CREATE` grant
+  alone is not sufficient, because `CREATE POLICY` is owner-only and no `GRANT` confers it.
+  Ownership of the tables was transferred to `chronicle_admins`. The claim in this ADR's own
+  Decision section that the grant would be the last thing needed was wrong, and this is the
+  correction.
+- **`scripts/verify-isolation.mjs` passed 15/15** on that date, and the suite was rewritten in the
+  same commit so that the pass means something. Applying the fix exposed two faults in the check
+  itself:
+  - *It measured the mechanism, not the property.* After the policy was applied the suite still read
+    12/13, because the failing check asserted that an app role cannot re-point `chronicle.user_id` —
+    by then true and irrelevant. It now makes that claim as loudly as it can and then verifies the
+    claim buys the caller nothing.
+  - *A suite that has only ever passed has not shown it can fail.* It now replays the same lie
+    against a throwaway table carrying the OLD vulnerable policy. The lie works there and not on the
+    real tables, so a green run is the policy holding rather than the check having stopped looking.
+- **Re-verified 2026-10-26: 15/15, after a 34-day outage of the mirror.** The policy was never the
+  problem. From 2026-09-22 the Railway Postgres service was `Offline` with no active deployment —
+  all three of its deployments read `REMOVED`, the newest dated 2026-08-22 — while its TCP proxy
+  kept accepting connections. That combination is why every caller saw `read ECONNRESET` rather
+  than a refused connection: `crossover.proxy.rlwy.net:28455` completed a TCP handshake in ~150ms
+  and reset ~37ms after the `SSLRequest`, without a single Postgres byte in reply. A proxy with
+  nothing behind it looks like a database that hangs up on you.
+- Recovery was `railway redeploy --from-source`, because there was no prior deployment left to
+  redeploy. The 218 MB volume was reattached intact and the proxy endpoint did not change, so no
+  credential, CI secret or teammate configuration needed editing. `PGDATA` is a subdirectory of the
+  mount point (`/var/lib/postgresql/data/pgdata`), which is what made this safe to attempt: the
+  entrypoint skips `initdb` when `PG_VERSION` is present, and a major-version mismatch would have
+  refused to start rather than touching the data.
+- All three verifiers returned to their pre-outage numbers on the restored mirror: isolation 15/15,
+  cross-machine sync 16/16, team layer 9/9. The role map, the licence row and both members survived,
+  and `prompt_logs` still has no `raw_content` or `share_content` column.
+- The lesson recorded here is not about RLS. A gate whose failure is indistinguishable from an
+  infrastructure outage will be read as noise, and this one was: it failed nightly for 34 days and
+  nobody looked, because nothing in the message said "the service is not running". Worth making
+  `cloud:inspect` name that case explicitly when the TCP connect succeeds and the handshake does not.

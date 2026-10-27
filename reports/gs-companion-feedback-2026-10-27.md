@@ -18,6 +18,31 @@ a checkable cause.*
 
 ---
 
+## Reading the paths in this report
+
+This report is written from the audited project and cites files in **two** repositories, several of
+which exist in both under the same name. Read every path against this table, not against whichever
+directory you happen to be in.
+
+| Prefix | Root | Repository |
+|---|---|---|
+| `src/adapters/…` · `src/core/…` · `src/harness/…` · `src/hosts/…` | `C:\workspace\PragmaWorks\gs-companion-2\` | **gs-companion** (the tool) |
+| `dist/…` · `hooks/hooks.json` · `.mcp.json` · `.claude-plugin/plugin.json` | `C:\workspace\PragmaWorks\gs-companion-2\` | **gs-companion** |
+| `scripts/git-hooks/…` | `C:\workspace\PragmaWorks\gs-companion-2\` | **gs-companion** (the harness template) |
+| `src/mcp/team-gate.ts` — the one `src/` path that is not the tool's | `C:\workspace\PragmaWorks\mcp\chronicle\` | **chronicle** (the subject) |
+| `.claude/…` · `docs/spec.md` · `Status.md` · `.githooks/…` · `reports/…` | `C:\workspace\PragmaWorks\mcp\chronicle\` | **chronicle** |
+| `package.json` · `eslint.config.js` · `vitest.config.ts` · `stryker.config.json` · `pnpm-lock.yaml` | `C:\workspace\PragmaWorks\mcp\chronicle\` | **chronicle** |
+
+Two names exist in both repositories and always mean chronicle's copy here unless the sentence says
+otherwise: `CLAUDE.md` and `package.json`. `STATUS.md` is quoted as the literal the tool looks for;
+chronicle's actual file is `Status.md`, and that difference is friction §c.4.
+
+`docs/spec/SPEC.md` — the path that blocks step 03 — **exists in gs-companion itself**. That is
+worth noticing on its own: the tool's own repository layout became the literal every audited
+repository is required to match.
+
+---
+
 ## a. Version and environment
 
 | | |

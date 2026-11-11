@@ -1,6 +1,6 @@
 {
-  "recordedAt": "2026-11-11T02:53:45.932Z",
-  "note": "Best achievable F1 per similarity method over the threshold sweep, plus F1 at the threshold the product ships with.",
+  "recordedAt": "2026-11-11T04:36:21.027Z",
+  "note": "Similarity-method rows: best achievable F1 over the threshold sweep, plus F1 at the shipped threshold. The \"guard:\" row reuses those two fields for different quantities, because the ratchet compares them the same way: bestF1 is the share of 48 reversed decisions the guard catches (must not fall), and shippedF1 is MINUS the share of 48 restatements it wrongly blocks, negated so a rise in false blocks also reads as a drop.",
   "methods": {
     "lexical (Jaccard)": {
       "bestF1": 0.64,
@@ -13,9 +13,9 @@
       "shippedF1": 0.5455
     },
     "semantic + guard": {
-      "bestF1": 0.8,
+      "bestF1": 0.8421,
       "bestThreshold": 0.1,
-      "shippedF1": 0.5882
+      "shippedF1": 0.625
     },
     "model (cosine)": {
       "bestF1": 0.8462,
@@ -23,9 +23,14 @@
       "shippedF1": 0.7826
     },
     "model + guard": {
-      "bestF1": 0.8,
+      "bestF1": 0.8421,
       "bestThreshold": 0.7,
-      "shippedF1": 0.7368
+      "shippedF1": 0.7778
+    },
+    "guard: negation OR inversion": {
+      "bestF1": 0.75,
+      "bestThreshold": 0,
+      "shippedF1": -0.1875
     }
   }
 }

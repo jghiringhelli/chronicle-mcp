@@ -35,11 +35,15 @@ import { fileURLToPath } from 'node:url';
 import {
   contentSimilarity, PROMOTE_SIMILARITY_THRESHOLD, SEMANTIC_SIMILARITY_THRESHOLD,
 } from '../../src/services/team-promotion-service.js';
-import { negationMismatch } from '../../src/services/contradiction.js';
+import { contradicts } from '../../src/services/contradiction.js';
 import { lexicalVector, cosine, LexicalVectorGateway } from '../../src/infrastructure/gateways/lexical-vector-gateway.js';
 import { FastEmbedGateway } from '../../src/infrastructure/gateways/fastembed-gateway.js';
 import { DEDUP_PAIRS, POSITIVES, type PairTag } from './pairs.js';
 import { DUPLICATE_OF, NOVEL } from './pool.js';
+import {
+  GUARDS, evaluateGuard, negationBalance, polarityCorpusIsSound, type GuardResult,
+} from './guards.js';
+import { POLARITY } from './polarity.js';
 import { FIXTURE } from '../lib/fixture.js';
 import { f1 as harmonic, round4, fmt } from '../lib/metrics.js';
 
@@ -99,7 +103,7 @@ const METHODS: Method[] = [
     // ordering, not the threshold, is what breaks: contradictions outscore duplicates, so no
     // cut point is safe. This row measures whether changing the ordering fixes that.
     name: 'semantic + guard',
-    score: (a, b) => (negationMismatch(a, b) ? 0 : cosine(lexicalVector(a), lexicalVector(b))),
+    score: (a, b) => (contradicts(a, b) ? 0 : cosine(lexicalVector(a), lexicalVector(b))),
     shippedThreshold: SHIPPED.vector,
   },
 ];
@@ -285,19 +289,31 @@ function compareBaseline(headline: Record<string, { bestF1: number; bestThreshol
 /**
  * Write the evidence artefact, and the baseline when asked for.
  *
- * @param results - Per-method outcomes
- * @param headline - Best-achievable F1 per method
+ * Grouped into one argument rather than six positional ones: the lint gate caps a function at
+ * five parameters, and six interchangeable record types in a row is exactly the signature where a
+ * caller silently transposes two of them.
+ *
+ * @param run - Every artefact the run produced
  * @param updateBaseline - Whether to re-record the baseline
  */
-function persist(
-  poolRows: Record<string, PoolOutcome[]>,
-  sensitivity: Record<string, ReturnType<typeof poolSizeSensitivity>>,
-  results: MethodResult[],
-  headline: Record<string, { bestF1: number; bestThreshold: number; shippedF1: number }>,
-  updateBaseline: boolean,
-): void {
+interface DedupArtefacts {
+  poolRows: Record<string, PoolOutcome[]>;
+  sensitivity: Record<string, ReturnType<typeof poolSizeSensitivity>>;
+  results: MethodResult[];
+  headline: Record<string, { bestF1: number; bestThreshold: number; shippedF1: number }>;
+  guardResults: GuardResult[];
+}
+
+function persist(run: DedupArtefacts, updateBaseline: boolean): void {
+  const { poolRows, sensitivity, results, headline, guardResults } = run;
   const evidence = {
     experiment: 'dedup',
+    contradictionGuards: {
+      corpus: POLARITY.length,
+      note: 'Every fixture memory stating a standing decision, reversed and restated. reversalsCaught is the safety number; the three blocked counts are what the guard costs.',
+      negationBalance: negationBalance(),
+      rules: guardResults,
+    },
     poolScale: {
       pool: FIXTURE.length,
       duplicateCandidates: Object.keys(DUPLICATE_OF).length,
@@ -334,7 +350,12 @@ function persist(
   if (!updateBaseline) return;
   writeFileSync(BASELINE_FILE, `${JSON.stringify({
     recordedAt: new Date().toISOString(),
-    note: 'Best achievable F1 per similarity method over the threshold sweep, plus F1 at the threshold the product ships with.',
+    note:
+      'Similarity-method rows: best achievable F1 over the threshold sweep, plus F1 at the shipped '
+      + 'threshold. The "guard:" row reuses those two fields for different quantities, because the '
+      + 'ratchet compares them the same way: bestF1 is the share of 48 reversed decisions the guard '
+      + 'catches (must not fall), and shippedF1 is MINUS the share of 48 restatements it wrongly '
+      + 'blocks, negated so a rise in false blocks also reads as a drop.',
     methods: headline,
   }, null, 2)}
 `);
@@ -411,7 +432,7 @@ function evaluatePool(
   const closest = (candidate: string): { id: string; score: number } | undefined => {
     let best: { id: string; score: number } | undefined;
     for (const p of pool) {
-      if (guard && negationMismatch(candidate, p.content)) continue;
+      if (guard && contradicts(candidate, p.content)) continue;
       const sc = score(candidate, p.content);
       if (!best || sc > best.score) best = { id: p.id, score: sc };
     }
@@ -504,6 +525,79 @@ function printPool(
   return rows;
 }
 
+/**
+ * Print the contradiction-guard comparison, and the corpus soundness check that licenses it.
+ *
+ * The soundness check runs FIRST and aborts the section rather than printing a table nobody can
+ * trust: if the corpus no longer covers the fixture, every guard's catch rate is measured
+ * against a smaller denominator and would read as an improvement.
+ *
+ * @returns One row per candidate guard
+ */
+function reportGuards(): GuardResult[] {
+  say();
+  say('='.repeat(94));
+  say(`CONTRADICTION GUARDS — ${POLARITY.length} fixture decisions, each reversed AND restated`);
+  say('='.repeat(94));
+
+  const problems = polarityCorpusIsSound();
+  if (problems.length) {
+    say('The polarity corpus does not account for the fixture, so the guard table is not reported:');
+    for (const p of problems) say(`  ${p}`);
+    return [];
+  }
+
+  const balance = negationBalance();
+  say(`Corpus soundness: ${balance.reversedWithNegation}/${balance.cases} reversals and ` +
+      `${balance.restatedWithNegation}/${balance.cases} restatements contain a negation.`);
+  say('Close counts are the point — if negations clustered in one class, "contains a negation"');
+  say('would be the label and the table below would measure the corpus, not the guard.');
+
+  const rows = GUARDS.map(evaluateGuard);
+  say();
+  say(`reversals caught of ${POLARITY.length} is the safety number. The three blocked columns are the cost:`);
+  say('a blocked restatement or duplicate leaves a near-duplicate somebody can see and delete.');
+  say('-'.repeat(94));
+  say('guard                        caught  restated  opposites  pool dups  pairwise dups');
+  for (const r of rows) {
+    say(
+      `${(r.shipped ? `* ${r.name}` : `  ${r.name}`).padEnd(30)} ` +
+      `${String(r.reversalsCaught).padStart(2)}/${POLARITY.length}   ` +
+      `${String(r.restatementsBlocked).padStart(2)}/${POLARITY.length}     ` +
+      `${r.oppositesCaught}/5        ` +
+      `${String(r.poolDuplicatesBlocked).padStart(2)}/11      ` +
+      `${String(r.pairwiseDuplicatesBlocked).padStart(2)}/11`,
+    );
+  }
+  say();
+  say('* is the rule the product ships. The scoped rows cut the duplicate cost further and are');
+  say('NOT adopted: their window and floor were chosen by reading this corpus, and the gain is');
+  say('entirely on the cheap error. See src/services/contradiction.ts.');
+  return rows;
+}
+
+/**
+ * The shipped guard's row, reduced to the two numbers worth ratcheting.
+ *
+ * Only the shipped rule is baselined. Baselining the alternatives would make the file fail
+ * whenever somebody improved one of them, which is the opposite of a ratchet.
+ *
+ * @param rows - Every guard's result
+ * @returns A baseline entry in the same shape the similarity methods use
+ */
+function guardHeadline(rows: GuardResult[]): { bestF1: number; bestThreshold: number; shippedF1: number } {
+  const shipped = rows.find((r) => r.shipped);
+  if (!shipped) return { bestF1: 0, bestThreshold: 0, shippedF1: 0 };
+  // Reused shape, named honestly: `bestF1` carries the catch RATE, which is the number a
+  // regression must not drop. `shippedF1` carries the false-block rate as a negative, so a rise
+  // in false blocks also reads as a drop and trips the same comparison.
+  return {
+    bestF1: round4(shipped.reversalsCaught / POLARITY.length),
+    bestThreshold: 0,
+    shippedF1: round4(-shipped.restatementsBlocked / POLARITY.length),
+  };
+}
+
 /** Thresholds the pool-scale section reports for Jaccard and the in-tree vectors. */
 const POOL_FLOORS = [0.10, 0.15, 0.20, 0.25, 0.30, 0.40, 0.50];
 
@@ -526,7 +620,7 @@ async function main(): Promise<number> {
       { name: 'model (cosine)', score: modelScore, shippedThreshold: SHIPPED.model },
       {
         name: 'model + guard',
-        score: (a, b) => (negationMismatch(a, b) ? 0 : modelScore(a, b)),
+        score: (a, b) => (contradicts(a, b) ? 0 : modelScore(a, b)),
         shippedThreshold: SHIPPED.model,
       },
     );
@@ -568,12 +662,15 @@ async function main(): Promise<number> {
     sensitivity['model + guard'] = poolSizeSensitivity('model + guard', modelScore, 0.75, sizes);
   }
 
+  const guardResults = reportGuards();
+
   const headline = Object.fromEntries(
     results.map((r) => [r.method.name, { bestF1: round4(r.best.f1), bestThreshold: r.best.threshold, shippedF1: round4(r.shipped.f1) }]),
   );
+  headline['guard: negation OR inversion'] = guardHeadline(guardResults);
 
   const exitCode = compareBaseline(headline);
-  persist(poolRows, sensitivity, results, headline, updateBaseline);
+  persist({ poolRows, sensitivity, results, headline, guardResults }, updateBaseline);
 
   return exitCode;
 }

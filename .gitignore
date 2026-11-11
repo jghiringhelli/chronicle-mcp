@@ -15,6 +15,10 @@ tmpclaude-*
 # is itself excluded, so the negation below only works against the contents form.
 reports/*
 !reports/gs-*.md
+# An experiment write-up is evidence by exactly the reasoning in ADR-025: it is a dated
+# judgement about a measured run, and `pnpm run experiments` reproduces the numbers but not
+# the reading of them. The JSON belongs in docs/evidence/; the prose belongs here, tracked.
+!reports/experiment-*.md
 .stryker-tmp/
 
 # Local tool caches

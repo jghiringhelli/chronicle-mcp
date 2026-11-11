@@ -56,6 +56,47 @@ describe('SqliteMemoryRepository', () => {
     expect(results[0]?.memory.content).toContain('tailwind');
   });
 
+  /**
+   * Candidate selection, which is all `recall` does here — the ordering is the service's job
+   * (MemoryService.recall). These tests cover the one thing the adapter decides: which rows are
+   * even eligible.
+   */
+  describe('candidate selection', () => {
+    beforeEach(() => {
+      repo.create('cand_1', { content: 'terraform state locking uses a dynamodb table', memoryType: 'architectural' });
+      repo.create('cand_2', { content: 'the job queue retries with exponential backoff', memoryType: 'architectural' });
+      repo.create('cand_3', { content: 'the modal keeps focus inside itself', memoryType: 'procedural', tags: ['accessibility'] });
+    });
+
+    it('returns nothing for a query whose words are all stop words', () => {
+      // The shipped behaviour ORed one LIKE per word with no stop word handling, so "what is
+      // the capital of France" matched nearly every row through `is` and `of`. Two of three
+      // out-of-scope queries in the labelled corpus came back with a full page of results.
+      expect(repo.recall({ query: 'what is it that we should do about this', limit: 10 })).toEqual([]);
+    });
+
+    it('ignores the stop words around a content word', () => {
+      const results = repo.recall({ query: 'what do we do about the terraform state', limit: 10 });
+      expect(results.map(r => r.memory.id)).toContain('cand_1');
+    });
+
+    it('matches a tag as well as the content', () => {
+      const results = repo.recall({ query: 'accessibility', limit: 10 });
+      expect(results.map(r => r.memory.id)).toContain('cand_3');
+    });
+
+    it('treats an empty query as no text filter, not as an unanswerable one', () => {
+      // `session start` and `distill` recall with an empty query to mean "everything in scope".
+      // An empty query and a query with no content words must not collapse into one case.
+      const results = repo.recall({ query: '', limit: 10 });
+      expect(results.length).toBeGreaterThanOrEqual(3);
+    });
+
+    it('does not match a word that appears nowhere', () => {
+      expect(repo.recall({ query: 'bluetooth pairing', limit: 10 })).toEqual([]);
+    });
+  });
+
   it('finds memories for decay (non-core, old)', () => {
     const old = new Date(Date.now() - 10 * 86400000).toISOString();
     const m = repo.create('mem_6', { content: 'old episodic', memoryType: 'episodic' });

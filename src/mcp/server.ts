@@ -26,6 +26,8 @@ import { TeamSyncService } from '../services/team-sync-service.js';
 import { PatternService } from '../services/pattern-service.js';
 import { TeamPromotionService } from '../services/team-promotion-service.js';
 import { FastEmbedGateway } from '../infrastructure/gateways/fastembed-gateway.js';
+import { LexicalVectorGateway } from '../infrastructure/gateways/lexical-vector-gateway.js';
+import { FirstAvailableEmbeddingGateway } from '../infrastructure/gateways/first-available-embedding-gateway.js';
 import { registerTeamTools } from './team-tools.js';
 import { validateTeamToken } from './team-gate.js';
 import { NodeIdGenerator } from '../infrastructure/gateways/node-id-generator.js';
@@ -52,7 +54,12 @@ export function createMcpServer(): McpServer {
   const promptLogSvc = new PromptLogService(teamRepo, idGen);
   const teamSyncSvc = new TeamSyncService(teamRepo, promptLogSvc);
   const patternSvc = new PatternService(teamRepo);
-  const promotionSvc = new TeamPromotionService(db, teamRepo, teamSyncSvc, new FastEmbedGateway());
+  // fastembed when the user installed it (ADR-017 kept that upgrade open), the
+  // dependency-free vectors otherwise. Handing the service a FastEmbedGateway alone meant
+  // every default install fell back to lexical similarity, which measured precision 0.00 and
+  // merged two contradictory memories (docs/evidence/dedup-experiment.json).
+  const embeddings = new FirstAvailableEmbeddingGateway([new FastEmbedGateway(), new LexicalVectorGateway()]);
+  const promotionSvc = new TeamPromotionService(db, teamRepo, teamSyncSvc, embeddings);
 
   const server = new McpServer({ name: 'chronicle', version: '0.4.0' });
 

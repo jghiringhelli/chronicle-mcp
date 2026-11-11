@@ -1,10 +1,22 @@
 {
-  "recordedAt": "2026-11-11T01:25:35.580Z",
-  "note": "Headline MRR and R@5 per configuration. A later run failing against this file means recall quality moved.",
+  "recordedAt": "2026-11-11T01:39:31.202Z",
+  "note": "Headline MRR and R@5 per configuration. A later run failing against this file means recall quality moved. keyword-legacy is different in kind: it is a frozen copy of the pre-change path, so its numbers must stay put forever — a drift there means the copy stopped being faithful to what shipped, not that anything improved. It was verified against the real pre-change code, which measured MRR 0.2643 and R@5 0.4219.",
   "configs": {
-    "keyword": {
+    "keyword-legacy": {
       "mrr": 0.2643,
       "r5": 0.4219
+    },
+    "shipped": {
+      "mrr": 0.7573,
+      "r5": 0.8281
+    },
+    "semantic": {
+      "mrr": 0.7344,
+      "r5": 0.7188
+    },
+    "hybrid": {
+      "mrr": 0.7972,
+      "r5": 0.7891
     }
   }
 }

@@ -37,6 +37,21 @@ All on Node 24.18.0, win32-x64, 2026-09-10.
 | `build.txt` | `tsup` | exit 0 |
 | `mcp-smoke.json` | `smoke-mcp.mjs` — generative execution | **12 / 12 checks** |
 
+### Experiments — quality, not pass/fail
+
+A gate answers *did it run*. These answer *is it any good*, which no gate here could:
+
+| File | Experiment | Result |
+|---|---|---|
+| `recall-experiment.json` | `pnpm run experiment:recall` — 51 memories, 35 labelled queries | keyword-legacy **MRR 0.26 / R@5 0.42** → shipped **0.76 / 0.83**; vectors-only 0.73 / 0.72; hybrid 0.80 / 0.79 |
+| `dedup-experiment.json` | `pnpm run experiment:dedup` — 32 labelled pairs | at the shipped thresholds **F1 0.00 for both methods**; best achievable F1 lexical 0.64, semantic 0.74, semantic+guard 0.80 |
+| `nfr-bench-2026-11-10-ranking.json` | `bench-nfr.mjs`, re-run after the ranking change | NFR-03 **p95 16.93ms at 10k** (budget 50ms). NFR-02 median 326.67ms, inside this host's known 210–372ms band |
+
+Method and limits in `experiments/README.md`. Both are reproducible with no credentials, no
+network and no model download, and the committed baselines make a later regression fail the run.
+`nfr-bench.json` is **not** overwritten by that re-run: it holds the `--full` measurement that
+spec §5 cites for NFR-04 at 50,000 rows, which a shorter run would have silently deleted.
+
 ### Kept as the "before" picture
 
 | File | What it records |
@@ -50,8 +65,17 @@ is what makes the *after* numbers worth anything.
 
 ## Missing, and tracked
 
-- **Every NFR benchmark** (spec §5, NFR-02/03/04) — RM-104. The largest remaining gap.
-- **`pnpm audit --prod --audit-level=high`** — the one gate that has never run.
+- **Recall quality at scale.** The labelled corpus is 51 memories. Latency at 10k is measured;
+  whether MRR holds when there are ten thousand candidates is not, and more memories means more
+  plausible-but-wrong neighbours.
+- **Whether a real embedding model closes the paraphrase gap.** Three labelled queries that
+  genuinely need synonymy fail in *every* configuration measured (ADR-027). A
+  sentence-transformer is the obvious candidate and none has been run.
 - **Opening a v11-written database with v13** — ADR-015 is verified for new databases only.
+
+Two items were on this list until they were not, and are struck here rather than deleted:
+**the NFR benchmarks** landed 2026-09-13 (`nfr-bench*.json`, RM-104 closed) and **the supply-chain
+audit** has run since 2026-09-14 (`supply-chain-audit.txt`). Leaving them listed as missing while
+the files sat in this directory made the index say something false about its own contents.
 
 Until those land, `Status.md` says *unrun* for them, which is the correct thing for it to say.

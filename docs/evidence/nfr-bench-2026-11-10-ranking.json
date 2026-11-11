@@ -1,0 +1,79 @@
+{
+  "ran_at": "2026-11-11T01:48:30.760Z",
+  "command": "node scripts/bench-nfr.mjs",
+  "machine": {
+    "platform": "win32-x64",
+    "cpus": 20,
+    "cpu_model": "Intel(R) Core(TM) Ultra 7 255HX",
+    "memory_gb": 15,
+    "node": "v24.18.0"
+  },
+  "seed": 20260912,
+  "note": "Measured over the real MCP stdio boundary, which is what a user waits for. Recall runs TWO queries per call since ADR-018 (project scope + person scope). Cold start is 10 spawns reported as a distribution and judged on p95, not one sample: repeated runs on one host spread 225-398ms, so a single figure would be a choice rather than a measurement.",
+  "nfr02_cold_start": {
+    "n": 10,
+    "cold": 346.16,
+    "median": 326.67,
+    "min": 320.55,
+    "max": 346.16,
+    "warmupMonotonic": false,
+    "samples_ms": [
+      346.16,
+      321.87,
+      327.5,
+      320.55,
+      324.34,
+      339.09,
+      331.62,
+      324.97,
+      327.63,
+      325.83
+    ],
+    "ms": 326.67,
+    "target": 300
+  },
+  "nfr03_recall": [
+    {
+      "storeSize": 1000,
+      "target": 50,
+      "n": 30,
+      "min": 2.95,
+      "median": 3.58,
+      "p95": 9.83,
+      "max": 12.77,
+      "mean": 4.49
+    },
+    {
+      "storeSize": 10000,
+      "target": 50,
+      "n": 30,
+      "min": 5.75,
+      "median": 6.71,
+      "p95": 16.93,
+      "max": 22.12,
+      "mean": 8.25
+    }
+  ],
+  "nfr04_decay_pass": {
+    "storeSize": 10000,
+    "n": 9,
+    "cold": 64.49,
+    "median": 27.35,
+    "min": 12.29,
+    "max": 64.49,
+    "warmupMonotonic": true,
+    "samples_ms": [
+      64.49,
+      30.35,
+      13.49,
+      29.36,
+      12.29,
+      27.47,
+      12.93,
+      27.35,
+      12.87
+    ],
+    "ms": 27.35,
+    "target": 500
+  }
+}

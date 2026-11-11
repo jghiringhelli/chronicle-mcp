@@ -1,0 +1,626 @@
+{
+  "experiment": "dedup",
+  "recordedAt": "2026-11-11T01:47:20.164Z",
+  "method": "hand-labelled pairs; precision / recall / F1 for the duplicate class, swept over thresholds",
+  "platform": "win32 node v24.18.0",
+  "corpus": {
+    "pairs": 32,
+    "duplicates": 11,
+    "byTag": {
+      "restatement": 7,
+      "elaboration": 4,
+      "related-but-distinct": 11,
+      "opposite": 5,
+      "unrelated": 5
+    }
+  },
+  "shippedThresholds": {
+    "lexical": 0.5,
+    "semantic": 0.83
+  },
+  "methods": [
+    {
+      "name": "lexical (Jaccard)",
+      "shipped": {
+        "threshold": 0.5,
+        "truePositives": 0,
+        "falsePositives": 2,
+        "trueNegatives": 19,
+        "falseNegatives": 11,
+        "precision": 0,
+        "recall": 0,
+        "f1": 0,
+        "oppositesMerged": 2
+      },
+      "best": {
+        "threshold": 0.1,
+        "truePositives": 8,
+        "falsePositives": 6,
+        "trueNegatives": 15,
+        "falseNegatives": 3,
+        "precision": 0.5714285714285714,
+        "recall": 0.7272727272727273,
+        "f1": 0.64,
+        "oppositesMerged": 5
+      },
+      "byTagAtBest": {
+        "restatement": {
+          "correct": 5,
+          "total": 7
+        },
+        "elaboration": {
+          "correct": 3,
+          "total": 4
+        },
+        "related-but-distinct": {
+          "correct": 10,
+          "total": 11
+        },
+        "opposite": {
+          "correct": 0,
+          "total": 5
+        },
+        "unrelated": {
+          "correct": 5,
+          "total": 5
+        }
+      },
+      "curve": [
+        {
+          "threshold": 0.05,
+          "precision": 0.5,
+          "recall": 0.8182,
+          "f1": 0.6207,
+          "falsePositives": 9,
+          "oppositesMerged": 5
+        },
+        {
+          "threshold": 0.1,
+          "precision": 0.5714,
+          "recall": 0.7273,
+          "f1": 0.64,
+          "falsePositives": 6,
+          "oppositesMerged": 5
+        },
+        {
+          "threshold": 0.15,
+          "precision": 0.5833,
+          "recall": 0.6364,
+          "f1": 0.6087,
+          "falsePositives": 5,
+          "oppositesMerged": 5
+        },
+        {
+          "threshold": 0.2,
+          "precision": 0.5455,
+          "recall": 0.5455,
+          "f1": 0.5455,
+          "falsePositives": 5,
+          "oppositesMerged": 5
+        },
+        {
+          "threshold": 0.25,
+          "precision": 0.4286,
+          "recall": 0.2727,
+          "f1": 0.3333,
+          "falsePositives": 4,
+          "oppositesMerged": 4
+        },
+        {
+          "threshold": 0.3,
+          "precision": 0.2,
+          "recall": 0.0909,
+          "f1": 0.125,
+          "falsePositives": 4,
+          "oppositesMerged": 4
+        },
+        {
+          "threshold": 0.35,
+          "precision": 0,
+          "recall": 0,
+          "f1": 0,
+          "falsePositives": 2,
+          "oppositesMerged": 2
+        },
+        {
+          "threshold": 0.4,
+          "precision": 0,
+          "recall": 0,
+          "f1": 0,
+          "falsePositives": 2,
+          "oppositesMerged": 2
+        },
+        {
+          "threshold": 0.45,
+          "precision": 0,
+          "recall": 0,
+          "f1": 0,
+          "falsePositives": 2,
+          "oppositesMerged": 2
+        },
+        {
+          "threshold": 0.5,
+          "precision": 0,
+          "recall": 0,
+          "f1": 0,
+          "falsePositives": 2,
+          "oppositesMerged": 2
+        },
+        {
+          "threshold": 0.55,
+          "precision": 0,
+          "recall": 0,
+          "f1": 0,
+          "falsePositives": 2,
+          "oppositesMerged": 2
+        },
+        {
+          "threshold": 0.6,
+          "precision": 0,
+          "recall": 0,
+          "f1": 0,
+          "falsePositives": 1,
+          "oppositesMerged": 1
+        },
+        {
+          "threshold": 0.65,
+          "precision": 0,
+          "recall": 0,
+          "f1": 0,
+          "falsePositives": 1,
+          "oppositesMerged": 1
+        },
+        {
+          "threshold": 0.7,
+          "precision": 0,
+          "recall": 0,
+          "f1": 0,
+          "falsePositives": 0,
+          "oppositesMerged": 0
+        },
+        {
+          "threshold": 0.75,
+          "precision": 0,
+          "recall": 0,
+          "f1": 0,
+          "falsePositives": 0,
+          "oppositesMerged": 0
+        },
+        {
+          "threshold": 0.8,
+          "precision": 0,
+          "recall": 0,
+          "f1": 0,
+          "falsePositives": 0,
+          "oppositesMerged": 0
+        },
+        {
+          "threshold": 0.85,
+          "precision": 0,
+          "recall": 0,
+          "f1": 0,
+          "falsePositives": 0,
+          "oppositesMerged": 0
+        },
+        {
+          "threshold": 0.9,
+          "precision": 0,
+          "recall": 0,
+          "f1": 0,
+          "falsePositives": 0,
+          "oppositesMerged": 0
+        },
+        {
+          "threshold": 0.95,
+          "precision": 0,
+          "recall": 0,
+          "f1": 0,
+          "falsePositives": 0,
+          "oppositesMerged": 0
+        }
+      ]
+    },
+    {
+      "name": "semantic (cosine)",
+      "shipped": {
+        "threshold": 0.83,
+        "truePositives": 0,
+        "falsePositives": 0,
+        "trueNegatives": 21,
+        "falseNegatives": 11,
+        "precision": 0,
+        "recall": 0,
+        "f1": 0,
+        "oppositesMerged": 0
+      },
+      "best": {
+        "threshold": 0.1,
+        "truePositives": 10,
+        "falsePositives": 6,
+        "trueNegatives": 15,
+        "falseNegatives": 1,
+        "precision": 0.625,
+        "recall": 0.9090909090909091,
+        "f1": 0.7407407407407406,
+        "oppositesMerged": 5
+      },
+      "byTagAtBest": {
+        "restatement": {
+          "correct": 6,
+          "total": 7
+        },
+        "elaboration": {
+          "correct": 4,
+          "total": 4
+        },
+        "related-but-distinct": {
+          "correct": 10,
+          "total": 11
+        },
+        "opposite": {
+          "correct": 0,
+          "total": 5
+        },
+        "unrelated": {
+          "correct": 5,
+          "total": 5
+        }
+      },
+      "curve": [
+        {
+          "threshold": 0.05,
+          "precision": 0.55,
+          "recall": 1,
+          "f1": 0.7097,
+          "falsePositives": 9,
+          "oppositesMerged": 5
+        },
+        {
+          "threshold": 0.1,
+          "precision": 0.625,
+          "recall": 0.9091,
+          "f1": 0.7407,
+          "falsePositives": 6,
+          "oppositesMerged": 5
+        },
+        {
+          "threshold": 0.15,
+          "precision": 0.5714,
+          "recall": 0.7273,
+          "f1": 0.64,
+          "falsePositives": 6,
+          "oppositesMerged": 5
+        },
+        {
+          "threshold": 0.2,
+          "precision": 0.5833,
+          "recall": 0.6364,
+          "f1": 0.6087,
+          "falsePositives": 5,
+          "oppositesMerged": 5
+        },
+        {
+          "threshold": 0.25,
+          "precision": 0.5455,
+          "recall": 0.5455,
+          "f1": 0.5455,
+          "falsePositives": 5,
+          "oppositesMerged": 5
+        },
+        {
+          "threshold": 0.3,
+          "precision": 0.5455,
+          "recall": 0.5455,
+          "f1": 0.5455,
+          "falsePositives": 5,
+          "oppositesMerged": 5
+        },
+        {
+          "threshold": 0.35,
+          "precision": 0.375,
+          "recall": 0.2727,
+          "f1": 0.3158,
+          "falsePositives": 5,
+          "oppositesMerged": 5
+        },
+        {
+          "threshold": 0.4,
+          "precision": 0.3333,
+          "recall": 0.1818,
+          "f1": 0.2353,
+          "falsePositives": 4,
+          "oppositesMerged": 4
+        },
+        {
+          "threshold": 0.45,
+          "precision": 0.4,
+          "recall": 0.1818,
+          "f1": 0.25,
+          "falsePositives": 3,
+          "oppositesMerged": 3
+        },
+        {
+          "threshold": 0.5,
+          "precision": 0.25,
+          "recall": 0.0909,
+          "f1": 0.1333,
+          "falsePositives": 3,
+          "oppositesMerged": 3
+        },
+        {
+          "threshold": 0.55,
+          "precision": 0,
+          "recall": 0,
+          "f1": 0,
+          "falsePositives": 2,
+          "oppositesMerged": 2
+        },
+        {
+          "threshold": 0.6,
+          "precision": 0,
+          "recall": 0,
+          "f1": 0,
+          "falsePositives": 2,
+          "oppositesMerged": 2
+        },
+        {
+          "threshold": 0.65,
+          "precision": 0,
+          "recall": 0,
+          "f1": 0,
+          "falsePositives": 1,
+          "oppositesMerged": 1
+        },
+        {
+          "threshold": 0.7,
+          "precision": 0,
+          "recall": 0,
+          "f1": 0,
+          "falsePositives": 1,
+          "oppositesMerged": 1
+        },
+        {
+          "threshold": 0.75,
+          "precision": 0,
+          "recall": 0,
+          "f1": 0,
+          "falsePositives": 0,
+          "oppositesMerged": 0
+        },
+        {
+          "threshold": 0.8,
+          "precision": 0,
+          "recall": 0,
+          "f1": 0,
+          "falsePositives": 0,
+          "oppositesMerged": 0
+        },
+        {
+          "threshold": 0.85,
+          "precision": 0,
+          "recall": 0,
+          "f1": 0,
+          "falsePositives": 0,
+          "oppositesMerged": 0
+        },
+        {
+          "threshold": 0.9,
+          "precision": 0,
+          "recall": 0,
+          "f1": 0,
+          "falsePositives": 0,
+          "oppositesMerged": 0
+        },
+        {
+          "threshold": 0.95,
+          "precision": 0,
+          "recall": 0,
+          "f1": 0,
+          "falsePositives": 0,
+          "oppositesMerged": 0
+        }
+      ]
+    },
+    {
+      "name": "semantic + guard",
+      "shipped": {
+        "threshold": 0.83,
+        "truePositives": 0,
+        "falsePositives": 0,
+        "trueNegatives": 21,
+        "falseNegatives": 11,
+        "precision": 0,
+        "recall": 0,
+        "f1": 0,
+        "oppositesMerged": 0
+      },
+      "best": {
+        "threshold": 0.1,
+        "truePositives": 8,
+        "falsePositives": 1,
+        "trueNegatives": 20,
+        "falseNegatives": 3,
+        "precision": 0.8888888888888888,
+        "recall": 0.7272727272727273,
+        "f1": 0.7999999999999999,
+        "oppositesMerged": 1
+      },
+      "byTagAtBest": {
+        "restatement": {
+          "correct": 4,
+          "total": 7
+        },
+        "elaboration": {
+          "correct": 4,
+          "total": 4
+        },
+        "related-but-distinct": {
+          "correct": 11,
+          "total": 11
+        },
+        "opposite": {
+          "correct": 4,
+          "total": 5
+        },
+        "unrelated": {
+          "correct": 5,
+          "total": 5
+        }
+      },
+      "curve": [
+        {
+          "threshold": 0.05,
+          "precision": 0.7273,
+          "recall": 0.7273,
+          "f1": 0.7273,
+          "falsePositives": 3,
+          "oppositesMerged": 1
+        },
+        {
+          "threshold": 0.1,
+          "precision": 0.8889,
+          "recall": 0.7273,
+          "f1": 0.8,
+          "falsePositives": 1,
+          "oppositesMerged": 1
+        },
+        {
+          "threshold": 0.15,
+          "precision": 0.8571,
+          "recall": 0.5455,
+          "f1": 0.6667,
+          "falsePositives": 1,
+          "oppositesMerged": 1
+        },
+        {
+          "threshold": 0.2,
+          "precision": 0.8571,
+          "recall": 0.5455,
+          "f1": 0.6667,
+          "falsePositives": 1,
+          "oppositesMerged": 1
+        },
+        {
+          "threshold": 0.25,
+          "precision": 0.8333,
+          "recall": 0.4545,
+          "f1": 0.5882,
+          "falsePositives": 1,
+          "oppositesMerged": 1
+        },
+        {
+          "threshold": 0.3,
+          "precision": 0.8333,
+          "recall": 0.4545,
+          "f1": 0.5882,
+          "falsePositives": 1,
+          "oppositesMerged": 1
+        },
+        {
+          "threshold": 0.35,
+          "precision": 0.6667,
+          "recall": 0.1818,
+          "f1": 0.2857,
+          "falsePositives": 1,
+          "oppositesMerged": 1
+        },
+        {
+          "threshold": 0.4,
+          "precision": 0.6667,
+          "recall": 0.1818,
+          "f1": 0.2857,
+          "falsePositives": 1,
+          "oppositesMerged": 1
+        },
+        {
+          "threshold": 0.45,
+          "precision": 0.6667,
+          "recall": 0.1818,
+          "f1": 0.2857,
+          "falsePositives": 1,
+          "oppositesMerged": 1
+        },
+        {
+          "threshold": 0.5,
+          "precision": 0.5,
+          "recall": 0.0909,
+          "f1": 0.1538,
+          "falsePositives": 1,
+          "oppositesMerged": 1
+        },
+        {
+          "threshold": 0.55,
+          "precision": 0,
+          "recall": 0,
+          "f1": 0,
+          "falsePositives": 1,
+          "oppositesMerged": 1
+        },
+        {
+          "threshold": 0.6,
+          "precision": 0,
+          "recall": 0,
+          "f1": 0,
+          "falsePositives": 1,
+          "oppositesMerged": 1
+        },
+        {
+          "threshold": 0.65,
+          "precision": 0,
+          "recall": 0,
+          "f1": 0,
+          "falsePositives": 0,
+          "oppositesMerged": 0
+        },
+        {
+          "threshold": 0.7,
+          "precision": 0,
+          "recall": 0,
+          "f1": 0,
+          "falsePositives": 0,
+          "oppositesMerged": 0
+        },
+        {
+          "threshold": 0.75,
+          "precision": 0,
+          "recall": 0,
+          "f1": 0,
+          "falsePositives": 0,
+          "oppositesMerged": 0
+        },
+        {
+          "threshold": 0.8,
+          "precision": 0,
+          "recall": 0,
+          "f1": 0,
+          "falsePositives": 0,
+          "oppositesMerged": 0
+        },
+        {
+          "threshold": 0.85,
+          "precision": 0,
+          "recall": 0,
+          "f1": 0,
+          "falsePositives": 0,
+          "oppositesMerged": 0
+        },
+        {
+          "threshold": 0.9,
+          "precision": 0,
+          "recall": 0,
+          "f1": 0,
+          "falsePositives": 0,
+          "oppositesMerged": 0
+        },
+        {
+          "threshold": 0.95,
+          "precision": 0,
+          "recall": 0,
+          "f1": 0,
+          "falsePositives": 0,
+          "oppositesMerged": 0
+        }
+      ]
+    }
+  ]
+}

@@ -9,6 +9,7 @@ import { createMemory } from '../../domain/entities/memory.js';
 import type { MemoryId, MemoryType, MemoryScope, StorageTier, ProjectId, Embedding } from '../../domain/types.js';
 import { DEFAULT_SCOPE } from '../../domain/types.js';
 import { StorageError } from '../../shared/exceptions/index.js';
+import { tokenize } from '../../shared/text.js';
 
 interface MemoryRow {
   id: string;
@@ -101,13 +102,34 @@ export class SqliteMemoryRepository implements MemoryRepository {
     }
   }
 
+  /**
+   * Select the memories eligible for a query.
+   *
+   * This is **candidate selection**, not ranking. The returned `score` is the row's weight and
+   * the order is `weight DESC`, which is a stable, bounded way to cap the candidate set — it is
+   * not a relevance order, and treating it as one was the defect measured at MRR 0.26
+   * (`docs/evidence/recall-experiment.json`). Relevance ordering belongs to
+   * `MemoryService.recall`, which scores these candidates against the query; a caller holding
+   * the repository directly gets eligibility and must rank for itself.
+   *
+   * @param query - Search parameters
+   * @returns Eligible memories, weight-ordered, capped by `limit`
+   */
   recall(query: RecallQuery): MemorySearchResult[] {
     try {
       const conditions: string[] = [];
       const params: unknown[] = [];
 
-      // Text search
-      const words = query.query.trim().split(/\s+/).filter(Boolean);
+      // Content words only. Splitting on whitespace and ORing one LIKE per token matched almost
+      // every row in the store through `is` and `of`, because a two-letter `LIKE '%of%'` is
+      // satisfied by most English prose — so "what is the capital of France" came back with a
+      // full page of unrelated memories.
+      const hasText = query.query.trim().length > 0;
+      const words = tokenize(query.query);
+      // A query that HAS text but no content words is unanswerable, which is a different state
+      // from an empty query meaning "no text filter" — `session start` and `distill` rely on the
+      // second, and collapsing the two would make them return nothing.
+      if (hasText && words.length === 0) return [];
       if (words.length > 0) {
         const textConditions = words.map(() => '(content LIKE ? OR tags LIKE ?)');
         conditions.push(`(${textConditions.join(' OR ')})`);

@@ -201,4 +201,49 @@ describe('TeamPromotionService.promote (semantic mode)', () => {
     const result = await svc.promote('proj-a');
     expect(result.promoted.map(p => p.id)).toEqual(['m1']);
   });
+
+  /**
+   * The contradiction guard.
+   *
+   * Measured over 32 labelled pairs, both similarity measures rank contradictions ABOVE genuine
+   * duplicates: "bodies are never logged" against "bodies are logged at debug" scored 0.667 by
+   * Jaccard where the most similar real duplicate scored 0.313. So the only thing de-duplication
+   * reliably did at its shipped threshold was withhold a memory that reversed a policy — the
+   * most expensive error available here, because nobody observes a memory that was not shared.
+   */
+  describe('a contradiction is not a duplicate', () => {
+    it('promotes a memory that negates one already in the pool', async () => {
+      insertMemory(db, 'm1', 'validate the input on the server', { confirmed: true });
+      repo.upsertSharedCache({
+        id: 'pooled', userId: 'u2', teamId: 't1', project: 'proj-a',
+        content: 'the server must never validate input on the server', memoryType: 'semantic',
+        tags: Object.freeze([]), category: undefined,
+        sharedAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z',
+      });
+
+      const result = await svc.promote('proj-a');
+
+      // Without the guard this is scored a near-duplicate and silently skipped, so the team
+      // never learns that the rule was reversed.
+      expect(result.skipped).toHaveLength(0);
+      expect(pushed.map(p => p.id)).toEqual(['m1']);
+    });
+
+    it('still skips a near-duplicate when both sides agree about negation', async () => {
+      // The guard tests asymmetry, not the presence of a negation: two memories that both
+      // forbid the same thing are duplicates like any other pair.
+      insertMemory(db, 'm1', 'never validate the input on the server', { confirmed: true });
+      repo.upsertSharedCache({
+        id: 'pooled', userId: 'u2', teamId: 't1', project: 'proj-a',
+        content: 'the server must never validate input', memoryType: 'semantic',
+        tags: Object.freeze([]), category: undefined,
+        sharedAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z',
+      });
+
+      const result = await svc.promote('proj-a');
+
+      expect(pushed).toHaveLength(0);
+      expect(result.skipped[0]).toMatchObject({ id: 'm1', reason: 'duplicate' });
+    });
+  });
 });

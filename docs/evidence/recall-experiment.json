@@ -1,6 +1,6 @@
 {
   "experiment": "recall",
-  "recordedAt": "2026-11-11T01:26:18.818Z",
+  "recordedAt": "2026-11-11T01:47:21.508Z",
   "method": "CodeSeeker tests/relevance — hand-labelled corpus, 1-based ranks, MRR / P@1 / P@3 / R@5 / F1@3",
   "platform": "win32 node v24.18.0",
   "fixture": {
@@ -8,10 +8,47 @@
     "queries": 35,
     "recallLimit": 10
   },
+  "parameters": {
+    "minCosine": 0.1,
+    "fusionDepth": 20,
+    "candidateCap": 5000
+  },
+  "cosineFloorSweep": [
+    {
+      "floor": 0.05,
+      "mrr": 0.7422,
+      "r5": 0.75,
+      "falsePositives": 3
+    },
+    {
+      "floor": 0.1,
+      "mrr": 0.7344,
+      "r5": 0.7188,
+      "falsePositives": 3
+    },
+    {
+      "floor": 0.15,
+      "mrr": 0.6719,
+      "r5": 0.6328,
+      "falsePositives": 0
+    },
+    {
+      "floor": 0.2,
+      "mrr": 0.5938,
+      "r5": 0.5547,
+      "falsePositives": 0
+    },
+    {
+      "floor": 0.3,
+      "mrr": 0.2813,
+      "r5": 0.2578,
+      "falsePositives": 0
+    }
+  ],
   "configs": [
     {
-      "name": "keyword",
-      "role": "headline",
+      "name": "keyword-legacy",
+      "role": "baseline",
       "available": true,
       "unavailableReason": null,
       "metrics": {
@@ -28,8 +65,8 @@
           "falsePositiveRate": 0.6666666666666666
         },
         "latencyMs": {
-          "mean": 0.1309,
-          "max": 0.575
+          "mean": 0.0717,
+          "max": 0.3191
         },
         "byTag": {
           "exact-keyword": {
@@ -290,28 +327,451 @@
       ]
     },
     {
-      "name": "keyword-scored",
-      "role": "diagnostic",
-      "available": false,
-      "unavailableReason": "no embedding gateway wired into recall yet (ADR-014 §3)",
-      "metrics": null,
-      "failures": []
+      "name": "shipped",
+      "role": "headline",
+      "available": true,
+      "unavailableReason": null,
+      "metrics": {
+        "mrr": 0.7573,
+        "p1": 0.7188,
+        "p3": 0.2917,
+        "r5": 0.8281,
+        "f1at3": 0.4085,
+        "cases": 32,
+        "passed": 27,
+        "outOfScope": {
+          "cases": 3,
+          "withFalsePositives": 0,
+          "falsePositiveRate": 0
+        },
+        "latencyMs": {
+          "mean": 0.2832,
+          "max": 0.899
+        },
+        "byTag": {
+          "exact-keyword": {
+            "mrr": 1,
+            "r5": 1,
+            "cases": 8
+          },
+          "morphology": {
+            "mrr": 0.8,
+            "r5": 0.8,
+            "cases": 5
+          },
+          "paraphrase": {
+            "mrr": 0.4233,
+            "r5": 0.65,
+            "cases": 10
+          },
+          "synonym": {
+            "mrr": 0.8,
+            "r5": 0.8,
+            "cases": 5
+          },
+          "ranking": {
+            "mrr": 1,
+            "r5": 1,
+            "cases": 5
+          },
+          "multi-relevant": {
+            "mrr": 0.6667,
+            "r5": 0.7,
+            "cases": 5
+          }
+        }
+      },
+      "failures": [
+        {
+          "case": "morph-pluralization",
+          "ranks": [
+            0
+          ],
+          "returned": 0,
+          "falsePositives": []
+        },
+        {
+          "case": "para-double-charge",
+          "ranks": [
+            5
+          ],
+          "returned": 7,
+          "falsePositives": []
+        },
+        {
+          "case": "para-customer-data-logs",
+          "ranks": [
+            0
+          ],
+          "returned": 10,
+          "falsePositives": []
+        },
+        {
+          "case": "para-rubber-stamped",
+          "ranks": [
+            5
+          ],
+          "returned": 8,
+          "falsePositives": []
+        },
+        {
+          "case": "para-noisy-alerts",
+          "ranks": [
+            0
+          ],
+          "returned": 6,
+          "falsePositives": []
+        },
+        {
+          "case": "syn-rollback-fast",
+          "ranks": [
+            0
+          ],
+          "returned": 3,
+          "falsePositives": []
+        },
+        {
+          "case": "multi-how-we-deploy",
+          "ranks": [
+            0,
+            0
+          ],
+          "returned": 3,
+          "falsePositives": []
+        },
+        {
+          "case": "multi-green-check",
+          "ranks": [
+            3,
+            0
+          ],
+          "returned": 4,
+          "falsePositives": []
+        }
+      ]
     },
     {
       "name": "semantic",
       "role": "headline",
-      "available": false,
-      "unavailableReason": "no embedding gateway wired into recall yet (ADR-014 §3)",
-      "metrics": null,
-      "failures": []
+      "available": true,
+      "unavailableReason": null,
+      "metrics": {
+        "mrr": 0.7344,
+        "p1": 0.7188,
+        "p3": 0.2604,
+        "r5": 0.7188,
+        "f1at3": 0.3746,
+        "cases": 32,
+        "passed": 22,
+        "outOfScope": {
+          "cases": 3,
+          "withFalsePositives": 3,
+          "falsePositiveRate": 1
+        },
+        "latencyMs": {
+          "mean": 0.6109,
+          "max": 1.5325
+        },
+        "byTag": {
+          "exact-keyword": {
+            "mrr": 1,
+            "r5": 1,
+            "cases": 8
+          },
+          "morphology": {
+            "mrr": 1,
+            "r5": 1,
+            "cases": 5
+          },
+          "paraphrase": {
+            "mrr": 0.3,
+            "r5": 0.3,
+            "cases": 10
+          },
+          "synonym": {
+            "mrr": 0.8,
+            "r5": 0.8,
+            "cases": 5
+          },
+          "ranking": {
+            "mrr": 1,
+            "r5": 1,
+            "cases": 5
+          },
+          "multi-relevant": {
+            "mrr": 0.5,
+            "r5": 0.4,
+            "cases": 5
+          }
+        }
+      },
+      "failures": [
+        {
+          "case": "para-double-charge",
+          "ranks": [
+            0
+          ],
+          "returned": 3,
+          "falsePositives": []
+        },
+        {
+          "case": "para-customer-data-logs",
+          "ranks": [
+            0
+          ],
+          "returned": 4,
+          "falsePositives": []
+        },
+        {
+          "case": "para-rubber-stamped",
+          "ranks": [
+            0
+          ],
+          "returned": 3,
+          "falsePositives": []
+        },
+        {
+          "case": "para-noisy-alerts",
+          "ranks": [
+            0
+          ],
+          "returned": 7,
+          "falsePositives": []
+        },
+        {
+          "case": "para-lost-typing",
+          "ranks": [
+            0
+          ],
+          "returned": 0,
+          "falsePositives": []
+        },
+        {
+          "case": "syn-rollback-fast",
+          "ranks": [
+            0
+          ],
+          "returned": 1,
+          "falsePositives": []
+        },
+        {
+          "case": "multi-performance-fixes",
+          "ranks": [
+            6,
+            1,
+            0,
+            4
+          ],
+          "returned": 7,
+          "falsePositives": []
+        },
+        {
+          "case": "multi-how-we-deploy",
+          "ranks": [
+            0,
+            0
+          ],
+          "returned": 3,
+          "falsePositives": []
+        },
+        {
+          "case": "multi-testing-prefs",
+          "ranks": [
+            0,
+            2
+          ],
+          "returned": 6,
+          "falsePositives": []
+        },
+        {
+          "case": "multi-green-check",
+          "ranks": [
+            0,
+            0
+          ],
+          "returned": 3,
+          "falsePositives": []
+        },
+        {
+          "case": "empty-bluetooth",
+          "ranks": [],
+          "returned": 1,
+          "falsePositives": [
+            "m-locale-dates"
+          ]
+        },
+        {
+          "case": "empty-capital-france",
+          "ranks": [],
+          "returned": 3,
+          "falsePositives": [
+            "m-lesson-green-gate",
+            "m-tax-rounding",
+            "m-currency-iso"
+          ]
+        },
+        {
+          "case": "empty-kafka-partitions",
+          "ranks": [],
+          "returned": 1,
+          "falsePositives": [
+            "m-filter-state-url"
+          ]
+        }
+      ]
     },
     {
       "name": "hybrid",
       "role": "headline",
-      "available": false,
-      "unavailableReason": "no embedding gateway wired into recall yet (ADR-014 §3)",
-      "metrics": null,
-      "failures": []
+      "available": true,
+      "unavailableReason": null,
+      "metrics": {
+        "mrr": 0.7972,
+        "p1": 0.7813,
+        "p3": 0.2917,
+        "r5": 0.7891,
+        "f1at3": 0.408,
+        "cases": 32,
+        "passed": 24,
+        "outOfScope": {
+          "cases": 3,
+          "withFalsePositives": 3,
+          "falsePositiveRate": 1
+        },
+        "latencyMs": {
+          "mean": 1.0506,
+          "max": 5.7401
+        },
+        "byTag": {
+          "exact-keyword": {
+            "mrr": 1,
+            "r5": 1,
+            "cases": 8
+          },
+          "morphology": {
+            "mrr": 1,
+            "r5": 1,
+            "cases": 5
+          },
+          "paraphrase": {
+            "mrr": 0.451,
+            "r5": 0.45,
+            "cases": 10
+          },
+          "synonym": {
+            "mrr": 0.8,
+            "r5": 0.8,
+            "cases": 5
+          },
+          "ranking": {
+            "mrr": 1,
+            "r5": 1,
+            "cases": 5
+          },
+          "multi-relevant": {
+            "mrr": 0.64,
+            "r5": 0.65,
+            "cases": 5
+          }
+        }
+      },
+      "failures": [
+        {
+          "case": "para-double-charge",
+          "ranks": [
+            7
+          ],
+          "returned": 8,
+          "falsePositives": []
+        },
+        {
+          "case": "para-customer-data-logs",
+          "ranks": [
+            0
+          ],
+          "returned": 10,
+          "falsePositives": []
+        },
+        {
+          "case": "para-rubber-stamped",
+          "ranks": [
+            6
+          ],
+          "returned": 8,
+          "falsePositives": []
+        },
+        {
+          "case": "para-noisy-alerts",
+          "ranks": [
+            0
+          ],
+          "returned": 9,
+          "falsePositives": []
+        },
+        {
+          "case": "syn-rollback-fast",
+          "ranks": [
+            0
+          ],
+          "returned": 3,
+          "falsePositives": []
+        },
+        {
+          "case": "multi-performance-fixes",
+          "ranks": [
+            2,
+            1,
+            8,
+            3
+          ],
+          "returned": 10,
+          "falsePositives": []
+        },
+        {
+          "case": "multi-how-we-deploy",
+          "ranks": [
+            0,
+            0
+          ],
+          "returned": 3,
+          "falsePositives": []
+        },
+        {
+          "case": "multi-green-check",
+          "ranks": [
+            5,
+            0
+          ],
+          "returned": 5,
+          "falsePositives": []
+        },
+        {
+          "case": "empty-bluetooth",
+          "ranks": [],
+          "returned": 1,
+          "falsePositives": [
+            "m-locale-dates"
+          ]
+        },
+        {
+          "case": "empty-capital-france",
+          "ranks": [],
+          "returned": 3,
+          "falsePositives": [
+            "m-lesson-green-gate",
+            "m-tax-rounding",
+            "m-currency-iso"
+          ]
+        },
+        {
+          "case": "empty-kafka-partitions",
+          "ranks": [],
+          "returned": 1,
+          "falsePositives": [
+            "m-filter-state-url"
+          ]
+        }
+      ]
     }
   ]
 }

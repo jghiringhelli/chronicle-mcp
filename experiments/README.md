@@ -87,8 +87,11 @@ experiments/
   lib/fixture.ts         51 hand-written memories, with adversarial weights
   recall/corpus.ts       35 labelled queries in seven classes
   recall/run.ts          runner: seeds, measures every configuration, writes evidence
-  dedup/pairs.ts         labelled duplicate / non-duplicate memory pairs
-  dedup/run.ts           runner: lexical vs semantic, with a threshold sweep
+  dedup/pairs.ts         32 labelled duplicate / non-duplicate memory pairs
+  dedup/pool.ts          the pool-scale question: max similarity over the whole store
+  dedup/polarity.ts      48 fixture decisions, each reversed AND restated — the guard corpus
+  dedup/guards.ts        candidate contradiction guards, including one measured but not adopted
+  dedup/run.ts           runner: lexical vs semantic vs model, threshold sweep, guard comparison
   baseline-recall.json   committed headline metrics; a drop past the threshold fails the run
   baseline-dedup.json    the same, for de-duplication
 ```

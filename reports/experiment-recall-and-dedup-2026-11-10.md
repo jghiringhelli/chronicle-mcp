@@ -57,8 +57,17 @@ two of its conclusions:
 > **And the obvious way to fix de-duplication would have broken it.** The threshold that maximises
 > pairwise F1 suppresses **11 of 12 novel memories** when applied the way the service applies it —
 > as a maximum over the whole pool. Measuring that before changing anything is the only reason the
-> fix is a fix. De-duplication now runs at F1 **0.59** by default and **0.74** with a model, from
-> 0.00.
+> fix is a fix.
+
+Finally, the guard that makes any threshold safe was measured properly, and the first number this
+report published about it was too kind to it:
+
+> **The guard was reported as catching four of five contradictions. Against a corpus big enough to
+> say anything, it caught 29 of 48.** The five hand-labelled pairs all happened to contain a
+> negation, which was the only thing the guard could see. The 19 it missed reverse a decision by
+> **swapping two alternatives** rather than negating one — and reading that construction takes it
+> to **36 of 48** at no cost on any negative class. De-duplication now runs at F1 **0.63** by
+> default and **0.78** with a model, from 0.00, with zero contradictions merged.
 
 ---
 
@@ -279,15 +288,87 @@ At the thresholds the product now ships with:
 | method | threshold | precision | recall | F1 | contradictions merged |
 |---|---|---|---|---|---|
 | lexical (Jaccard) — fallback | 0.20 | 0.55 | 0.55 | 0.55 | 5 |
-| vector + guard — default | 0.25 | 0.83 | 0.45 | **0.59** | 1 |
-| model + guard — when installed | 0.75 | 0.88 | 0.64 | **0.74** | 1 |
+| vector + guard — default | 0.25 | **1.00** | 0.45 | **0.63** | **0** |
+| model + guard — when installed | 0.75 | **1.00** | 0.64 | **0.78** | **0** |
 
-From 0.00. And deliberately below the 0.80 that was achievable pairwise: that gap is the price of
-not losing novel memories at pool scale, and it is the right way round to be wrong.
+From 0.00, and both guarded configurations now merge **no** contradiction at all — precision 1.00
+on the duplicate class. Still deliberately below the 0.84 achievable pairwise: that gap is the
+price of not losing novel memories at pool scale, and it is the right way round to be wrong.
+
+The unguarded model reaches F1 0.85, one point higher than the guarded 0.84 — and merges four
+contradictions to get there. That one point is what the guard costs, and it is worth paying.
 
 **Does the threshold hold as the pool grows?** At each chosen value, novel suppressions stay at
 zero across pool sizes 10, 25 and 51. That is a 5× range with no drift — not a thousand memories,
-and the section on what this does not establish says so.
+and the section on what this does not establish says so. The thresholds were re-measured after
+the guard was strengthened and did not move.
+
+---
+
+## Result 3 — the guard, and a number this report got wrong
+
+Every row above with `+ guard` in it depends on a rule that decides whether two similar texts
+**contradict** each other. An earlier version of this report said that rule caught *four of the
+five* labelled contradictions. That figure was not wrong arithmetically; it was measured on a
+sample far too small to support it, and it flattered the rule.
+
+The rule was negation asymmetry: one text negates, the other does not. All five labelled pairs
+happened to contain a negation, which is the only thing such a rule can see — so the corpus could
+not have produced a bad score.
+
+### A corpus that can produce a bad score
+
+`experiments/dedup/polarity.ts` takes each of the **48** fixture memories that states a standing
+decision and writes two texts against it:
+
+- a **reversal** — the same subject, the opposite decision, with a reason for the change. Merging
+  it with the original withholds a memory that reverses a policy.
+- a **restatement** — the same decision in different words, keeping the original's rationale.
+  Merging it is correct; blocking it costs a visible duplicate.
+
+The two differ in exactly one respect, which is what makes the corpus measure the guard rather
+than the similarity method under it. Both classes are necessary: a corpus of only contradictions
+makes every guard look free, because a guard's errors are all false *blocks*.
+
+| rule | reversals caught /48 | restatements blocked /48 | `opposite` pairs /5 | pool dups blocked /11 |
+|---|---|---|---|---|
+| negation only — *as published* | 29 | 9 | 4 | 4 |
+| preference inversion only | 12 | **0** | 1 | **0** |
+| **negation OR inversion — now shipped** | **36** | 9 | **5** | 4 |
+
+**29 of 48, not 4 of 5.** The 19 misses reverse a decision by **swapping two alternatives** rather
+than negating one — "rounded on each line item rather than once on the total" against "rounded
+once on the total rather than on each line item". Nothing is negated; the preference is inverted,
+and English marks that with a contrast construction.
+
+Reading that construction adds **7** catches and costs **nothing**: restatements blocked, pool
+duplicates and pairwise duplicates are all unchanged. It also catches the fifth labelled pair —
+"avoid mocks, prefer a fake" against "prefer mocks, avoid fakes" — which the previous
+implementation documented as the honest limit of the approach.
+
+### The corpus reports on itself
+
+If negations clustered in the reversals, "contains a negation" would *be* the label and the table
+above would be measuring the corpus. They do not: **29 of 48** reversals and **23 of 48**
+restatements contain one. That count is printed on every run rather than asserted once.
+
+### Measured, dominant, and not adopted
+
+Restricting the negation test to negations that bear on vocabulary the two texts share scores
+**37/48** caught, 9 restatements, 5/5 opposites, and cuts the duplicate cost to **1/11** pool and
+**0/11** pairwise. It is better on every column.
+
+It is not shipped. It needs a window width and a shared-token floor, both chosen by reading this
+corpus; the rule it replaces has no numeric parameter to overfit; and the entire gain is on the
+**cheap** error. An in-sample win on the error that costs least is not a good enough reason to
+add two fitted constants to a safety control. It is printed with every run as
+`scoped(3,1)` and `scoped(4,2)` so a larger corpus can settle it.
+
+### What is still missed
+
+**12 of 48.** Reversals that substitute an antonym with no contrast marker and no negation —
+"stored as integer cents" against "stored as floating point doubles". That needs lexical knowledge
+the guard does not have, and the unit tests assert the miss so it cannot shift unnoticed.
 
 ## What did not help
 
@@ -316,13 +397,27 @@ reading.
 - **Hybrid's win is marginal and expensive.** +0.04 MRR, −0.04 R@5, three fewer cases passed, three
   false positives instead of zero, and four to five times the per-query cost. Rejected as the
   default on its own numbers.
-- **The contradiction guard costs real duplicates.** Three of eleven — `dup-idempotency`,
-  `dup-small-prs`, `dup-pipe-exit` — because it reads the whole memory, so a negation inside a
-  *rationale* ("so a retry **cannot** bill twice") counts as if it negated the claim.
-- **The guard misses the contradiction that carries no negation.** "I avoid mocks and prefer a
-  fake" against "I prefer mocks and avoid fakes" reverses meaning by swapping two verbs. Neither
-  sentence negates, so nothing is asymmetric. Catching it needs to parse the sentence rather than
-  scan it, and that pair is asserted as a known miss in the tests.
+- **The contradiction guard still costs real duplicates.** Three of eleven pairwise and four of
+  eleven at pool scale — `dup-idempotency`, `dup-small-prs`, `dup-pipe-exit` — because negation
+  asymmetry reads the whole memory, so a negation inside a *rationale* ("so a retry **cannot** bill
+  twice") counts as if it negated the claim. Adding the second rule did not improve this; it only
+  stopped making it worse.
+- **"Four of five contradictions caught" was a number I should not have published.** It was
+  measured on five pairs that all happened to contain a negation — the only thing the rule could
+  see. Against 48 reversals it caught 29. The figure was not arithmetically wrong, it was
+  unsupportable, and the fix was to build a corpus that could produce a bad score. See Result 3.
+- **Preference inversion catches only 12 of 48 reversals on its own.** It is worth shipping because
+  its errors are zero, not because its coverage is good: it is the second rule in an OR, not a
+  replacement for the first.
+- **The rule that scored best is not the one that shipped.** Scoping negation to shared vocabulary
+  beat the shipped guard on every column (37/48 caught, 1/11 pool duplicates blocked). Rejected
+  because its two constants were chosen by reading the evaluation corpus and its gain is entirely
+  on the error that costs least. Reporting a win and then declining it is the same discipline as
+  reporting a loss.
+- **A corpus of 48 is still small, and it is mine.** Both classes were written by hand, so the
+  corpus could in principle favour the guard. The two checkable constraints are the commit order —
+  the corpus lands before any change to the guard — and the negation balance printed on every run.
+  Neither is as good as a corpus somebody else wrote.
 - **My `synonym` class turned out not to isolate synonymy.** It scores 0.80 on three configurations
   because the targets share enough other vocabulary with the queries that coverage alone finds
   them. The genuinely synonym-dependent cases are scattered across the `paraphrase` class, which is
@@ -338,10 +433,13 @@ reading.
 - **The model merges contradictions more confidently than anything else.** At its best pairwise
   threshold it merges 4 of 5, because a better model is better at seeing that two sentences are
   *about* the same thing — which is exactly the wrong question when one of them negates the other.
-  The guard is what makes it usable, and the guard is crude.
-- **Giving up pairwise F1 was unavoidable.** The thresholds now shipped score 0.59 and 0.74 where
-  0.80 was achievable pairwise. That is a deliberate loss, taken to keep novel suppressions at
+  The guard is what makes it usable, and the guard still misses 12 reversals in 48.
+- **Giving up pairwise F1 was unavoidable.** The thresholds now shipped score 0.63 and 0.78 where
+  0.84 was achievable pairwise. That is a deliberate loss, taken to keep novel suppressions at
   zero.
+- **The guard costs the model its top score.** Unguarded, the model reaches F1 0.85; guarded, 0.84.
+  That one point buys four contradictions not merged, which is a trade worth making — but it is a
+  real cost, not a free win.
 - **Three queries fail in every configuration measured without a model.** `syn-rollback-fast`,
   `para-customer-data-logs` and `para-noisy-alerts` need actual synonymy — "getting back to the
   previous version" to find a memory about a warm blue-green rollback. Nothing here finds them.
@@ -412,6 +510,14 @@ costs nothing measurable.
 - **The novel candidates are deliberately easy.** Twelve memories whose subject is absent from the
   pool. Easy is the point — a method that suppresses one of those would suppress anything — but it
   means the measurement says nothing about a candidate that is arguably a duplicate.
+- **The polarity corpus is 48 cases and I wrote both sides of every one.** It is large enough to
+  separate the guards and far too small to validate a rule with fitted parameters, which is the
+  stated reason the better-scoring scoped variant was not adopted. The provenance constraints are
+  the commit order and the printed negation balance; a corpus written by somebody else would be
+  worth more than both.
+- **The guard is measured against the fixture memory, not against the pool.** Each polarity case is
+  scored against the one memory it was written for. At pool scale a candidate meets 50 other
+  memories as well, and a guard firing against the wrong one of them is not measured here.
 - **The dedup experiment measures the decision function, not the service.** It scores the similarity
   functions directly rather than driving `promote`, because `promote` needs a configured Railway URL
   and writes to a database a partner reads. That the better function is wired in correctly is a
@@ -424,7 +530,7 @@ costs nothing measurable.
 ```bash
 pnpm install
 pnpm run experiment:recall     # the table above, plus the cosine floor sweep
-pnpm run experiment:dedup      # the dedup tables, plus the full F1 curve
+pnpm run experiment:dedup      # the dedup tables, the F1 curve, and the guard comparison
 pnpm run experiments           # both
 ```
 
@@ -445,7 +551,8 @@ Stated precisely, because the point of the exercise was to have numbers rather t
   **recall@5 0.42 to 0.83**, with false positives on unanswerable queries going from 2/3 to 0/3.
 - Found by measurement that a shipped de-duplication feature had **never once fired on a duplicate**
   — its thresholds sat above the maximum similarity any duplicate reached — and that its only
-  positives were contradictions; then added a guard that cut false positives from 6 to 1.
+  positives were contradictions; then added a guard that took false positives from 6 to **0** —
+  precision 1.00 on the duplicate class.
 - Did it with **no new runtime dependency**, no model download and no network, preserving a
   zero-config install contract and an existing supply-chain decision.
 - Measured a real sentence-transformer against the same corpus and showed it **does** close the
@@ -458,6 +565,11 @@ Stated precisely, because the point of the exercise was to have numbers rather t
 - **Reported that the headline improvement was not the feature everyone expected.** The embeddings
   contributed one query class and cost another; the scoring was the defect. The experiment carries a
   diagnostic configuration whose only purpose is to make that attribution impossible to get wrong.
+- **Retracted one of my own published figures and built the corpus that could disprove it.** The
+  contradiction guard was reported at "4 of 5"; on 48 reversals it was 29. Reading the contrast
+  construction as well as the negation took it to 36 at no measured cost, and the variant that
+  scored best — 37, with a quarter of the false blocks — was **declined** because its two constants
+  were fitted on the evaluation corpus.
 
-The last one is the only item on this list that a reader cannot get from a changelog, and it is the
-one worth leading with.
+The last two are the only items on this list a reader cannot get from a changelog, and they are the
+ones worth leading with.

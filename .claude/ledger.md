@@ -27,6 +27,19 @@ Behavioural deviations that were corrected once and must not recur. One dated li
 When the user says *"don't do that"* about a pattern produced here, append a line.
 
 
+- `[2026-11-10]` — A sample too small to produce a bad score cannot support a number. I published
+  "the contradiction guard catches four of the five labelled contradictions". All five contained a
+  negation, which is the only thing the guard could see, so the corpus could not have scored it
+  badly. Against 48 reversed decisions it caught **29**. The arithmetic was right and the figure
+  was unsupportable, which is worse than no figure because it reads as a measurement. Before
+  quoting a rate, ask what in the corpus could have made it low.
+- `[2026-11-10]` — A test can pass because the branch it targets was never entered. The new test
+  for the preference-inversion guard asserted the right outcome, passed, and passed **equally well
+  with the guard reverted** — the `FakeEmbeddings` double scores that pair 0.00, so the candidate
+  never cleared the threshold and the duplicate branch never ran. The assertion was never reached.
+  A test for a veto must be shown to fail with the veto removed; `-t` plus a one-line revert costs
+  a minute and is the only thing that distinguishes a test from a comment.
+
 > Entries before 2026-09-12 live in `.claude/ledger-archive.md` — moved, not deleted, so this node
 > stays inside its read budget. They bind exactly as much as the ones below.
 

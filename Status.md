@@ -79,7 +79,7 @@ win32-x64.
 | Cascade / sentinel | `pnpm run cascade` | **0 errors, 4 warnings** | `docs/evidence/cascade-check-after.json` |
 | Typecheck | `pnpm run typecheck` | **exit 0** | `docs/evidence/typecheck.txt` |
 | Lint (cycles + layers) | `pnpm run lint` | **0 errors**, 54 warnings (exc-009) · scope is now `eslint .`, one list instead of two that had drifted | `docs/evidence/lint.txt` |
-| Tests | `vitest run` (pre-commit) | **409 passed / 409**, 2026-11-10 | this table's own run record |
+| Tests | `vitest run` (pre-commit) | **420 passed / 420**, 2026-11-10 | this table's own run record |
 | Coverage | `pnpm run test:coverage` | **59.98% lines** (floor 41, target 80) | `docs/evidence/test-coverage.txt` |
 | Mutation | `pnpm run test:mutation` | **MSI 36.92%** (floor 20, target 65) | `docs/evidence/mutation.txt` |
 | Dependency policy | `pnpm run deps:policy` | **ok** | `docs/evidence/dependency-policy.txt` |
@@ -113,13 +113,23 @@ against NFR-03's 50ms budget. It is adopted for de-duplication, which has no lat
 
 De-duplication was measured too and was worse than recall: at its old thresholds **F1 was 0.00**,
 because they sat above the highest similarity any real duplicate reaches, and its only two
-positives in the corpus were contradictions. It now runs at **F1 0.59** by default and **0.74**
-with a model, with the threshold owned by whichever gateway produced the vectors. The values are
-**not** the pairwise optimum: applied as a maximum over the pool, as the service applies them,
-that optimum suppresses 11 of 12 novel memories.
+positives in the corpus were contradictions. It now runs at **F1 0.63** by default and **0.78**
+with a model, merging **no** contradiction at either threshold, with the number owned by whichever
+gateway produced the vectors. The values are **not** the pairwise optimum: applied as a maximum
+over the pool, as the service applies them, that optimum suppresses 11 of 12 novel memories.
+
+**The contradiction guard in front of those thresholds was re-measured and one published figure
+retracted.** It had been reported as catching four of five labelled contradictions; all five
+contained a negation, which was the only thing the rule could see. Against 48 reversed decisions
+(`experiments/dedup/polarity.ts`, one reversal and one restatement per fixture memory) it caught
+**29 of 48**. Reading the contrast construction as well as the negation takes it to **36 of 48**
+and 5 of 5, with the false-block counts unchanged — EDR-007. A variant scoring 37 of 48 with a
+quarter of the false blocks was **measured and declined**: its two constants were chosen by
+reading the evaluation corpus, and the whole gain is on the error that costs least.
 
 Records: `docs/evidence/recall-experiment.json`, `docs/evidence/dedup-experiment.json`. Both
-baselines fail a run on a regression.
+baselines fail a run on a regression, and the dedup baseline now ratchets the guard's catch rate
+and false-block rate alongside the similarity methods.
 
 **Coverage and mutation are ratchet floors, not the targets.** Both thresholds had been declared
 for months (80% lines, 65% MSI) and **neither had ever been evaluated** — the coverage provider
@@ -203,10 +213,13 @@ anchor named for each property, the evidence, and the tiered treatment plan:
   on `pilot/companion-2026-10`.
 - **GS brownfield adoption,** at step 06 with the step-03 collision unresolved (Brownfield
   Baseline).
-- **Both of ADR-027's open decisions were taken** on 2026-11-10 and are recorded in ADR-028. What
-  remains open after them: an async recall path for a user who would accept 165ms for MRR 0.86,
-  and a sharper contradiction guard — the present one blocks 3 of 11 genuine duplicates because it
-  reads the whole memory, so a negation inside a rationale counts as one.
+- **Both of ADR-027's open decisions were taken** on 2026-11-10 and are recorded in ADR-028; the
+  contradiction guard they depend on was sharpened the same day (EDR-007). What remains open: an
+  async recall path for a user who would accept 165ms for MRR 0.86; **12 of 48 reversals the guard
+  still misses**, those that substitute an antonym with no negation and no contrast marker; and
+  re-deriving the scoped-negation variant against a corpus large enough to justify fitting its two
+  constants. The guard still blocks 4 of 11 pool duplicates, unchanged — the second rule stopped
+  that getting worse rather than improving it.
 
 ## Completed
 

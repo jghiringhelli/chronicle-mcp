@@ -44,7 +44,7 @@ A gate answers *did it run*. These answer *is it any good*, which no gate here c
 | File | Experiment | Result |
 |---|---|---|
 | `recall-experiment.json` | `pnpm run experiment:recall` — 51 memories, 35 labelled queries | keyword-legacy **MRR 0.26 / R@5 0.42** → shipped **0.76 / 0.83**; vectors-only 0.73 / 0.72; hybrid 0.80 / 0.79 |
-| `dedup-experiment.json` | `pnpm run experiment:dedup` — 32 labelled pairs | at the shipped thresholds **F1 0.00 for both methods**; best achievable F1 lexical 0.64, semantic 0.74, semantic+guard 0.80 |
+| `dedup-experiment.json` | `pnpm run experiment:dedup` — 32 labelled pairs, a 51-memory pool, and 48 reversed/restated decisions | the shipped thresholds once gave **F1 0.00 for both methods**; now **0.63** by default and **0.78** with a model, with **0** contradictions merged. The guard catches **36/48** reversals (negation alone caught 29) |
 | `nfr-bench-2026-11-10-ranking.json` | `bench-nfr.mjs`, re-run after the ranking change | NFR-03 **p95 16.93ms at 10k** (budget 50ms). NFR-02 median 326.67ms, inside this host's known 210–372ms band |
 
 Method and limits in `experiments/README.md`. Both are reproducible with no credentials, no

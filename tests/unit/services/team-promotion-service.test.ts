@@ -285,6 +285,35 @@ describe('TeamPromotionService.promote (semantic mode)', () => {
       expect(pushed.map(p => p.id)).toEqual(['m1']);
     });
 
+    it('promotes a memory that inverts a preference without negating anything', async () => {
+      // This test pins the WIRING, not the rule. Both texts say "avoid", so negation asymmetry
+      // sees nothing and the previous guard let the pair merge — the team would have kept the
+      // superseded preference and never received its reversal.
+      //
+      // It runs on the LEXICAL path, with its own service and no embedding gateway, because the
+      // `FakeEmbeddings` double used elsewhere in this block scores this particular pair 0.00:
+      // the candidate would never reach the threshold and the test would pass without the guard
+      // being consulted at all. It did exactly that when first written. The real Jaccard here is
+      // 0.56 against a threshold of 0.20, so the duplicate branch is genuinely entered and the
+      // guard is the only thing that can prevent the skip.
+      const lexicalSvc = new TeamPromotionService(db, repo, {
+        pushSharedMemory: async (m: SharedMemoryInput) => { pushed.push(m); return m.id; },
+      } as unknown as TeamSyncService);
+      insertMemory(db, 'm1', 'I prefer mocks in tests and avoid hand-written fakes', { confirmed: true });
+      repo.upsertSharedCache({
+        id: 'pooled', userId: 'u2', teamId: 't1', project: 'proj-a',
+        content: 'I avoid mocks in tests and prefer a fake', memoryType: 'semantic',
+        tags: Object.freeze([]), category: undefined,
+        sharedAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z',
+      });
+
+      const result = await lexicalSvc.promote('proj-a');
+
+      expect(result.method).toBe('lexical');
+      expect(result.skipped).toHaveLength(0);
+      expect(pushed.map(p => p.id)).toEqual(['m1']);
+    });
+
     it('still skips a near-duplicate when both sides agree about negation', async () => {
       // The guard tests asymmetry, not the presence of a negation: two memories that both
       // forbid the same thing are duplicates like any other pair.

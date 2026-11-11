@@ -18,7 +18,7 @@ import type { TeamSyncService } from './team-sync-service.js';
 import type { TeamRepository } from '../ports/repositories/team-repository.js';
 import type { EmbeddingGateway } from '../ports/gateways/embedding-gateway.js';
 import type { Embedding } from '../domain/types.js';
-import { negationMismatch } from './contradiction.js';
+import { contradicts } from './contradiction.js';
 
 /**
  * Token-overlap (Jaccard) at or above which two memories are the same knowledge.
@@ -161,16 +161,16 @@ export class TeamPromotionService {
       const match = semantic
         ? this.closestSemantic(semantic.candidateEmbeddings[i]!, semantic.poolEmbeddings, pool)
         : this.closestLexical(cand.content, pool);
-      // A pair that disagrees about negation is never the same knowledge, however similar the
-      // text. Both similarity measures rank contradictions ABOVE genuine duplicates — "bodies
-      // are never logged" against "bodies are logged at debug" scored 0.667 by Jaccard where the
+      // A pair that reverses a decision is never the same knowledge, however similar the text.
+      // Both similarity measures rank contradictions ABOVE genuine duplicates — "bodies are
+      // never logged" against "bodies are logged at debug" scored 0.667 by Jaccard where the
       // most similar real duplicate scored 0.313 — so at the shipped threshold the only thing
       // de-duplication did was withhold memories that reversed a policy
       // (docs/evidence/dedup-experiment.json). The guard can only prevent a merge, never cause
       // one, so the worst it costs is a near-duplicate left in the pool for somebody to delete.
       const matchContent = match ? pool.find((p) => p.id === match.id)?.content : undefined;
-      const contradicts = matchContent !== undefined && negationMismatch(cand.content, matchContent);
-      if (match && match.score >= threshold && !contradicts) {
+      const reversesIt = matchContent !== undefined && contradicts(cand.content, matchContent);
+      if (match && match.score >= threshold && !reversesIt) {
         result.skipped.push({ id: cand.id, reason: 'duplicate', similarTo: match.id });
         continue;
       }

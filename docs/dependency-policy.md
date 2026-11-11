@@ -125,6 +125,7 @@ breaks either way. The optional module is typed by `src/types/fastembed.d.ts`.
 | `tsup` | `^8` | Build. |
 | `tsx` | `^4` | Dev runner. |
 | `@types/node`, `@types/better-sqlite3` | — | Types. |
+| `fastembed` | `^3` | **Experiment only.** Supplies a real sentence-transformer (BGE-small-en-v1.5) so `experiments/` can answer whether model embeddings beat the in-tree lexical vectors on paraphrase — the one question ADR-027 left open and could not answer without it. **Deliberately NOT a runtime dependency:** ADR-017 removed it from the install tree over nine advisories including a critical, and that decision stands. As a devDependency it is outside `pnpm audit --prod`, outside every published tarball, and reachable at runtime only by a user who installs it themselves, which is the upgrade path ADR-017 kept open. Rejected alternative: adding it back to `optionalDependencies`, which is what ADR-017 found does **not** mean "not installed". |
 
 ## Forbidden
 

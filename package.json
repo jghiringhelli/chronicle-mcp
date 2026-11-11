@@ -93,6 +93,7 @@
     "eslint": "^9.0.0",
     "eslint-import-resolver-typescript": "^4.3.4",
     "eslint-plugin-import": "^2.31.0",
+    "fastembed": "^3.0.0",
     "tsup": "^8.0.0",
     "tsx": "^4.0.0",
     "typescript": "^5.4.0",

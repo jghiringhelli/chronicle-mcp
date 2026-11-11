@@ -614,20 +614,23 @@ function semanticAt(repo: MemoryRepository, floor: number): Strategy {
   };
 }
 
-function buildStrategies(repo: MemoryRepository, db: Database.Database): Strategy[] {
-  /**
-   * The path as it shipped before any of this work, frozen here as SQL.
-   *
-   * It is a copy rather than a call, and that is on purpose. The production implementation has
-   * since changed, so calling it would silently re-point this row at the new behaviour and the
-   * before/after comparison — the entire claim — would quietly become a comparison of the new
-   * code with itself. Frozen, the 0.26 stays reproducible for as long as the file exists.
-   *
-   * Faithfulness is checkable rather than asserted: this configuration must still reproduce the
-   * MRR and R@5 in `experiments/baseline-recall.json`, which were recorded by running the real
-   * pre-change code. If the copy had drifted, the baseline check would fail.
-   */
-  const legacy: Strategy = {
+/**
+ * The path as it shipped before any of this work, frozen here as SQL.
+ *
+ * It is a copy rather than a call, and that is on purpose. The production implementation has since
+ * changed, so calling it would silently re-point this row at the new behaviour and the
+ * before/after comparison — the entire claim — would quietly become a comparison of the new code
+ * with itself. Frozen, the 0.26 stays reproducible for as long as the file exists.
+ *
+ * Faithfulness is checkable rather than asserted: this configuration must still reproduce the MRR
+ * and R@5 in `experiments/baseline-recall.json`, which were recorded by running the real
+ * pre-change code. If the copy had drifted, the baseline check would fail.
+ *
+ * @param db - The seeded database
+ * @returns The frozen baseline configuration
+ */
+function legacyStrategy(db: Database.Database): Strategy {
+  return {
     name: 'keyword-legacy',
     role: 'baseline',
     available: true,
@@ -643,15 +646,20 @@ function buildStrategies(repo: MemoryRepository, db: Database.Database): Strateg
       return rows.map((r) => r.id);
     },
   };
+}
 
-  /**
-   * What a user actually gets: `MemoryService.recall`, through the real service.
-   *
-   * Measured through the service rather than reimplemented, so this row cannot report an
-   * improvement the shipped code does not have.
-   */
+/**
+ * What a user actually gets: `MemoryService.recall`, through the real service.
+ *
+ * Measured through the service rather than reimplemented, so this row cannot report an
+ * improvement the shipped code does not have.
+ *
+ * @param repo - Seeded repository
+ * @returns The shipped configuration
+ */
+function shippedStrategy(repo: MemoryRepository): Strategy {
   const memSvc = new MemoryService(repo, new NodeIdGenerator(), new NodeClock());
-  const shipped: Strategy = {
+  return {
     name: 'shipped',
     role: 'headline',
     available: true,
@@ -659,11 +667,17 @@ function buildStrategies(repo: MemoryRepository, db: Database.Database): Strateg
       return memSvc.recall({ query, limit }).map((m) => m.id);
     },
   };
+}
 
-  const semantic = semanticAt(repo, MIN_COSINE);
-
-  /** Rank fusion of the shipped ranking and the vector path. */
-  const hybrid: Strategy = {
+/**
+ * Rank fusion of the shipped ranking and the vector path.
+ *
+ * @param shipped - The lexical configuration
+ * @param semantic - The vector configuration
+ * @returns The fused configuration
+ */
+function hybridStrategy(shipped: Strategy, semantic: Strategy): Strategy {
+  return {
     name: 'hybrid',
     role: 'headline',
     available: true,
@@ -675,8 +689,12 @@ function buildStrategies(repo: MemoryRepository, db: Database.Database): Strateg
       return reciprocalRankFusion([lex, sem]).slice(0, limit);
     },
   };
+}
 
-  return [legacy, shipped, semantic, hybrid];
+function buildStrategies(repo: MemoryRepository, db: Database.Database): Strategy[] {
+  const shipped = shippedStrategy(repo);
+  const semantic = semanticAt(repo, MIN_COSINE);
+  return [legacyStrategy(db), shipped, semantic, hybridStrategy(shipped, semantic)];
 }
 
 main()

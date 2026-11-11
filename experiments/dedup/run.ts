@@ -169,6 +169,66 @@ function byTag(method: Method, threshold: number): Record<string, { correct: num
 const lines: string[] = [];
 const say = (s = ''): void => { lines.push(s); console.log(s); };
 
+/** A method with both of its operating points measured. */
+type MethodResult = { method: Method; shipped: Outcome; best: Outcome; curve: Outcome[] };
+
+/**
+ * Print one confusion-matrix table.
+ *
+ * @param title - Table heading
+ * @param results - Methods to report
+ * @param pick - Which operating point of each method to show
+ */
+function printOutcomes(title: string, results: MethodResult[], pick: (r: MethodResult) => Outcome): void {
+  say();
+  say(title);
+  say('-'.repeat(94));
+  say('method               thr    P      R      F1     TP  FP  FN  TN   opposites merged');
+  for (const r of results) {
+    const o = pick(r);
+    say(
+      `${r.method.name.padEnd(20)} ${o.threshold.toFixed(2)}   ${fmt(o.precision)}   ${fmt(o.recall)}   ${fmt(o.f1)}   ` +
+      `${String(o.truePositives).padStart(2)}  ${String(o.falsePositives).padStart(2)}  ` +
+      `${String(o.falseNegatives).padStart(2)}  ${String(o.trueNegatives).padStart(2)}   ${o.oppositesMerged}`,
+    );
+  }
+}
+
+/**
+ * Print the per-class breakdown, which is where the opposite class shows itself.
+ *
+ * @param results - Methods to report
+ */
+function printByTag(results: MethodResult[]): void {
+  say();
+  say("By pair class, at each method's best threshold — correct / total");
+  say('-'.repeat(94));
+  say(['pair class'.padEnd(22), ...results.map((r) => r.method.name.padEnd(20))].join(' '));
+  for (const tag of ALL_TAGS) {
+    const cells = results.map((r) => {
+      const t = byTag(r.method, r.best.threshold)[tag];
+      return (t ? `${t.correct}/${t.total}` : '—').padEnd(20);
+    });
+    say([tag.padEnd(22), ...cells].join(' '));
+  }
+}
+
+/**
+ * Print the full F1 curve, so the choice of threshold is auditable rather than asserted.
+ *
+ * @param results - Methods to report
+ */
+function printSweep(results: MethodResult[]): void {
+  say();
+  say('F1 across the threshold sweep');
+  say('-'.repeat(94));
+  say(['thr  '.padEnd(7), ...results.map((r) => r.method.name.padEnd(20))].join(' '));
+  for (let i = 0; i < SWEEP.length; i++) {
+    const cells = results.map((r) => fmt(r.curve[i]!.f1).padEnd(20));
+    say([SWEEP[i]!.toFixed(2).padEnd(7), ...cells].join(' '));
+  }
+}
+
 function main(): number {
   const updateBaseline = process.argv.slice(2).includes('--update-baseline');
 
@@ -179,49 +239,10 @@ function main(): number {
 
   const results = METHODS.map((m) => ({ method: m, shipped: evaluate(m, m.shippedThreshold), ...best(m) }));
 
-  say('At the thresholds the product ships with today');
-  say('-'.repeat(94));
-  say('method               thr    P      R      F1     TP  FP  FN  TN   opposites merged');
-  for (const r of results) {
-    const o = r.shipped;
-    say(
-      `${r.method.name.padEnd(20)} ${o.threshold.toFixed(2)}   ${fmt(o.precision)}   ${fmt(o.recall)}   ${fmt(o.f1)}   ` +
-      `${String(o.truePositives).padStart(2)}  ${String(o.falsePositives).padStart(2)}  ${String(o.falseNegatives).padStart(2)}  ${String(o.trueNegatives).padStart(2)}   ${o.oppositesMerged}`,
-    );
-  }
-
-  say();
-  say('At each method\'s own best threshold — the fair comparison');
-  say('-'.repeat(94));
-  say('method               thr    P      R      F1     TP  FP  FN  TN   opposites merged');
-  for (const r of results) {
-    const o = r.best;
-    say(
-      `${r.method.name.padEnd(20)} ${o.threshold.toFixed(2)}   ${fmt(o.precision)}   ${fmt(o.recall)}   ${fmt(o.f1)}   ` +
-      `${String(o.truePositives).padStart(2)}  ${String(o.falsePositives).padStart(2)}  ${String(o.falseNegatives).padStart(2)}  ${String(o.trueNegatives).padStart(2)}   ${o.oppositesMerged}`,
-    );
-  }
-
-  say();
-  say('By pair class, at each method\'s best threshold — correct / total');
-  say('-'.repeat(94));
-  say(['pair class'.padEnd(22), ...results.map((r) => r.method.name.padEnd(20))].join(' '));
-  for (const tag of ALL_TAGS) {
-    const cells = results.map((r) => {
-      const t = byTag(r.method, r.best.threshold)[tag];
-      return (t ? `${t.correct}/${t.total}` : '—').padEnd(20);
-    });
-    say([tag.padEnd(22), ...cells].join(' '));
-  }
-
-  say();
-  say('F1 across the threshold sweep');
-  say('-'.repeat(94));
-  say(['thr  '.padEnd(7), ...results.map((r) => r.method.name.padEnd(20))].join(' '));
-  for (let i = 0; i < SWEEP.length; i++) {
-    const cells = results.map((r) => fmt(r.curve[i]!.f1).padEnd(20));
-    say([SWEEP[i]!.toFixed(2).padEnd(7), ...cells].join(' '));
-  }
+  printOutcomes('At the thresholds the product ships with today', results, (r) => r.shipped);
+  printOutcomes("At each method's own best threshold — the fair comparison", results, (r) => r.best);
+  printByTag(results);
+  printSweep(results);
 
   const headline = Object.fromEntries(
     results.map((r) => [r.method.name, { bestF1: round4(r.best.f1), bestThreshold: r.best.threshold, shippedF1: round4(r.shipped.f1) }]),

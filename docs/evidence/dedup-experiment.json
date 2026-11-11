@@ -1,6 +1,6 @@
 {
   "experiment": "dedup",
-  "recordedAt": "2026-11-11T01:47:20.164Z",
+  "recordedAt": "2026-11-11T01:56:14.534Z",
   "method": "hand-labelled pairs; precision / recall / F1 for the duplicate class, swept over thresholds",
   "platform": "win32 node v24.18.0",
   "corpus": {

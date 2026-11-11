@@ -58,6 +58,61 @@ function rowToMemory(row: MemoryRow): Memory {
   };
 }
 
+/**
+ * Build the WHERE fragments and bind parameters for a recall query.
+ *
+ * @param query - Search parameters
+ * @returns The conditions and their parameters, or **null** when the query has text but no content
+ *   words — a state that must return nothing rather than everything. That is different from an
+ *   EMPTY query, which legitimately means "no text filter": `session start` and the distillation
+ *   both rely on it, and collapsing the two states would make them return nothing at all.
+ */
+function buildRecallFilters(query: RecallQuery): { conditions: string[]; params: unknown[] } | null {
+  const conditions: string[] = [];
+  const params: unknown[] = [];
+
+  // Content words only. Splitting on whitespace and ORing one LIKE per token matched almost every
+  // row in the store through `is` and `of`, because a two-letter `LIKE '%of%'` is satisfied by
+  // most English prose — so "what is the capital of France" came back with a full page of
+  // unrelated memories (docs/evidence/recall-experiment.json, the keyword-legacy configuration).
+  const hasText = query.query.trim().length > 0;
+  const words = tokenize(query.query);
+  if (hasText && words.length === 0) return null;
+  if (words.length > 0) {
+    conditions.push(`(${words.map(() => '(content LIKE ? OR tags LIKE ?)').join(' OR ')})`);
+    for (const word of words) params.push(`%${word}%`, `%${word}%`);
+  }
+
+  if (query.project) {
+    conditions.push('project = ?');
+    params.push(query.project);
+  }
+
+  if (query.category) {
+    conditions.push('category = ?');
+    params.push(query.category);
+  }
+
+  if (query.memoryTypes && query.memoryTypes.length > 0) {
+    conditions.push(`memory_type IN (${query.memoryTypes.map(() => '?').join(', ')})`);
+    params.push(...query.memoryTypes);
+  }
+
+  // Scope filter. The common recall is "this repository's project memories plus my person
+  // memories", which a caller expresses as scopes: ['project', 'person'] with the project set.
+  if (query.scopes && query.scopes.length > 0) {
+    conditions.push(`scope IN (${query.scopes.map(() => '?').join(', ')})`);
+    params.push(...query.scopes);
+  }
+
+  if (query.tiers && query.tiers.length > 0) {
+    conditions.push(`tier IN (${query.tiers.map(() => '?').join(', ')})`);
+    params.push(...query.tiers);
+  }
+
+  return { conditions, params };
+}
+
 export class SqliteMemoryRepository implements MemoryRepository {
   constructor(private db: Database.Database) {}
 
@@ -117,63 +172,16 @@ export class SqliteMemoryRepository implements MemoryRepository {
    */
   recall(query: RecallQuery): MemorySearchResult[] {
     try {
-      const conditions: string[] = [];
-      const params: unknown[] = [];
+      const filters = buildRecallFilters(query);
+      // `null` means the query asked something no row can answer — see buildRecallFilters.
+      if (!filters) return [];
 
-      // Content words only. Splitting on whitespace and ORing one LIKE per token matched almost
-      // every row in the store through `is` and `of`, because a two-letter `LIKE '%of%'` is
-      // satisfied by most English prose — so "what is the capital of France" came back with a
-      // full page of unrelated memories.
-      const hasText = query.query.trim().length > 0;
-      const words = tokenize(query.query);
-      // A query that HAS text but no content words is unanswerable, which is a different state
-      // from an empty query meaning "no text filter" — `session start` and `distill` rely on the
-      // second, and collapsing the two would make them return nothing.
-      if (hasText && words.length === 0) return [];
-      if (words.length > 0) {
-        const textConditions = words.map(() => '(content LIKE ? OR tags LIKE ?)');
-        conditions.push(`(${textConditions.join(' OR ')})`);
-        for (const word of words) {
-          params.push(`%${word}%`, `%${word}%`);
-        }
-      }
-
-      if (query.project) {
-        conditions.push('project = ?');
-        params.push(query.project);
-      }
-
-      if (query.category) {
-        conditions.push('category = ?');
-        params.push(query.category);
-      }
-
-      if (query.memoryTypes && query.memoryTypes.length > 0) {
-        const placeholders = query.memoryTypes.map(() => '?').join(', ');
-        conditions.push(`memory_type IN (${placeholders})`);
-        params.push(...query.memoryTypes);
-      }
-
-      // Scope filter. The common recall is "this repository's project memories plus my person
-      // memories", which a caller expresses as scopes: ['project', 'person'] with the project set.
-      if (query.scopes && query.scopes.length > 0) {
-        const placeholders = query.scopes.map(() => '?').join(', ');
-        conditions.push(`scope IN (${placeholders})`);
-        params.push(...query.scopes);
-      }
-
-      if (query.tiers && query.tiers.length > 0) {
-        const placeholders = query.tiers.map(() => '?').join(', ');
-        conditions.push(`tier IN (${placeholders})`);
-        params.push(...query.tiers);
-      }
-
-      const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+      const where = filters.conditions.length > 0 ? `WHERE ${filters.conditions.join(' AND ')}` : '';
       const limit = query.limit ?? 20;
 
       const rows = this.db.prepare(`
         SELECT * FROM memories ${where} ORDER BY weight DESC LIMIT ?
-      `).all(...params, limit) as MemoryRow[];
+      `).all(...filters.params, limit) as MemoryRow[];
 
       return rows.map(row => ({ memory: rowToMemory(row), score: row.weight }));
     } catch (err) {

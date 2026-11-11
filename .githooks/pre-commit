@@ -56,7 +56,11 @@ run "gs cascade check" node scripts/gs-cascade-check.mjs
 if [ -d node_modules ]; then
   run "typecheck" node node_modules/typescript/bin/tsc --noEmit
   if [ -f eslint.config.js ]; then
-    run "lint" node node_modules/eslint/bin/eslint.js src tests
+    # `.` and not a path list. This hook listed `src tests` while package.json listed
+    # `src tests experiments`, so the two had drifted and a lint ERROR in experiments/ passed a
+    # commit on 2026-11-10. The scope now lives in one place — eslint.config.js `ignores` — and
+    # there is no second list to fall behind.
+    run "lint" node node_modules/eslint/bin/eslint.js .
   fi
   run "tests" node node_modules/vitest/vitest.mjs run --passWithNoTests
 else

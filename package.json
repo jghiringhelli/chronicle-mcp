@@ -36,7 +36,7 @@
     "cloud:verify-isolation": "node scripts/verify-isolation.mjs",
     "cloud:apply-rls": "node scripts/apply-rls.mjs",
     "project:identity": "node scripts/probe-project-identity.mjs",
-    "lint": "eslint src tests experiments",
+    "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "cascade": "node scripts/gs-cascade-check.mjs",
     "deps:policy": "node scripts/check-dependency-policy.mjs",

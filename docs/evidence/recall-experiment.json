@@ -1,6 +1,6 @@
 {
   "experiment": "recall",
-  "recordedAt": "2026-11-11T02:45:41.197Z",
+  "recordedAt": "2026-11-11T02:49:43.748Z",
   "method": "CodeSeeker tests/relevance — hand-labelled corpus, 1-based ranks, MRR / P@1 / P@3 / R@5 / F1@3",
   "platform": "win32 node v24.18.0",
   "fixture": {
@@ -104,8 +104,8 @@
           "falsePositiveRate": 0.6666666666666666
         },
         "latencyMs": {
-          "mean": 0.0741,
-          "max": 0.3657
+          "mean": 0.076,
+          "max": 0.4147
         },
         "byTag": {
           "exact-keyword": {
@@ -384,8 +384,8 @@
           "falsePositiveRate": 0
         },
         "latencyMs": {
-          "mean": 0.3251,
-          "max": 0.9202
+          "mean": 0.2894,
+          "max": 0.7312
         },
         "byTag": {
           "exact-keyword": {
@@ -508,8 +508,8 @@
           "falsePositiveRate": 1
         },
         "latencyMs": {
-          "mean": 0.7824,
-          "max": 1.6427
+          "mean": 0.6964,
+          "max": 2.0804
         },
         "byTag": {
           "exact-keyword": {
@@ -678,8 +678,8 @@
           "falsePositiveRate": 1
         },
         "latencyMs": {
-          "mean": 1.2419,
-          "max": 6.3138
+          "mean": 1.2606,
+          "max": 6.3899
         },
         "byTag": {
           "exact-keyword": {
@@ -831,8 +831,8 @@
           "falsePositiveRate": 0.3333333333333333
         },
         "latencyMs": {
-          "mean": 195.195,
-          "max": 269.1019
+          "mean": 169.2088,
+          "max": 265.86
         },
         "byTag": {
           "exact-keyword": {
@@ -960,8 +960,8 @@
           "falsePositiveRate": 0.3333333333333333
         },
         "latencyMs": {
-          "mean": 190.0073,
-          "max": 266.5142
+          "mean": 163.499,
+          "max": 260.7674
         },
         "byTag": {
           "exact-keyword": {

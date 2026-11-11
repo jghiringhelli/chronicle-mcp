@@ -10,7 +10,7 @@
  * Usage: node scripts/probe-project-identity.mjs [rootDir]
  */
 
-import { readdirSync, existsSync, statSync } from 'node:fs';
+import { readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { resolveProjectIdentity } from '../dist/index.js';
 

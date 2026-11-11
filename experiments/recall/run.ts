@@ -574,26 +574,26 @@ function corpusIsSound(): boolean {
   return false;
 }
 
+/** Everything one run produced, bundled so `persist` takes a payload rather than six arguments. */
+interface RunArtefacts {
+  seeded: number;
+  results: Result[];
+  sweep: Awaited<ReturnType<typeof sweepCosineFloor>>;
+  modelSweep: Awaited<ReturnType<typeof sweepCosineFloor>>;
+  headline: Record<string, { mrr: number; r5: number }>;
+}
+
 /**
  * Write the evidence artefact, and the baseline when asked for.
  *
  * Evidence is written on every run, including a failing one: the record of a regression is
  * evidence too.
  *
- * @param seeded - How many memories were written
- * @param results - Per-configuration outcomes
- * @param sweep - Threshold sweep rows
- * @param headline - Headline metrics per configuration
+ * @param run - Everything the run produced
  * @param updateBaseline - Whether to re-record the baseline
  */
-function persist(
-  seeded: number,
-  results: Result[],
-  sweep: Awaited<ReturnType<typeof sweepCosineFloor>>,
-  modelSweep: Awaited<ReturnType<typeof sweepCosineFloor>>,
-  headline: Record<string, { mrr: number; r5: number }>,
-  updateBaseline: boolean,
-): void {
+function persist(run: RunArtefacts, updateBaseline: boolean): void {
+  const { seeded, results, sweep, modelSweep, headline } = run;
   mkdirSync(dirname(EVIDENCE_FILE), { recursive: true });
   writeFileSync(EVIDENCE_FILE, `${JSON.stringify(buildEvidence(seeded, results, sweep, modelSweep), null, 2)}
 `);
@@ -658,7 +658,7 @@ Model loaded: fastembed BGE-small-en-v1.5, 384 dimensions. Floor ${MODEL_FLOOR.t
   }
 
   // Written even on a regression: the record of one is evidence too.
-  persist(seeded, results, sweep, modelSweep, headline, updateBaseline);
+  persist({ seeded, results, sweep, modelSweep, headline }, updateBaseline);
   return problems.length > 0 ? 1 : 0;
 }
 async function main(): Promise<number> {

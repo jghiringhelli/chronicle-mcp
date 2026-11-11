@@ -107,7 +107,10 @@ for (const m of memories) {
     console.log(`✅ [${m.project}] ${m.content.slice(0, 60)}... → ${mem.id} (${mem.tier})`);
     ok++;
   } catch (err) {
-    const detail = err instanceof Error ? err.message + ' | context: ' + JSON.stringify((err as any).context) : String(err);
+    // `context` is carried by this project's exceptions (src/shared/exceptions) and is absent
+    // from the standard Error, so it is read through a narrowed shape rather than through `any`.
+    const withContext = err as { context?: unknown };
+    const detail = err instanceof Error ? `${err.message} | context: ${JSON.stringify(withContext.context)}` : String(err);
     console.error(`❌ [${m.project}] ${detail}`);
     fail++;
   }

@@ -48,9 +48,33 @@ const SQL_ROW_CAST_WAIVER = [
 ];
 
 export default tseslint.config(
-  { ignores: ['dist/**', 'node_modules/**', 'coverage/**', 'reports/**', '*.config.ts', '*.config.js'] },
+  // `.stryker-tmp/**` is the mutation runner's sandbox: a full copy of the repository, including
+  // `dist/`, that Stryker leaves behind. Without it here, `eslint .` reports some 1,750 errors
+  // from generated code — which is why the lint scope used to be a hand-written path list, and
+  // why that list then drifted from the one in package.json.
+  { ignores: ['dist/**', 'node_modules/**', 'coverage/**', 'reports/**', '.stryker-tmp/**', '*.config.ts', '*.config.js'] },
 
   js.configs.recommended,
+
+  // Plain Node scripts. They were outside every lint scope until 2026-11-10 — the hook listed
+  // `src tests` and package.json listed `src tests experiments`, so nothing covered `scripts/`
+  // and the two lists had already drifted from each other. Declaring the globals here is what
+  // lets one invocation (`eslint .`) be the whole scope, with no path list to drift.
+  {
+    files: ['**/*.mjs'],
+    languageOptions: {
+      ecmaVersion: 2023,
+      sourceType: 'module',
+      globals: {
+        process: 'readonly', console: 'readonly', Buffer: 'readonly',
+        URL: 'readonly', URLSearchParams: 'readonly', TextEncoder: 'readonly',
+        TextDecoder: 'readonly', setTimeout: 'readonly', clearTimeout: 'readonly',
+        setInterval: 'readonly', clearInterval: 'readonly', fetch: 'readonly',
+        performance: 'readonly', structuredClone: 'readonly', AbortController: 'readonly',
+        __dirname: 'readonly', __filename: 'readonly', global: 'readonly',
+      },
+    },
+  },
   ...tseslint.configs.recommended,
 
   {

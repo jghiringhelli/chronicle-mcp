@@ -501,15 +501,66 @@ function buildEvidence(seeded: number, results: Result[], sweep: Awaited<ReturnT
   };
 }
 
+/**
+ * Check that every labelled target names a memory the fixture actually contains.
+ *
+ * A typo in a target id makes the case unpassable for every configuration equally, which reads as
+ * a hard query rather than as a broken label.
+ *
+ * @returns true when every target resolves
+ */
+function corpusIsSound(): boolean {
+  const unknown = RECALL_CORPUS.flatMap((c) => c.mustFind).filter((id) => !FIXTURE_IDS.has(id));
+  if (unknown.length === 0) return true;
+  console.error(`Corpus references ids absent from the fixture: ${unknown.join(', ')}`);
+  return false;
+}
+
+/**
+ * Write the evidence artefact, and the baseline when asked for.
+ *
+ * Evidence is written on every run, including a failing one: the record of a regression is
+ * evidence too.
+ *
+ * @param seeded - How many memories were written
+ * @param results - Per-configuration outcomes
+ * @param sweep - Threshold sweep rows
+ * @param headline - Headline metrics per configuration
+ * @param updateBaseline - Whether to re-record the baseline
+ */
+function persist(
+  seeded: number,
+  results: Result[],
+  sweep: Awaited<ReturnType<typeof sweepCosineFloor>>,
+  headline: Record<string, { mrr: number; r5: number }>,
+  updateBaseline: boolean,
+): void {
+  mkdirSync(dirname(EVIDENCE_FILE), { recursive: true });
+  writeFileSync(EVIDENCE_FILE, `${JSON.stringify(buildEvidence(seeded, results, sweep), null, 2)}
+`);
+  say();
+  say('Evidence written to docs/evidence/recall-experiment.json');
+
+  if (!updateBaseline) return;
+  const baseline: BaselineShape = {
+    recordedAt: new Date().toISOString(),
+    note:
+      'Headline MRR and R@5 per configuration. A later run failing against this file means recall ' +
+      'quality moved. keyword-legacy is different in kind: it is a frozen copy of the pre-change ' +
+      'path, so its numbers must stay put forever — a drift there means the copy stopped being ' +
+      'faithful to what shipped, not that anything improved. It was verified against the real ' +
+      'pre-change code, which measured MRR 0.2643 and R@5 0.4219.',
+    configs: headline,
+  };
+  writeFileSync(BASELINE_FILE, `${JSON.stringify(baseline, null, 2)}
+`);
+  say('Baseline updated at experiments/baseline-recall.json');
+}
+
 async function main(): Promise<number> {
   const updateBaseline = process.argv.slice(2).includes('--update-baseline');
 
-  // Every labelled target must exist, or the experiment silently measures against a typo.
-  const unknown = RECALL_CORPUS.flatMap((c) => c.mustFind).filter((id) => !FIXTURE_IDS.has(id));
-  if (unknown.length) {
-    console.error(`Corpus references ids absent from the fixture: ${unknown.join(', ')}`);
-    return 1;
-  }
+  if (!corpusIsSound()) return 1;
 
   const dir = mkdtempSync(join(tmpdir(), 'chronicle-recall-'));
   const db = new Database(join(dir, 'experiment.db'));
@@ -540,27 +591,7 @@ async function main(): Promise<number> {
       exitCode = 1;
     }
 
-    // Evidence is written on every run, including a failing one: the record of a regression is
-    // evidence too.
-    mkdirSync(dirname(EVIDENCE_FILE), { recursive: true });
-    writeFileSync(EVIDENCE_FILE, `${JSON.stringify(buildEvidence(seeded, results, sweep), null, 2)}\n`);
-    say();
-    say('Evidence written to docs/evidence/recall-experiment.json');
-
-    if (updateBaseline) {
-      const baseline: BaselineShape = {
-        recordedAt: new Date().toISOString(),
-        note:
-          'Headline MRR and R@5 per configuration. A later run failing against this file means recall ' +
-          'quality moved. keyword-legacy is different in kind: it is a frozen copy of the pre-change ' +
-          'path, so its numbers must stay put forever — a drift there means the copy stopped being ' +
-          'faithful to what shipped, not that anything improved. It was verified against the real ' +
-          'pre-change code, which measured MRR 0.2643 and R@5 0.4219.',
-        configs: headline,
-      };
-      writeFileSync(BASELINE_FILE, `${JSON.stringify(baseline, null, 2)}\n`);
-      say('Baseline updated at experiments/baseline-recall.json');
-    }
+    persist(seeded, results, sweep, headline, updateBaseline);
   } finally {
     db.close();
     rmSync(dir, { recursive: true, force: true });

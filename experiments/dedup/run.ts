@@ -229,6 +229,86 @@ function printSweep(results: MethodResult[]): void {
   }
 }
 
+/**
+ * Compare the headline numbers against the committed baseline.
+ *
+ * @param headline - Best-achievable F1 per method
+ * @returns 0 when nothing regressed past the threshold, 1 when something did
+ */
+function compareBaseline(headline: Record<string, { bestF1: number; bestThreshold: number; shippedF1: number }>): number {
+  if (!existsSync(BASELINE_FILE)) {
+    say();
+    say('No dedup baseline yet — run with --update-baseline to record one.');
+    return 0;
+  }
+  const baseline = JSON.parse(readFileSync(BASELINE_FILE, 'utf8')) as { methods: Record<string, { bestF1: number }> };
+  let code = 0;
+  say();
+  say('Against the committed baseline');
+  say('-'.repeat(94));
+  for (const [name, now] of Object.entries(headline)) {
+    const was = baseline.methods[name];
+    if (!was) { say(`  ${name.padEnd(20)} new method — nothing to compare`); continue; }
+    const d = now.bestF1 - was.bestF1;
+    say(`  ${name.padEnd(20)} best F1 ${fmt(was.bestF1)} → ${fmt(now.bestF1)} (${d >= 0 ? '+' : ''}${d.toFixed(3)})`);
+    if (d < -REGRESSION_THRESHOLD) {
+      say(`  REGRESSION: ${name} best F1 dropped ${Math.abs(d).toFixed(3)}`);
+      code = 1;
+    }
+  }
+  return code;
+}
+
+/**
+ * Write the evidence artefact, and the baseline when asked for.
+ *
+ * @param results - Per-method outcomes
+ * @param headline - Best-achievable F1 per method
+ * @param updateBaseline - Whether to re-record the baseline
+ */
+function persist(
+  results: MethodResult[],
+  headline: Record<string, { bestF1: number; bestThreshold: number; shippedF1: number }>,
+  updateBaseline: boolean,
+): void {
+  const evidence = {
+    experiment: 'dedup',
+    recordedAt: new Date().toISOString(),
+    method: 'hand-labelled pairs; precision / recall / F1 for the duplicate class, swept over thresholds',
+    platform: `${process.platform} node ${process.version}`,
+    corpus: {
+      pairs: DEDUP_PAIRS.length,
+      duplicates: POSITIVES,
+      byTag: Object.fromEntries(ALL_TAGS.map((t) => [t, DEDUP_PAIRS.filter((p) => p.tags.includes(t)).length])),
+    },
+    shippedThresholds: SHIPPED,
+    methods: results.map((r) => ({
+      name: r.method.name,
+      shipped: r.shipped,
+      best: r.best,
+      byTagAtBest: byTag(r.method, r.best.threshold),
+      curve: r.curve.map((o) => ({
+        threshold: o.threshold, precision: round4(o.precision), recall: round4(o.recall),
+        f1: round4(o.f1), falsePositives: o.falsePositives, oppositesMerged: o.oppositesMerged,
+      })),
+    })),
+  };
+  mkdirSync(dirname(EVIDENCE_FILE), { recursive: true });
+  writeFileSync(EVIDENCE_FILE, `${JSON.stringify(evidence, null, 2)}
+`);
+  say();
+  say('Evidence written to docs/evidence/dedup-experiment.json');
+
+  if (!updateBaseline) return;
+  writeFileSync(BASELINE_FILE, `${JSON.stringify({
+    recordedAt: new Date().toISOString(),
+    note: 'Best achievable F1 per similarity method over the threshold sweep, plus F1 at the threshold the product ships with.',
+    methods: headline,
+  }, null, 2)}
+`);
+  say('Baseline updated at experiments/baseline-dedup.json');
+}
+
 function main(): number {
   const updateBaseline = process.argv.slice(2).includes('--update-baseline');
 
@@ -248,52 +328,8 @@ function main(): number {
     results.map((r) => [r.method.name, { bestF1: round4(r.best.f1), bestThreshold: r.best.threshold, shippedF1: round4(r.shipped.f1) }]),
   );
 
-  let exitCode = 0;
-  if (existsSync(BASELINE_FILE)) {
-    const baseline = JSON.parse(readFileSync(BASELINE_FILE, 'utf8')) as { methods: Record<string, { bestF1: number }> };
-    say();
-    say('Against the committed baseline');
-    say('-'.repeat(94));
-    for (const [name, now] of Object.entries(headline)) {
-      const was = baseline.methods[name];
-      if (!was) { say(`  ${name.padEnd(20)} new method — nothing to compare`); continue; }
-      const d = now.bestF1 - was.bestF1;
-      say(`  ${name.padEnd(20)} best F1 ${fmt(was.bestF1)} → ${fmt(now.bestF1)} (${d >= 0 ? '+' : ''}${d.toFixed(3)})`);
-      if (d < -REGRESSION_THRESHOLD) { say(`  REGRESSION: ${name} best F1 dropped ${Math.abs(d).toFixed(3)}`); exitCode = 1; }
-    }
-  } else {
-    say();
-    say('No dedup baseline yet — run with --update-baseline to record one.');
-  }
-
-  const evidence = {
-    experiment: 'dedup',
-    recordedAt: new Date().toISOString(),
-    method: 'hand-labelled pairs; precision / recall / F1 for the duplicate class, swept over thresholds',
-    platform: `${process.platform} node ${process.version}`,
-    corpus: { pairs: DEDUP_PAIRS.length, duplicates: POSITIVES, byTag: Object.fromEntries(ALL_TAGS.map((t) => [t, DEDUP_PAIRS.filter((p) => p.tags.includes(t)).length])) },
-    shippedThresholds: SHIPPED,
-    methods: results.map((r) => ({
-      name: r.method.name,
-      shipped: r.shipped,
-      best: r.best,
-      byTagAtBest: byTag(r.method, r.best.threshold),
-      curve: r.curve.map((o) => ({ threshold: o.threshold, precision: round4(o.precision), recall: round4(o.recall), f1: round4(o.f1), falsePositives: o.falsePositives, oppositesMerged: o.oppositesMerged })),
-    })),
-  };
-  mkdirSync(dirname(EVIDENCE_FILE), { recursive: true });
-  writeFileSync(EVIDENCE_FILE, `${JSON.stringify(evidence, null, 2)}\n`);
-  say();
-  say('Evidence written to docs/evidence/dedup-experiment.json');
-
-  if (updateBaseline) {
-    writeFileSync(BASELINE_FILE, `${JSON.stringify({
-      recordedAt: new Date().toISOString(),
-      note: 'Best achievable F1 per similarity method over the threshold sweep, plus F1 at the threshold the product ships with.',
-      methods: headline,
-    }, null, 2)}\n`);
-    say('Baseline updated at experiments/baseline-dedup.json');
-  }
+  const exitCode = compareBaseline(headline);
+  persist(results, headline, updateBaseline);
 
   return exitCode;
 }

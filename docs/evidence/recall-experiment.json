@@ -1,6 +1,6 @@
 {
   "experiment": "recall",
-  "recordedAt": "2026-11-11T01:58:26.826Z",
+  "recordedAt": "2026-11-11T01:59:27.285Z",
   "method": "CodeSeeker tests/relevance — hand-labelled corpus, 1-based ranks, MRR / P@1 / P@3 / R@5 / F1@3",
   "platform": "win32 node v24.18.0",
   "fixture": {
@@ -65,8 +65,8 @@
           "falsePositiveRate": 0.6666666666666666
         },
         "latencyMs": {
-          "mean": 0.0734,
-          "max": 0.3543
+          "mean": 0.0723,
+          "max": 0.3399
         },
         "byTag": {
           "exact-keyword": {
@@ -345,8 +345,8 @@
           "falsePositiveRate": 0
         },
         "latencyMs": {
-          "mean": 0.2756,
-          "max": 1.0677
+          "mean": 0.2562,
+          "max": 1.0298
         },
         "byTag": {
           "exact-keyword": {
@@ -469,8 +469,8 @@
           "falsePositiveRate": 1
         },
         "latencyMs": {
-          "mean": 0.6072,
-          "max": 1.1938
+          "mean": 0.5379,
+          "max": 1.3265
         },
         "byTag": {
           "exact-keyword": {
@@ -639,8 +639,8 @@
           "falsePositiveRate": 1
         },
         "latencyMs": {
-          "mean": 1.0571,
-          "max": 6.0623
+          "mean": 1.2596,
+          "max": 6.1121
         },
         "byTag": {
           "exact-keyword": {

@@ -557,6 +557,44 @@ function persist(
   say('Baseline updated at experiments/baseline-recall.json');
 }
 
+/**
+ * Seed the database, measure every configuration, report, and write the artefacts.
+ *
+ * Separated from `main` so that main holds only the setup and teardown that must run whatever
+ * happens here — the temp database has to be removed on a failing run as much as a passing one.
+ *
+ * @param db - An open, empty database
+ * @param updateBaseline - Whether to re-record the baseline
+ * @returns 0, or 1 when a configuration regressed past the threshold
+ */
+async function runExperiment(db: Database.Database, updateBaseline: boolean): Promise<number> {
+  applyConcurrencyPragmas(db);
+  ensureSchema(db);
+  const repo = new SqliteMemoryRepository(db);
+  const seeded = seed(repo);
+
+  const results = await runAll(buildStrategies(repo, db));
+  printMatrix(results);
+  printByTag(results);
+  for (const r of results) if (r.summary) printFailures(r.strategy, r.obs);
+  const sweep = await sweepCosineFloor(repo);
+
+  const headline: Record<string, { mrr: number; r5: number }> = {};
+  for (const r of results) {
+    if (r.summary) headline[r.strategy.name] = { mrr: round4(r.summary.overall.mrr), r5: round4(r.summary.overall.r5) };
+  }
+
+  const problems = checkBaseline(headline);
+  if (problems.length) {
+    say();
+    say('REGRESSION');
+    for (const p of problems) say(`  ${p}`);
+  }
+
+  // Written even on a regression: the record of one is evidence too.
+  persist(seeded, results, sweep, headline, updateBaseline);
+  return problems.length > 0 ? 1 : 0;
+}
 async function main(): Promise<number> {
   const updateBaseline = process.argv.slice(2).includes('--update-baseline');
 
@@ -567,31 +605,7 @@ async function main(): Promise<number> {
   let exitCode = 0;
 
   try {
-    applyConcurrencyPragmas(db);
-    ensureSchema(db);
-    const repo = new SqliteMemoryRepository(db);
-    const seeded = seed(repo);
-
-    const results = await runAll(buildStrategies(repo, db));
-    printMatrix(results);
-    printByTag(results);
-    for (const r of results) if (r.summary) printFailures(r.strategy, r.obs);
-    const sweep = await sweepCosineFloor(repo);
-
-    const headline: Record<string, { mrr: number; r5: number }> = {};
-    for (const r of results) {
-      if (r.summary) headline[r.strategy.name] = { mrr: round4(r.summary.overall.mrr), r5: round4(r.summary.overall.r5) };
-    }
-
-    const problems = checkBaseline(headline);
-    if (problems.length) {
-      say();
-      say('REGRESSION');
-      for (const p of problems) say(`  ${p}`);
-      exitCode = 1;
-    }
-
-    persist(seeded, results, sweep, headline, updateBaseline);
+    exitCode = await runExperiment(db, updateBaseline);
   } finally {
     db.close();
     rmSync(dir, { recursive: true, force: true });

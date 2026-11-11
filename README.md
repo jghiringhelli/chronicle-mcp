@@ -463,17 +463,21 @@ team({ action: "curate_insight", insight_type: "practice",
        content: "Validate all inbound DTOs at the service boundary", project: "my-project" })
 ```
 
-> De-duplication now runs on **vector similarity** with a contradiction guard, and the honest
-> state of it is this: **at the thresholds it ships with, it does not de-duplicate.** Measured over
-> 32 hand-labelled pairs, the shipped thresholds sit above the highest similarity any genuine
-> duplicate reaches (Jaccard 0.50 against a maximum of 0.313; cosine 0.83 against 0.534), so F1 is
-> **0.00**. Worse, the two most similar pairs in the whole corpus are *contradictions* — "bodies are
-> never logged" against "bodies are logged at debug" scores 0.667 — so the only thing the old
-> configuration ever did was merge those, withholding a memory that reversed a policy. The guard
-> (`negationMismatch`) blocks that and can only ever prevent a merge, never cause one. Best
-> achievable F1: lexical 0.64, vector 0.74, vector + guard 0.80. Lowering the thresholds is what
-> would make it function and is an open decision, because it changes what a teammate stops
-> receiving. See [`experiments/`](experiments/README.md) and ADR-027 §3.
+> De-duplication runs on **vector similarity** with a contradiction guard, and the threshold
+> belongs to whichever gateway produced the vectors — because two gateways both returning cosines
+> are not on one scale. Measured over 32 hand-labelled pairs plus a 51-memory pool: **F1 0.59 by
+> default, 0.74 with a model installed**, up from **0.00**.
+>
+> It was 0.00 because the old thresholds sat *above* the highest similarity any genuine duplicate
+> reaches (Jaccard 0.50 against a maximum of 0.313), and because the two most similar pairs in the
+> whole corpus are *contradictions* — "bodies are never logged" against "bodies are logged at
+> debug" scores 0.667 — so the only thing it ever did was merge those, withholding a memory that
+> reversed a policy. `negationMismatch` blocks that, and can only ever prevent a merge, never cause
+> one.
+>
+> The thresholds are **not** the ones that maximise pairwise F1. Applied the way the service
+> applies them — as a maximum over the whole pool — the pairwise optimum suppresses 11 of 12 novel
+> memories. See [`experiments/`](experiments/README.md), ADR-027 §3 and ADR-028.
 
 ### Roles & curation
 
@@ -508,7 +512,8 @@ pnpm run test:coverage
 ## Roadmap
 
 - [x] Scored recall and a dependency-free vector path (ADR-027) — MRR 0.26 → 0.76, recall@5 0.42 → 0.83
-- [ ] A **model-backed** semantic recall path. The shipped vectors are lexical: they bridge word forms but not synonyms, and three labelled queries that need synonymy fail in every configuration measured. Unmeasured, not promised
+- [x] Measured a **model-backed** path (BGE-small via `fastembed`, a devDependency): paraphrase MRR 0.42 → 0.75, overall 0.76 → 0.86. Adopted for de-duplication; **refused for recall** at 140–170ms per query against a 50ms budget (ADR-028)
+- [ ] An **async recall path** for a user who prefers 0.86 MRR at 165ms over 0.76 at 0.3ms. A feature with an NFR consequence, not a default
 - [ ] `distill` tool — LLM-synthesised playbooks, profile.yaml, lessons.yaml
 - [ ] Web UI for memory browser and cross-project graph
 - [ ] Ecosystem Registry — propagate decisions across related projects

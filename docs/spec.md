@@ -203,7 +203,10 @@ Raw memories are distilled into three YAML artifacts (updated every 12h):
   winning MRR by 0.04 while losing recall@5 and answering 3 of 3 queries that nothing in the
   store can answer, where the default answers 0 of 3. The `embedding` column is written at
   `remember` time and read by that path and by promote-time de-duplication.
-  **Three labelled queries that genuinely require synonymy fail in every configuration measured.**
+  **A model-backed path is measured and not adopted for recall.** BGE-small via `fastembed` (a
+  devDependency) reaches MRR 0.86 and recall@5 0.88, taking paraphrase from 0.42 to 0.75 — and
+  costs 140-170ms per query against NFR-03's 50ms budget, so it is refused here and used for
+  promote-time de-duplication, which has no latency budget (ADR-028).
   FTS5 is no longer planned: it would improve retrieval, and the measured defect was ranking
   (ADR-027 §5). Reasoning: ADR-027, ADR-014 §1–§2, EDR-006, EDR-002.
 - `~/.chronicle/projects/<name>/` — Per-project namespaces

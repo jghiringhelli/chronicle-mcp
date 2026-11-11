@@ -211,6 +211,62 @@ describe('TeamPromotionService.promote (semantic mode)', () => {
    * reliably did at its shipped threshold was withhold a memory that reversed a policy — the
    * most expensive error available here, because nobody observes a memory that was not shared.
    */
+  /**
+   * The threshold comes from the gateway (ADR-028).
+   *
+   * One constant cannot serve two vector spaces: a hashed lexical space puts unrelated English
+   * near zero, a sentence-transformer puts it near 0.4. Using the service's own constant for both
+   * means one of them either never de-duplicates or suppresses memories that should reach the
+   * team, and neither symptom is visible from outside.
+   */
+  describe('the threshold comes from the gateway', () => {
+    /** A gateway whose vectors are all identical, so cosine is always 1 — and a declared floor. */
+    class AlwaysSimilar implements EmbeddingGateway {
+      constructor(readonly dedupThreshold?: number) {}
+      async available(): Promise<boolean> { return true; }
+      async generate(): Promise<number[]> { return [1, 0, 0]; }
+      async generateBatch(texts: string[]): Promise<number[][]> { return texts.map(() => [1, 0, 0]); }
+      cosineSimilarity(): number { return 0.5; }
+    }
+
+    const promoteWith = async (gw: EmbeddingGateway): Promise<{ pushed: SharedMemoryInput[] }> => {
+      const localPushed: SharedMemoryInput[] = [];
+      const sync = {
+        pushSharedMemory: async (m: SharedMemoryInput) => { localPushed.push(m); return m.id; },
+      } as unknown as TeamSyncService;
+      const service = new TeamPromotionService(db, repo, sync, gw);
+      insertMemory(db, 'cand', 'an entirely unrelated statement about caching', { confirmed: true });
+      repo.upsertSharedCache({
+        id: 'pooled', userId: 'u2', teamId: 't1', project: 'proj-a',
+        content: 'something else about deployment', memoryType: 'semantic',
+        tags: Object.freeze([]), category: undefined,
+        sharedAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z',
+      });
+      await service.promote('proj-a');
+      return { pushed: localPushed };
+    };
+
+    it('suppresses when the gateway declares a floor the similarity clears', async () => {
+      // Similarity is 0.5 and the gateway says 0.25 means "same knowledge", so this is a
+      // duplicate. Under the old service-wide 0.83 it was not, which is the bug: the number
+      // belonged to a different vector space.
+      const { pushed: p } = await promoteWith(new AlwaysSimilar(0.25));
+      expect(p).toHaveLength(0);
+    });
+
+    it('promotes when the gateway declares a floor the similarity does not clear', async () => {
+      const { pushed: p } = await promoteWith(new AlwaysSimilar(0.75));
+      expect(p.map(x => x.id)).toEqual(['cand']);
+    });
+
+    it('falls back to the service constant when a gateway declares nothing', async () => {
+      // A gateway written elsewhere must keep working: 0.5 is below the 0.83 fallback, so the
+      // memory is promoted.
+      const { pushed: p } = await promoteWith(new AlwaysSimilar(undefined));
+      expect(p.map(x => x.id)).toEqual(['cand']);
+    });
+  });
+
   describe('a contradiction is not a duplicate', () => {
     it('promotes a memory that negates one already in the pool', async () => {
       insertMemory(db, 'm1', 'validate the input on the server', { confirmed: true });

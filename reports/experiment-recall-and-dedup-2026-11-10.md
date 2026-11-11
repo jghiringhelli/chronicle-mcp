@@ -1,10 +1,11 @@
 # Does Chronicle find the right memory? — a measured answer
 
-**Date:** 2026-11-10
+**Date:** 2026-11-10, extended the same day with a real embedding model and a pool-scale
+measurement after the two open questions below were taken rather than deferred
 **Repository:** `chronicle` (`github.com/jghiringhelli/chronicle-mcp`), branch `pilot/companion-2026-10`
 **Artefacts:** `docs/evidence/recall-experiment.json`, `docs/evidence/dedup-experiment.json`
 **Reproduce:** `pnpm run experiments` — no credentials, no network, no model download
-**Decisions:** ADR-027, EDR-006
+**Decisions:** ADR-027, ADR-028, EDR-006
 
 ---
 
@@ -44,6 +45,20 @@ De-duplication was measured too, and came out worse than recall did:
 > its only two positives in the whole corpus were contradictions.** It had never prevented a
 > duplicate, and the one thing it did do was withhold from a teammate a memory that reversed a
 > policy.
+
+Then both of the questions this report originally left open were taken, and the answers changed
+two of its conclusions:
+
+> **A real embedding model does close the paraphrase gap.** 0.42 → **0.75** on that query class,
+> MRR 0.76 → **0.86** overall. It costs **140–170ms per query** against a published 50ms budget, so
+> it is adopted for de-duplication, which has no budget, and refused for recall, which is the path
+> the storage design exists to protect.
+
+> **And the obvious way to fix de-duplication would have broken it.** The threshold that maximises
+> pairwise F1 suppresses **11 of 12 novel memories** when applied the way the service applies it —
+> as a maximum over the whole pool. Measuring that before changing anything is the only reason the
+> fix is a fix. De-duplication now runs at F1 **0.59** by default and **0.74** with a model, from
+> 0.00.
 
 ---
 
@@ -106,16 +121,53 @@ across the runs in this session. Read it as an order-of-magnitude comparison bet
 configurations, not as a latency measurement. The latency claim that means something is the NFR
 benchmark at 10,000 memories, below.
 
+### With a real model
+
+`fastembed` 3.0.0 as a devDependency supplies BGE-small-en-v1.5. The configurations are skipped
+with a stated reason when it is absent, which is the default state, so the experiment stays
+reproducible with no network.
+
+| configuration | MRR | P@1 | R@5 | cases | out-of-scope answered | mean ms |
+|---|---|---|---|---|---|---|
+| `shipped` — lexical scoring | 0.76 | 0.72 | 0.83 | 27/35 | 0/3 | 0.3 |
+| `semantic-model` | **0.86** | 0.81 | 0.85 | 27/35 | 1/3 | **169** |
+| `hybrid-model` | 0.86 | 0.81 | **0.88** | 27/35 | 1/3 | **164** |
+
+The model rows are dominated by one query embedding on CPU, which measured **140–170ms across
+the runs in this session**. Unlike the sub-millisecond figures elsewhere in this report that is a
+real latency: it is three to four times NFR-03's 50ms budget, and it is the reason the model is
+refused for recall.
+
+The floor was fixed at 0.65 **before** any per-case result was read, and the sweep's best is not
+folded into the headline — choosing the floor that maximises MRR over the same 35 queries the MRR
+is reported on is tuning on the evaluation set. As it happens MRR is flat at 0.86 from 0.40 to
+0.65 and collapses to 0.47 by 0.75, so the a-priori choice cost nothing, which is only knowable
+because the curve is printed.
+
+A measurement bug worth naming, because it was mine and it flattered the result: the hybrid row
+initially read **0.28ms**. It shared a query-vector cache with the model row and inherited it
+warm. Each configuration now carries its own cache and pays its own inference.
+
 ### By query class — MRR / R@5
 
-| class | n | keyword-legacy | shipped | semantic | hybrid |
-|---|---|---|---|---|---|
-| exact-keyword | 8 | 0.56 / 1.00 | 1.00 / 1.00 | 1.00 / 1.00 | 1.00 / 1.00 |
-| morphology | 5 | 0.30 / 0.40 | 0.80 / 0.80 | **1.00 / 1.00** | **1.00 / 1.00** |
-| paraphrase | 10 | 0.07 / 0.15 | **0.42 / 0.65** | 0.30 / 0.30 | 0.45 / 0.45 |
-| synonym | 5 | 0.02 / 0.00 | 0.80 / 0.80 | 0.80 / 0.80 | 0.80 / 0.80 |
-| ranking | 5 | 0.42 / 0.80 | 1.00 / 1.00 | 1.00 / 1.00 | 1.00 / 1.00 |
-| multi-relevant | 5 | 0.27 / 0.30 | **0.67 / 0.70** | 0.50 / 0.40 | 0.64 / 0.65 |
+| class | n | keyword-legacy | shipped | semantic | hybrid | semantic-model | hybrid-model |
+|---|---|---|---|---|---|---|---|
+| exact-keyword | 8 | 0.56 / 1.00 | 1.00 / 1.00 | 1.00 / 1.00 | 1.00 / 1.00 | 0.94 / 1.00 | 0.94 / 1.00 |
+| morphology | 5 | 0.30 / 0.40 | 0.80 / 0.80 | 1.00 / 1.00 | 1.00 / 1.00 | 1.00 / 1.00 | 1.00 / 1.00 |
+| paraphrase | 10 | 0.07 / 0.15 | 0.42 / 0.65 | 0.30 / 0.30 | 0.45 / 0.45 | **0.75 / 0.75** | 0.74 / 0.75 |
+| synonym | 5 | 0.02 / 0.00 | 0.80 / 0.80 | 0.80 / 0.80 | 0.80 / 0.80 | 0.80 / 0.80 | 0.80 / 0.80 |
+| ranking | 5 | 0.42 / 0.80 | 1.00 / 1.00 | 1.00 / 1.00 | 1.00 / 1.00 | 0.90 / 1.00 | 0.90 / 1.00 |
+| multi-relevant | 5 | 0.27 / 0.30 | 0.67 / 0.70 | 0.50 / 0.40 | 0.64 / 0.65 | 0.70 / 0.45 | 0.70 / 0.65 |
+
+The paraphrase row is the whole story of the embeddings question. The in-tree hashed vectors took
+it *down* from 0.42 to 0.30; the model takes it to 0.75. `cosine(dialog, modal)` is 0.7108 under
+the model and approximately zero under the hashed features — synonymy is the thing a model has and
+a bag of character n-grams cannot have.
+
+Note what the model also loses: exact-keyword 1.00 → 0.94 and ranking 1.00 → 0.90. A model
+ranks by meaning, so a query that names a rare token exactly can be beaten by a memory that is
+*about* the subject. That is the argument for fusion rather than replacement, and `hybrid-model`
+is the row with the best R@5 of anything measured.
 
 ### What the baseline's weakness actually was
 
@@ -192,6 +244,51 @@ near-duplicate left in the pool for somebody to see and delete.
 
 ---
 
+### The decision the service actually makes
+
+Everything above is a **pairwise** question. `promote` asks a different one — is this candidate
+already covered by the pool? — and answers it with the **maximum** similarity over the whole pool.
+A maximum over N draws grows with N, so the pairwise optimum is not an operating point.
+
+Measured against the 51-memory fixture, with 11 duplicate candidates reusing the labels already in
+`pairs.ts` and 12 novel candidates whose subject is absent from it:
+
+| configuration | duplicates suppressed (of 11) | **novel memories wrongly suppressed (of 12)** |
+|---|---|---|
+| vector + guard @ 0.10 — *the pairwise best* | 11 | **11** |
+| model + guard @ 0.55 | 11 | **12** |
+| model + guard @ 0.60 | 11 | **9** |
+| lexical (Jaccard) + guard @ 0.20 | 6 | **0** |
+| vector + guard @ 0.25 | 6 | **0** |
+| model + guard @ 0.75 | **7** | **0** |
+| model + guard @ 0.83 — *the old constant* | 6 | **0** |
+
+Every number in the right-hand column is a memory the team would never receive, with nothing in
+any log. **Applying the pairwise best threshold — the obvious fix, and the one I was about to
+make — would have turned a feature that did nothing into one that silently withheld almost
+everything.**
+
+Two things follow. First, the thresholds now belong to the gateway that produced the vectors,
+because two gateways both returning cosines are not on one scale: 0.20 for Jaccard, 0.25 for the
+in-tree vectors, 0.75 for the model. Second, **0.83 was never a bad number** — it was chosen for a
+sentence-transformer, it is safe against one, and it was inert only because that gateway is absent
+from a default install and the service fell through to Jaccard. The defect was the wiring.
+
+At the thresholds the product now ships with:
+
+| method | threshold | precision | recall | F1 | contradictions merged |
+|---|---|---|---|---|---|
+| lexical (Jaccard) — fallback | 0.20 | 0.55 | 0.55 | 0.55 | 5 |
+| vector + guard — default | 0.25 | 0.83 | 0.45 | **0.59** | 1 |
+| model + guard — when installed | 0.75 | 0.88 | 0.64 | **0.74** | 1 |
+
+From 0.00. And deliberately below the 0.80 that was achievable pairwise: that gap is the price of
+not losing novel memories at pool scale, and it is the right way round to be wrong.
+
+**Does the threshold hold as the pool grows?** At each chosen value, novel suppressions stay at
+zero across pool sizes 10, 25 and 51. That is a 5× range with no drift — not a thousand memories,
+and the section on what this does not establish says so.
+
 ## What did not help
 
 Reported because the reviewer asked for it, and because a study that only lists wins is not worth
@@ -231,7 +328,21 @@ reading.
   them. The genuinely synonym-dependent cases are scattered across the `paraphrase` class, which is
   where the remaining failures sit. The class names describe what I intended, not perfectly what
   they measure.
-- **Three queries fail in every configuration measured.** `syn-rollback-fast`,
+- **The model is 3-4x over the latency budget.** 140-170ms per query against NFR-03's 50ms, which is
+  why it is refused for recall however good its MRR is. The cost is one query embedding, so it
+  does not grow with the store — at 10,000 memories the lexical path is p95 16.93ms and the model
+  would add that ~165ms flat.
+- **The model loses on exact-token queries.** exact-keyword 1.00 → 0.94, ranking 1.00 → 0.90. It
+  ranks by meaning, so a query naming a rare token can be beaten by a memory merely about the
+  subject.
+- **The model merges contradictions more confidently than anything else.** At its best pairwise
+  threshold it merges 4 of 5, because a better model is better at seeing that two sentences are
+  *about* the same thing — which is exactly the wrong question when one of them negates the other.
+  The guard is what makes it usable, and the guard is crude.
+- **Giving up pairwise F1 was unavoidable.** The thresholds now shipped score 0.59 and 0.74 where
+  0.80 was achievable pairwise. That is a deliberate loss, taken to keep novel suppressions at
+  zero.
+- **Three queries fail in every configuration measured without a model.** `syn-rollback-fast`,
   `para-customer-data-logs` and `para-noisy-alerts` need actual synonymy — "getting back to the
   previous version" to find a memory about a warm blue-green rollback. Nothing here finds them.
 
@@ -262,15 +373,23 @@ reading.
 against a 50ms budget, inside the band recorded for the old ranking on this host. The scoring stage
 costs nothing measurable.
 
-**Two decisions deliberately not taken**, because both change what somebody receives and neither is
-a correctness fix:
+**Both of the decisions this report originally deferred were then taken** (ADR-028):
 
-- **Lowering the de-duplication thresholds**, which is what would make it function. It changes what
-  a teammate stops receiving.
-- **Measuring a model-backed embedding path.** `fastembed` carries nine advisories including a
-  critical and downloads a ~130MB model, which breaks both the zero-config contract and this
-  experiment's no-network reproducibility. Running it as a dev-only dependency behind a flag is the
-  next experiment, not a promise.
+- **The de-duplication thresholds moved, and the number now belongs to the gateway** that produced
+  the vectors rather than to the service. 0.20 for Jaccard, 0.25 for the in-tree vectors, 0.75 for
+  a model. The selection rule is recorded as well as the values, because a larger pool will need
+  them re-derived: lowest pool-scale threshold losing no novel memory, with one sweep step of
+  margin.
+- **`fastembed` 3.0.0 is a devDependency**, so the model is measurable without entering the
+  runtime tree. Verified rather than assumed, since ADR-003 once accepted a risk against the wrong
+  facts: `pnpm audit --prod` unchanged at exit 0, `pnpm why fastembed --prod` empty, and **no
+  advisory at moderate or above has a path through `fastembed` or `onnxruntime-node`**. ADR-003's
+  nine `tar` advisories came from version 1; version 3 brings none. That weakens the supply-chain
+  half of ADR-017's reasoning and the record says so — but the ~130MB model download against a
+  zero-config contract is a separate objection and it still stands.
+- **The model is adopted for de-duplication and refused for recall.** De-duplication runs at
+  promote time and has no latency budget; recall runs at the start of every substantive block and
+  has a published one.
 
 ---
 
@@ -286,6 +405,13 @@ a correctness fix:
   and the chronicle's actual output — the distilled profile and lessons — has no metric at all.
 - **It cannot find a failure nobody wrote a query for.** Seven classes is a guess about how recall
   gets used.
+- **Pool scale is measured to 51 memories, not to thousands.** The quantity compared is a maximum
+  over the pool, so the safe threshold can only move *upward* as the pool grows. The three values
+  shipped are lower bounds measured on a small pool, which is why ADR-028 records the rule for
+  re-deriving them rather than only the numbers.
+- **The novel candidates are deliberately easy.** Twelve memories whose subject is absent from the
+  pool. Easy is the point — a method that suppresses one of those would suppress anything — but it
+  means the measurement says nothing about a candidate that is arguably a duplicate.
 - **The dedup experiment measures the decision function, not the service.** It scores the similarity
   functions directly rather than driving `promote`, because `promote` needs a configured Railway URL
   and writes to a database a partner reads. That the better function is wired in correctly is a
@@ -322,6 +448,13 @@ Stated precisely, because the point of the exercise was to have numbers rather t
   positives were contradictions; then added a guard that cut false positives from 6 to 1.
 - Did it with **no new runtime dependency**, no model download and no network, preserving a
   zero-config install contract and an existing supply-chain decision.
+- Measured a real sentence-transformer against the same corpus and showed it **does** close the
+  gap the in-tree vectors do not — paraphrase MRR 0.42 → 0.75, overall 0.76 → 0.86 — then
+  **refused it for the default path** on a measured 3x latency-budget violation, and adopted it
+  only where no budget applies.
+- **Caught my own about-to-be-shipped regression with a measurement.** The threshold that
+  maximises pairwise F1 suppresses 11 of 12 novel memories once applied as a maximum over a pool.
+  Building the pool-scale experiment before making the change is the only reason the fix is a fix.
 - **Reported that the headline improvement was not the feature everyone expected.** The embeddings
   contributed one query class and cost another; the scoring was the defect. The experiment carries a
   diagnostic configuration whose only purpose is to make that attribution impossible to get wrong.

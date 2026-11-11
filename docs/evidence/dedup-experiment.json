@@ -192,7 +192,7 @@
       ]
     }
   },
-  "recordedAt": "2026-11-11T02:45:58.348Z",
+  "recordedAt": "2026-11-11T02:57:54.004Z",
   "method": "hand-labelled pairs; precision / recall / F1 for the duplicate class, swept over thresholds",
   "platform": "win32 node v24.18.0",
   "corpus": {
@@ -207,22 +207,23 @@
     }
   },
   "shippedThresholds": {
-    "lexical": 0.5,
-    "semantic": 0.83
+    "lexical": 0.2,
+    "vector": 0.25,
+    "model": 0.75
   },
   "methods": [
     {
       "name": "lexical (Jaccard)",
       "shipped": {
-        "threshold": 0.5,
-        "truePositives": 0,
-        "falsePositives": 2,
-        "trueNegatives": 19,
-        "falseNegatives": 11,
-        "precision": 0,
-        "recall": 0,
-        "f1": 0,
-        "oppositesMerged": 2
+        "threshold": 0.2,
+        "truePositives": 6,
+        "falsePositives": 5,
+        "trueNegatives": 16,
+        "falseNegatives": 5,
+        "precision": 0.5454545454545454,
+        "recall": 0.5454545454545454,
+        "f1": 0.5454545454545454,
+        "oppositesMerged": 5
       },
       "best": {
         "threshold": 0.1,
@@ -415,15 +416,15 @@
     {
       "name": "semantic (cosine)",
       "shipped": {
-        "threshold": 0.83,
-        "truePositives": 0,
-        "falsePositives": 0,
-        "trueNegatives": 21,
-        "falseNegatives": 11,
-        "precision": 0,
-        "recall": 0,
-        "f1": 0,
-        "oppositesMerged": 0
+        "threshold": 0.25,
+        "truePositives": 6,
+        "falsePositives": 5,
+        "trueNegatives": 16,
+        "falseNegatives": 5,
+        "precision": 0.5454545454545454,
+        "recall": 0.5454545454545454,
+        "f1": 0.5454545454545454,
+        "oppositesMerged": 5
       },
       "best": {
         "threshold": 0.1,
@@ -616,15 +617,15 @@
     {
       "name": "semantic + guard",
       "shipped": {
-        "threshold": 0.83,
-        "truePositives": 0,
-        "falsePositives": 0,
-        "trueNegatives": 21,
-        "falseNegatives": 11,
-        "precision": 0,
-        "recall": 0,
-        "f1": 0,
-        "oppositesMerged": 0
+        "threshold": 0.25,
+        "truePositives": 5,
+        "falsePositives": 1,
+        "trueNegatives": 20,
+        "falseNegatives": 6,
+        "precision": 0.8333333333333334,
+        "recall": 0.45454545454545453,
+        "f1": 0.5882352941176471,
+        "oppositesMerged": 1
       },
       "best": {
         "threshold": 0.1,
@@ -817,15 +818,15 @@
     {
       "name": "model (cosine)",
       "shipped": {
-        "threshold": 0.83,
-        "truePositives": 4,
-        "falsePositives": 1,
-        "trueNegatives": 20,
-        "falseNegatives": 7,
-        "precision": 0.8,
-        "recall": 0.36363636363636365,
-        "f1": 0.5000000000000001,
-        "oppositesMerged": 1
+        "threshold": 0.75,
+        "truePositives": 9,
+        "falsePositives": 3,
+        "trueNegatives": 18,
+        "falseNegatives": 2,
+        "precision": 0.75,
+        "recall": 0.8181818181818182,
+        "f1": 0.7826086956521738,
+        "oppositesMerged": 3
       },
       "best": {
         "threshold": 0.65,
@@ -1018,14 +1019,14 @@
     {
       "name": "model + guard",
       "shipped": {
-        "threshold": 0.83,
-        "truePositives": 3,
+        "threshold": 0.75,
+        "truePositives": 7,
         "falsePositives": 1,
         "trueNegatives": 20,
-        "falseNegatives": 8,
-        "precision": 0.75,
-        "recall": 0.2727272727272727,
-        "f1": 0.39999999999999997,
+        "falseNegatives": 4,
+        "precision": 0.875,
+        "recall": 0.6363636363636364,
+        "f1": 0.7368421052631579,
         "oppositesMerged": 1
       },
       "best": {

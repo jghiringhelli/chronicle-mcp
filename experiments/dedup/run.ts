@@ -32,9 +32,11 @@ import { mkdirSync, writeFileSync, readFileSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { contentSimilarity } from '../../src/services/team-promotion-service.js';
+import {
+  contentSimilarity, PROMOTE_SIMILARITY_THRESHOLD, SEMANTIC_SIMILARITY_THRESHOLD,
+} from '../../src/services/team-promotion-service.js';
 import { negationMismatch } from '../../src/services/contradiction.js';
-import { lexicalVector, cosine } from '../../src/infrastructure/gateways/lexical-vector-gateway.js';
+import { lexicalVector, cosine, LexicalVectorGateway } from '../../src/infrastructure/gateways/lexical-vector-gateway.js';
 import { FastEmbedGateway } from '../../src/infrastructure/gateways/fastembed-gateway.js';
 import { DEDUP_PAIRS, POSITIVES, type PairTag } from './pairs.js';
 import { DUPLICATE_OF, NOVEL } from './pool.js';
@@ -48,8 +50,26 @@ const EVIDENCE_FILE = join(HERE, '..', '..', 'docs', 'evidence', 'dedup-experime
 /** A drop larger than this in best-achievable F1 fails the run. */
 const REGRESSION_THRESHOLD = 0.05;
 
-/** The thresholds the product ships with, from `src/services/team-promotion-service.ts`. */
-const SHIPPED = { lexical: 0.5, semantic: 0.83 } as const;
+/**
+ * The thresholds the product actually ships with, **imported** rather than copied.
+ *
+ * They were literals here until 2026-11-10, and the moment ADR-028 changed them this table would
+ * have reported numbers the product no longer used — the same two-copies drift that let a lint
+ * error through a commit gate earlier the same day. Importing them means the "as shipped" row
+ * cannot be wrong about what shipped.
+ */
+const SHIPPED = {
+  lexical: PROMOTE_SIMILARITY_THRESHOLD,
+  /** What the in-tree gateway declares, falling back to the service constant. */
+  vector: new LexicalVectorGateway().dedupThreshold ?? SEMANTIC_SIMILARITY_THRESHOLD,
+  /**
+   * BGE-small's own floor, read off the gateway rather than restated.
+   *
+   * Constructing a FastEmbedGateway is free — it loads no model until something asks it to embed
+   * — so this costs nothing even on a machine where fastembed is absent.
+   */
+  model: new FastEmbedGateway().dedupThreshold ?? SEMANTIC_SIMILARITY_THRESHOLD,
+} as const;
 
 const ALL_TAGS: PairTag[] = ['restatement', 'elaboration', 'related-but-distinct', 'opposite', 'unrelated'];
 
@@ -72,7 +92,7 @@ const METHODS: Method[] = [
   {
     name: 'semantic (cosine)',
     score: (a, b) => cosine(lexicalVector(a), lexicalVector(b)),
-    shippedThreshold: SHIPPED.semantic,
+    shippedThreshold: SHIPPED.vector,
   },
   {
     // Cosine with the negation guard. Included because the first two rows show that the
@@ -80,7 +100,7 @@ const METHODS: Method[] = [
     // cut point is safe. This row measures whether changing the ordering fixes that.
     name: 'semantic + guard',
     score: (a, b) => (negationMismatch(a, b) ? 0 : cosine(lexicalVector(a), lexicalVector(b))),
-    shippedThreshold: SHIPPED.semantic,
+    shippedThreshold: SHIPPED.vector,
   },
 ];
 
@@ -503,11 +523,11 @@ async function main(): Promise<number> {
     say();
     say('Model loaded: fastembed BGE-small-en-v1.5, 384 dimensions.');
     METHODS.push(
-      { name: 'model (cosine)', score: modelScore, shippedThreshold: SHIPPED.semantic },
+      { name: 'model (cosine)', score: modelScore, shippedThreshold: SHIPPED.model },
       {
         name: 'model + guard',
         score: (a, b) => (negationMismatch(a, b) ? 0 : modelScore(a, b)),
-        shippedThreshold: SHIPPED.semantic,
+        shippedThreshold: SHIPPED.model,
       },
     );
   } else {

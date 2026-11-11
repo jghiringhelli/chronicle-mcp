@@ -209,6 +209,16 @@ export class LexicalVectorGateway implements EmbeddingGateway {
   static readonly ID = 'lexical-v1';
 
   /**
+   * De-duplication threshold for this space: 0.25.
+   *
+   * Measured against the 51-memory pool (ADR-028): it suppresses 6 of 11 labelled duplicates and
+   * loses **none** of 12 novel memories. 0.20 already loses one, and 0.10 — the threshold that
+   * maximises pairwise F1 — loses eleven of the twelve, which is why the number comes from a
+   * pool-scale sweep rather than from the pairwise one.
+   */
+  readonly dedupThreshold = 0.25;
+
+  /**
    * Whether embeddings can be produced. Always true for this gateway.
    *
    * @returns true

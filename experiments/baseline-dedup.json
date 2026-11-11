@@ -1,31 +1,31 @@
 {
-  "recordedAt": "2026-11-11T02:45:58.350Z",
+  "recordedAt": "2026-11-11T02:53:45.932Z",
   "note": "Best achievable F1 per similarity method over the threshold sweep, plus F1 at the threshold the product ships with.",
   "methods": {
     "lexical (Jaccard)": {
       "bestF1": 0.64,
       "bestThreshold": 0.1,
-      "shippedF1": 0
+      "shippedF1": 0.5455
     },
     "semantic (cosine)": {
       "bestF1": 0.7407,
       "bestThreshold": 0.1,
-      "shippedF1": 0
+      "shippedF1": 0.5455
     },
     "semantic + guard": {
       "bestF1": 0.8,
       "bestThreshold": 0.1,
-      "shippedF1": 0
+      "shippedF1": 0.5882
     },
     "model (cosine)": {
       "bestF1": 0.8462,
       "bestThreshold": 0.65,
-      "shippedF1": 0.5
+      "shippedF1": 0.7826
     },
     "model + guard": {
       "bestF1": 0.8,
       "bestThreshold": 0.7,
-      "shippedF1": 0.4
+      "shippedF1": 0.7368
     }
   }
 }

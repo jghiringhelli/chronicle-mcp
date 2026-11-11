@@ -78,8 +78,8 @@ win32-x64.
 |---|---|---|---|
 | Cascade / sentinel | `pnpm run cascade` | **0 errors, 4 warnings** | `docs/evidence/cascade-check-after.json` |
 | Typecheck | `pnpm run typecheck` | **exit 0** | `docs/evidence/typecheck.txt` |
-| Lint (cycles + layers) | `pnpm run lint` | **0 errors**, 32 warnings (exc-009) | `docs/evidence/lint.txt` |
-| Tests | `vitest run` (pre-commit) | **406 passed / 406**, 2026-11-10 | this table's own run record |
+| Lint (cycles + layers) | `pnpm run lint` | **0 errors**, 54 warnings (exc-009) · scope is now `eslint .`, one list instead of two that had drifted | `docs/evidence/lint.txt` |
+| Tests | `vitest run` (pre-commit) | **409 passed / 409**, 2026-11-10 | this table's own run record |
 | Coverage | `pnpm run test:coverage` | **59.98% lines** (floor 41, target 80) | `docs/evidence/test-coverage.txt` |
 | Mutation | `pnpm run test:mutation` | **MSI 36.92%** (floor 20, target 65) | `docs/evidence/mutation.txt` |
 | Dependency policy | `pnpm run deps:policy` | **ok** | `docs/evidence/dependency-policy.txt` |
@@ -106,12 +106,20 @@ MRR from 0.26 to 0.76; the vector path adds morphology and subtracts paraphrase,
 ships available and is not the default (ADR-027). Three labelled queries that genuinely need
 synonymy fail in **every** configuration above.
 
-De-duplication was measured too, and it is worse: at the thresholds it ships with, **F1 is 0.00**
-— the thresholds sit above the highest similarity any real duplicate reaches. The contradiction
-guard added on 2026-11-10 removes the only harm it was doing; making it actually de-duplicate is
-an open decision (ADR-027 §3). Records: `docs/evidence/recall-experiment.json`,
-`docs/evidence/dedup-experiment.json`. `experiments/baseline-recall.json` makes a later
-regression fail a run.
+A model-backed path was then measured and **refused for recall**: BGE-small reaches MRR 0.86 and
+recall@5 0.88, taking the paraphrase class from 0.42 to 0.75, and costs 140–170ms per query
+against NFR-03's 50ms budget. It is adopted for de-duplication, which has no latency budget
+(ADR-028).
+
+De-duplication was measured too and was worse than recall: at its old thresholds **F1 was 0.00**,
+because they sat above the highest similarity any real duplicate reaches, and its only two
+positives in the corpus were contradictions. It now runs at **F1 0.59** by default and **0.74**
+with a model, with the threshold owned by whichever gateway produced the vectors. The values are
+**not** the pairwise optimum: applied as a maximum over the pool, as the service applies them,
+that optimum suppresses 11 of 12 novel memories.
+
+Records: `docs/evidence/recall-experiment.json`, `docs/evidence/dedup-experiment.json`. Both
+baselines fail a run on a regression.
 
 **Coverage and mutation are ratchet floors, not the targets.** Both thresholds had been declared
 for months (80% lines, 65% MSI) and **neither had ever been evaluated** — the coverage provider
@@ -195,9 +203,10 @@ anchor named for each property, the evidence, and the tiered treatment plan:
   on `pilot/companion-2026-10`.
 - **GS brownfield adoption,** at step 06 with the step-03 collision unresolved (Brownfield
   Baseline).
-- **Two open decisions from ADR-027,** neither taken unilaterally because both change what a user
-  or a teammate receives: whether to lower the de-duplication thresholds, and whether to measure a
-  model-backed embedding path.
+- **Both of ADR-027's open decisions were taken** on 2026-11-10 and are recorded in ADR-028. What
+  remains open after them: an async recall path for a user who would accept 165ms for MRR 0.86,
+  and a sharper contradiction guard — the present one blocks 3 of 11 genuine duplicates because it
+  reads the whole memory, so a negation inside a rationale counts as one.
 
 ## Completed
 

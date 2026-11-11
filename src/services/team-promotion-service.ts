@@ -20,10 +20,28 @@ import type { EmbeddingGateway } from '../ports/gateways/embedding-gateway.js';
 import type { Embedding } from '../domain/types.js';
 import { negationMismatch } from './contradiction.js';
 
-/** Two memories at or above this token-overlap (lexical) are treated as the same knowledge. */
-export const PROMOTE_SIMILARITY_THRESHOLD = 0.5;
+/**
+ * Token-overlap (Jaccard) at or above which two memories are the same knowledge.
+ *
+ * 0.20 since 2026-11-10, from 0.50. Measured against a 51-memory pool (ADR-028): 0.50 suppressed
+ * 3 of 11 labelled duplicates and 0.20 suppresses 6, both losing **none** of 12 novel memories.
+ * 0.15 already loses one, so 0.20 keeps one sweep step of margin.
+ *
+ * Not the threshold that maximises pairwise F1, which is 0.10 — applied the way this service
+ * applies it, as a maximum over the whole pool, 0.10 suppresses eleven of the twelve novel
+ * memories. The two errors are not symmetric: a near-duplicate left in the pool is visible and
+ * deletable, a withheld memory is not.
+ */
+export const PROMOTE_SIMILARITY_THRESHOLD = 0.2;
 
-/** Cosine similarity at or above which two memories are treated as the same knowledge (semantic). */
+/**
+ * Cosine fallback for a gateway that declares no `dedupThreshold` of its own.
+ *
+ * Kept at 0.83 deliberately. It is the right order of magnitude for a sentence-transformer, which
+ * is what it was written for, so an unknown third-party gateway inherits the conservative choice
+ * — it will under-de-duplicate rather than withhold. A gateway that knows its own space should
+ * declare `dedupThreshold` instead of relying on this (ADR-028 §1).
+ */
 export const SEMANTIC_SIMILARITY_THRESHOLD = 0.83;
 
 /** Default ceiling on how many candidates a single promote pass considers. */
@@ -45,6 +63,13 @@ export interface PromoteResult {
   railwaySkipped: boolean;
   /** Which similarity method de-duplicated this pass. */
   method: 'semantic' | 'lexical';
+  /**
+   * The similarity floor this pass used.
+   *
+   * Reported because it is no longer a constant a reader can look up: it comes from whichever
+   * gateway answered (ADR-028 §1), so without it the `skipped` list cannot be interpreted.
+   */
+  threshold: number;
 }
 
 /**
@@ -103,7 +128,10 @@ export class TeamPromotionService {
     const candidates = this.selectCandidates(project, limit);
     const pool = this.teamRepo.searchSharedCache(teamId, '', project, 1000);
 
-    const result: PromoteResult = { scanned: candidates.length, promoted: [], skipped: [], railwaySkipped: false, method: 'lexical' };
+    const result: PromoteResult = {
+      scanned: candidates.length, promoted: [], skipped: [], railwaySkipped: false,
+      method: 'lexical', threshold: PROMOTE_SIMILARITY_THRESHOLD,
+    };
 
     if (!config.railwayUrl) {
       result.railwaySkipped = true;
@@ -113,7 +141,14 @@ export class TeamPromotionService {
     // Prefer semantic (embedding) dedup; fall back to lexical when unavailable.
     const semantic = await this.buildSemanticIndex(candidates.map(c => c.content), pool.map(p => p.content));
     if (semantic) result.method = 'semantic';
-    const threshold = semantic ? SEMANTIC_SIMILARITY_THRESHOLD : PROMOTE_SIMILARITY_THRESHOLD;
+    // The gateway owns the number, because two gateways both returning cosines are not on one
+    // scale: the in-tree lexical space says 0.25, a sentence-transformer says 0.75, and one
+    // constant for both is wrong for at least one of them (ADR-028 §1). Read after
+    // buildSemanticIndex, which is what makes a composite gateway have latched onto one.
+    const threshold = semantic
+      ? this.embeddings?.dedupThreshold ?? SEMANTIC_SIMILARITY_THRESHOLD
+      : PROMOTE_SIMILARITY_THRESHOLD;
+    result.threshold = threshold;
 
     for (let i = 0; i < candidates.length; i++) {
       const cand = candidates[i]!;

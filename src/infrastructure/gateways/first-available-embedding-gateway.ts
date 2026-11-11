@@ -31,6 +31,18 @@ export class FirstAvailableEmbeddingGateway implements EmbeddingGateway {
   private chosen: EmbeddingGateway | null = null;
 
   /**
+   * The chosen gateway's de-duplication threshold.
+   *
+   * A getter rather than a value, because which gateway is chosen is only known after the first
+   * `available()` call. Callers read it after asking whether embeddings are available — which is
+   * the order `TeamPromotionService` already uses — so by then `resolve()` has latched. Before
+   * that it reports the first candidate's, which is the one that would be chosen if it loads.
+   */
+  get dedupThreshold(): number | undefined {
+    return (this.chosen ?? this.candidates[0])?.dedupThreshold;
+  }
+
+  /**
    * @param candidates - Gateways in preference order. The last one should be unconditionally
    *   available, or `available()` can still answer false — which callers must handle anyway
    *   (ADR-014 §2: an absent gateway is a normal state, never an error).

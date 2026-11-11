@@ -32,6 +32,17 @@ export class FastEmbedGateway implements EmbeddingGateway {
   private unavailable = false;
 
   /**
+   * De-duplication threshold for BGE-small's space: 0.75.
+   *
+   * Measured against the 51-memory pool (ADR-028): 7 of 11 labelled duplicates suppressed, none
+   * of 12 novel memories lost. The previous service-wide constant of 0.83 was written for this
+   * model and is also safe — it catches 6 — so this is a one-duplicate improvement, not a
+   * correction. The constant was inert only because this gateway is absent from a default
+   * install (ADR-017) and the service fell through to Jaccard.
+   */
+  readonly dedupThreshold = 0.75;
+
+  /**
    * @param cacheDir - Where model weights are cached. Defaults to ~/.chronicle/models.
    */
   constructor(private readonly cacheDir = path.join(os.homedir(), '.chronicle', 'models')) {}

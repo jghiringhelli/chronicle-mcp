@@ -24,10 +24,14 @@ depends_on: [SPEC, GS-ASSESSMENT]
 
 ## Current Phase
 
-**Phase: brownfield adoption, GS step `03-spec-from-code`.** Steps 01 and 02 are closed and
-verified by `gs status`; step 03 is blocked on one collision described under
-**Brownfield Baseline** below. The product phase is unchanged: v0.4.0 feature-complete for the
-shipped surface, v0.5.0 prepared and unpublished.
+**Phase: brownfield adoption, GS step `06-harness`.** Steps 01 and 02 are closed and verified by
+`gs status`; steps 03 to 05 report lacks that `gs step` is the sanctioned route through, and the
+step-03 collision under **Brownfield Baseline** below still stands. The product phase is
+unchanged: v0.4.0 feature-complete for the shipped surface, v0.5.0 prepared and unpublished.
+
+Since 2026-11-10 recall has a measured quality floor as well as a latency one — see
+**Recall quality** below. That was the first instrument in this repository for whether the
+product's central claim is true, as opposed to whether its code runs.
 
 ## Brownfield Baseline
 
@@ -75,13 +79,39 @@ win32-x64.
 | Cascade / sentinel | `pnpm run cascade` | **0 errors, 4 warnings** | `docs/evidence/cascade-check-after.json` |
 | Typecheck | `pnpm run typecheck` | **exit 0** | `docs/evidence/typecheck.txt` |
 | Lint (cycles + layers) | `pnpm run lint` | **0 errors**, 32 warnings (exc-009) | `docs/evidence/lint.txt` |
-| Tests | `vitest run` (pre-commit) | **314 passed / 314**, 2026-10-27 at `09d68e5` | this table's own run record |
+| Tests | `vitest run` (pre-commit) | **406 passed / 406**, 2026-11-10 | this table's own run record |
 | Coverage | `pnpm run test:coverage` | **59.98% lines** (floor 41, target 80) | `docs/evidence/test-coverage.txt` |
 | Mutation | `pnpm run test:mutation` | **MSI 36.92%** (floor 20, target 65) | `docs/evidence/mutation.txt` |
 | Dependency policy | `pnpm run deps:policy` | **ok** | `docs/evidence/dependency-policy.txt` |
 | Build | `pnpm run build` | **exit 0** | `docs/evidence/build.txt` |
 | **MCP generative execution** | `pnpm run smoke` | **12 / 12 checks** | `docs/evidence/mcp-smoke.json` |
 | Supply chain | `pnpm audit --prod --audit-level=high` | **exit 0**, 3 advisories allow-listed, 2026-10-26 | `package.json` `auditConfig.ignoreGhsas` |
+
+### Recall quality — measured, not gated
+
+A gate answers *did it run*. Until 2026-11-10 nothing answered *does recall find the right
+memory*, which is the question the product exists to answer. It now has an instrument
+(`experiments/`, method copied from CodeSeeker's `tests/relevance/`), 51 memories and 35
+hand-labelled queries:
+
+| Configuration | MRR | recall@5 | cases passed | out-of-scope answered |
+|---|---|---|---|---|
+| `keyword-legacy` — as shipped before | 0.26 | 0.42 | 9/35 | 2/3 |
+| **`shipped`** — scored ranking | **0.76** | **0.83** | **27/35** | **0/3** |
+| `semantic` — vectors only | 0.73 | 0.72 | 22/35 | 3/3 |
+| `hybrid` — rank fusion | 0.80 | 0.79 | 24/35 | 3/3 |
+
+**Most of that gain is not the embeddings.** Scoring the same candidate set with no vectors moved
+MRR from 0.26 to 0.76; the vector path adds morphology and subtracts paraphrase, which is why it
+ships available and is not the default (ADR-027). Three labelled queries that genuinely need
+synonymy fail in **every** configuration above.
+
+De-duplication was measured too, and it is worse: at the thresholds it ships with, **F1 is 0.00**
+— the thresholds sit above the highest similarity any real duplicate reaches. The contradiction
+guard added on 2026-11-10 removes the only harm it was doing; making it actually de-duplicate is
+an open decision (ADR-027 §3). Records: `docs/evidence/recall-experiment.json`,
+`docs/evidence/dedup-experiment.json`. `experiments/baseline-recall.json` makes a later
+regression fail a run.
 
 **Coverage and mutation are ratchet floors, not the targets.** Both thresholds had been declared
 for months (80% lines, 65% MSI) and **neither had ever been evaluated** — the coverage provider
@@ -158,13 +188,16 @@ anchor named for each property, the evidence, and the tiered treatment plan:
 
 ## In Progress
 
-- **v0.5.0, prepared and unpublished.** `package.json` and `pnpm-lock.yaml` carry the SDK at 1.32.1
-  and the advisory allow-list cut from ten entries to three; both are uncommitted in the working
-  tree. The suite is green against that SDK (314/314, `09d68e5`). Publishing needs `npm login`.
-- **PR #7, open.** Removes the nightly CI trigger, which had reported 35 consecutive failures from
-  two causes that were not code changes. The cron keeps firing until it merges.
-- **ADR-024's record,** updated 2026-10-26 with the Railway outage and the recovery; uncommitted.
-- **GS brownfield adoption,** at step 03 and blocked as described under Brownfield Baseline.
+- **v0.5.0, prepared and unpublished.** The SDK bump and the advisory allow-list cut from ten
+  entries to three are committed; the suite is green against that SDK (406/406). Publishing needs
+  `npm login`.
+- **This branch is ahead of `master` and no PR is open.** Everything below under Completed lives
+  on `pilot/companion-2026-10`.
+- **GS brownfield adoption,** at step 06 with the step-03 collision unresolved (Brownfield
+  Baseline).
+- **Two open decisions from ADR-027,** neither taken unilaterally because both change what a user
+  or a teammate receives: whether to lower the de-duplication thresholds, and whether to measure a
+  model-backed embedding path.
 
 ## Completed
 
@@ -175,10 +208,19 @@ CI trigger removed (`a52a4d7`, PR #7); the Railway mirror recovered after a 34-d
 isolation 15/15, cross-machine sync 16/16 and the team layer 9/9; and the GS audit of 2026-10-27
 with ADR-025 to let the repository keep it (`09d68e5`, `e020a6f`).
 
+Since then: the prompt history given its three stages, staged to analysed to evicted (ADR-026,
+EDR-005, `4f216d6`); and recall given a measured ranking plus a dependency-free vector path, with
+the labelled corpus committed one commit ahead of the ranker so it cannot have been tuned to it
+(ADR-027, EDR-006, `863ebe1` then the implementation).
+
 ## Next Session Entry Point
 
 Raise the two ratchet floors: run `pnpm run test:coverage` and `pnpm run test:mutation`, then set
-`vitest.config.ts` and `stryker.config.json` to the measured values — item 1 and item 4 of the audit.
+`vitest.config.ts` and `stryker.config.json` to the measured values — item 1 and item 4 of the
+audit. The run is now needed for a second reason: the suite has gone from 314 tests to 406 since
+this table was last reconciled, and the 59.98% record predates even the 314 — so the gap between
+the floors and the truth is wider than the 19 points the table cites, by an amount nobody has
+measured.
 
 From the treatment plan in `docs/gs-assessment.md`. P1 items are what make every claim above
 admissible:

@@ -13,7 +13,7 @@ Chronicle is a [Model Context Protocol](https://modelcontextprotocol.io) server 
 ## What it does
 
 - **Remembers** project context, architectural decisions, hard-won solutions, and your preferences across every session and every AI client
-- **Recalls** the right memory at the right time — ranked by relevance, recency, and how often you've needed it before
+- **Recalls** the right memory at the right time — ranked by how much of your question each memory answers, with recency and reinforcement as tiebreakers. Measured: **MRR 0.76, recall@5 0.83** over 35 hand-labelled queries ([the experiment](experiments/README.md))
 - **Decays** memories that stop mattering and reinforces the ones that keep coming up
 - **Fires triggers** before risky actions ("you were about to deploy — here's what broke last time")
 - **Recovers** interrupted sessions with a compressed context summary
@@ -142,7 +142,7 @@ Full config with all features:
 | Action | What it does |
 |--------|-------------|
 | `remember` | Store a memory with type, project, tags, and optional confirmation |
-| `recall` | Retrieve memories ranked by relevance and weight |
+| `recall` | Retrieve memories ranked by query coverage, with weight as a tiebreaker |
 | `forget` | Delete a memory by ID |
 | `trigger` | Attach a trigger to a memory (fires on action keywords) |
 | `check` | Check what memories fire before an action |
@@ -463,7 +463,17 @@ team({ action: "curate_insight", insight_type: "practice",
        content: "Validate all inbound DTOs at the service boundary", project: "my-project" })
 ```
 
-> De-duplication is currently **lexical** (token overlap). A semantic upgrade is a drop-in once a concrete embedding gateway populates memory embeddings — the threshold and comparison seam in `TeamPromotionService` are built for that swap.
+> De-duplication now runs on **vector similarity** with a contradiction guard, and the honest
+> state of it is this: **at the thresholds it ships with, it does not de-duplicate.** Measured over
+> 32 hand-labelled pairs, the shipped thresholds sit above the highest similarity any genuine
+> duplicate reaches (Jaccard 0.50 against a maximum of 0.313; cosine 0.83 against 0.534), so F1 is
+> **0.00**. Worse, the two most similar pairs in the whole corpus are *contradictions* — "bodies are
+> never logged" against "bodies are logged at debug" scores 0.667 — so the only thing the old
+> configuration ever did was merge those, withholding a memory that reversed a policy. The guard
+> (`negationMismatch`) blocks that and can only ever prevent a merge, never cause one. Best
+> achievable F1: lexical 0.64, vector 0.74, vector + guard 0.80. Lowering the thresholds is what
+> would make it function and is an open decision, because it changes what a teammate stops
+> receiving. See [`experiments/`](experiments/README.md) and ADR-027 §3.
 
 ### Roles & curation
 
@@ -497,7 +507,8 @@ pnpm run test:coverage
 
 ## Roadmap
 
-- [ ] Vector embeddings for semantic `recall` (currently keyword/tag-based)
+- [x] Scored recall and a dependency-free vector path (ADR-027) — MRR 0.26 → 0.76, recall@5 0.42 → 0.83
+- [ ] A **model-backed** semantic recall path. The shipped vectors are lexical: they bridge word forms but not synonyms, and three labelled queries that need synonymy fail in every configuration measured. Unmeasured, not promised
 - [ ] `distill` tool — LLM-synthesised playbooks, profile.yaml, lessons.yaml
 - [ ] Web UI for memory browser and cross-project graph
 - [ ] Ecosystem Registry — propagate decisions across related projects

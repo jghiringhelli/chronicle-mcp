@@ -30,7 +30,7 @@ depends_on: [ADR-001, ADR-010, ADR-011, ADR-012, ADR-013, ADR-014]
 | Created / sealed | 2026-03-03 |
 | Language / runtime | TypeScript (ESM), Node `>=20 <24` |
 | Build / test | tsup / vitest + Stryker |
-| Storage | SQLite via `better-sqlite3`, synchronous. Keyword recall; the `embedding` column has no recall consumer (ADR-014) |
+| Storage | SQLite via `better-sqlite3`, synchronous. Scored keyword recall (MRR 0.76 measured); an optional, dependency-free vector path (ADR-027) |
 | Package manager | pnpm (pinned in `packageManager`) |
 | Publish | npm, public, as `chronicle-mcp` |
 
@@ -191,11 +191,21 @@ Raw memories are distilled into three YAML artifacts (updated every 12h):
 ### 3.4 Storage
 
 - `~/.chronicle/chronicle.db` — SQLite (`better-sqlite3`, synchronous). Each memory row carries `weight`, `access_count`, `last_accessed_at`, `decay_rate`, `tier`, `memory_type` and an `embedding` BLOB.
-  **Recall is keyword matching (`LIKE`) ranked by `weight`** — not FTS5, and not vector
-  similarity. The `embedding` column is written but has no recall consumer; semantic similarity
-  is used only for de-duplication at promote time, and only when the optional embedding gateway
-  is installed. FTS5 is the planned replacement. Reasoning and the consequence for the
-  recall-latency NFR: ADR-014, EDR-002.
+  **Recall selects candidates with `LIKE` over the query's content words and ranks them by how
+  much of the query each one covers** — not FTS5, and not by vector similarity in the default
+  path. Measured over 51 memories and 35 hand-labelled queries: **MRR 0.76, recall@5 0.83**,
+  against **0.26 / 0.42** for the weight-ordered path that shipped before (ADR-027,
+  `docs/evidence/recall-experiment.json`).
+  A **vector path ships and is not the default ranker.** `LexicalVectorGateway` needs no
+  dependency and no model download; it is a hashed lexical feature space, so it bridges word
+  forms — `rotating` finds `rotate` — and it does **not** capture synonymy: `dialog` and `modal`
+  score near zero. Vectors-only measures 0.73 / 0.72 and rank fusion 0.80 / 0.79, the second
+  winning MRR by 0.04 while losing recall@5 and answering 3 of 3 queries that nothing in the
+  store can answer, where the default answers 0 of 3. The `embedding` column is written at
+  `remember` time and read by that path and by promote-time de-duplication.
+  **Three labelled queries that genuinely require synonymy fail in every configuration measured.**
+  FTS5 is no longer planned: it would improve retrieval, and the measured defect was ranking
+  (ADR-027 §5). Reasoning: ADR-027, ADR-014 §1–§2, EDR-006, EDR-002.
 - `~/.chronicle/projects/<name>/` — Per-project namespaces
 - YAML files for intelligence layer artifacts
 
@@ -229,7 +239,7 @@ can tell specification from description:
 
 ### F1 — Core Memory Tools (MCP) — [SHIPPED]
 - `remember(content, memory_type, category, tags, project?, source, confirmed?)` — Store knowledge. `memory_type`: one of `episodic | semantic | procedural | architectural | insight | coordination`; defaults to `episodic`. `confirmed: true` applies 0.25 reinforcement on creation, sets decay to 0 and places the memory in Core. `procedural`, `architectural` and `insight` start in Core regardless.
-- `recall(query, project?, category?, memory_types?, tiers?, limit)` — Keyword search ranked by `weight` alone (ADR-014: not `weight × similarity`, and not FTS5). Returns weight, tier, accessCount. Word matching is OR, so relevance does not rise with the number of matched words — see EDR-002 for what that means in practice.
+- `recall(query, project?, category?, memory_types?, tiers?, limit)` — Candidate selection by `LIKE` over the query's content words, then ranking by query coverage, with `weight` as a tiebreaker that cannot overturn a coverage difference (ADR-027, EDR-006). Returns weight, tier, accessCount. Relevance **does** now rise with the number of matched words; it did not before, and that was worth 0.50 MRR. A query whose words are all stop words returns nothing, while an **empty** query still means "no text filter".
 - `forget(id, reason)` — Remove outdated or incorrect memories.
 
 ### F2 — Trigger System — [SHIPPED]
@@ -471,7 +481,9 @@ reasoning, and it is why an unverified NFR quoted as met is how a specification 
 
 - The F4, F5, F9, F10 and F11 surfaces (see the status markers in §4)
 - The three intelligence-layer YAML artifacts in §3.3
-- FTS5 recall, and any vector-similarity recall path (ADR-014 §3)
+- FTS5 recall — **no longer planned** (ADR-027 §5): it improves retrieval, and the measured defect was ranking
+- A **model-backed** semantic recall path. The shipped vector path is lexical and does not capture synonymy; whether a sentence-transformer closes that gap is unmeasured (ADR-027)
+- Lowering the de-duplication thresholds, which measurement shows are inert — an open product decision, not a deferred build (ADR-027 §3)
 - Automatic memory extraction from git history
 - A migration for rows written by pre-v0.2 builds carrying `memory_type = 'session'` (ADR-012 §2)
 - Voice / AR interface

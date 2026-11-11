@@ -1,13 +1,13 @@
 {
-  "ran_at": "2026-10-27T21:35:03.959Z",
+  "ran_at": "2026-11-11T02:05:23.289Z",
   "command": "node scripts/smoke-mcp.mjs",
   "node": "v24.18.0",
   "platform": "win32-x64",
   "server": "dist/cli.js",
   "chronicle_home": "throwaway temp directory (CHRONICLE_HOME) — the real ~/.chronicle is untouched",
   "handshake_ms": {
-    "instanceA": 412,
-    "instanceB": 403
+    "instanceA": 354,
+    "instanceB": 325
   },
   "passed": 22,
   "failed": 0,
@@ -20,7 +20,7 @@
     {
       "name": "UC-008 server starts over stdio with no configuration",
       "ok": true,
-      "detail": "connect+handshake 412ms"
+      "detail": "connect+handshake 354ms"
     },
     {
       "name": "ADR-011 exactly 4 tools are registered",
@@ -35,7 +35,7 @@
     {
       "name": "UC-001 step 1 remember succeeds",
       "ok": true,
-      "detail": "{\"id\":\"mem_cd2e65cf-ad17-40fc-bda9-f167287b169f\",\"tier\":\"working\",\"weight\":0.5,\"scope\":\"project\",\"project\":\"chronicle-sm"
+      "detail": "{\"id\":\"mem_baff7b5e-ec2c-4d5e-9d7b-6f133cd9233a\",\"tier\":\"working\",\"weight\":0.5,\"scope\":\"project\",\"project\":\"chronicle-sm"
     },
     {
       "name": "UC-001 semantic memory lands in the working tier (not buffer)",
@@ -55,12 +55,12 @@
     {
       "name": "recall round-trip over MCP is under 200ms at smoke-test scale",
       "ok": true,
-      "detail": "2ms (NOT an NFR-03 measurement — that needs 10k memories, see RM-104)"
+      "detail": "1ms (NOT an NFR-03 measurement — that needs 10k memories, see RM-104)"
     },
     {
       "name": "ADR-018 remember derives the project from the repo when none is given",
       "ok": true,
-      "detail": "{\"id\":\"mem_cb999c33-9c4b-47d6-881c-64e40e160608\",\"tier\":\"working\",\"weight\":0.5,\"scope\":\"project\",\"project\":\"github.com/jghiringhelli/chronicle-mcp\",\"p"
+      "detail": "{\"id\":\"mem_28cf3c72-a165-45db-a3f6-2451bfb0c829\",\"tier\":\"working\",\"weight\":0.5,\"scope\":\"project\",\"project\":\"github.com/jghiringhelli/chronicle-mcp\",\"p"
     },
     {
       "name": "ADR-018 the derived id comes from the remote, not a fallback",
@@ -75,7 +75,7 @@
     {
       "name": "ADR-018 a person-scoped memory is not pinned to a project",
       "ok": true,
-      "detail": "{\"id\":\"mem_8722fab9-af3a-4d97-b21e-716ad3654664\",\"tier\":\"working\",\"weight\":0.5,\"scope\":\"person\",\"projectSource\":\"remote\"}"
+      "detail": "{\"id\":\"mem_e14c8132-4935-4ccf-9f89-fa2cbeeec2dd\",\"tier\":\"working\",\"weight\":0.5,\"scope\":\"person\",\"projectSource\":\"remote\"}"
     },
     {
       "name": "ADR-018 recall returns project scope and person scope together",
@@ -85,12 +85,12 @@
     {
       "name": "F7 session start returns context",
       "ok": true,
-      "detail": "{\"id\":\"sess_d8b859b3-33d5-4ce3-9318-d1e48372d1c1\",\"project\":\"chronicle-smoke\",\"status\":\"active\",\"sta"
+      "detail": "{\"id\":\"sess_34731046-d62c-423b-8044-0a9f03d9714e\",\"project\":\"chronicle-smoke\",\"status\":\"active\",\"sta"
     },
     {
       "name": "F7 session end applies decay and promotion",
       "ok": true,
-      "detail": "{\"id\":\"sess_d8b859b3-33d5-4ce3-9318-d1e48372d1c1\",\"status\":\"ended\",\"endedAt\":\"2026-10-27T21:35:03.91"
+      "detail": "{\"id\":\"sess_34731046-d62c-423b-8044-0a9f03d9714e\",\"status\":\"ended\",\"endedAt\":\"2026-11-11T02:05:23.25"
     },
     {
       "name": "distill phase 1 returns a prompt and the ids it covers",

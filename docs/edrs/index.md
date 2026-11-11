@@ -30,6 +30,7 @@ An EDR is not a post-mortem: a bug worth remembering goes to `docs/decisions/`.
 | EDR-003 | Cloud sync — boundary-triggered, last-write-wins mirror | `src/services/sync.ts`, `src/infrastructure/db/cloud-schema.sql` | active |
 | EDR-004 | Coordination service — decomposition, ranking, assignment | `src/services/coordination-service.ts`, `src/infrastructure/db/team-schema.ts` | active |
 | EDR-005 | Prompt history lifecycle — staged, analysed, evicted | `src/services/prompt-log-service.ts`, `src/services/distill.ts`, `src/adapters/repositories/sqlite-team-repository.ts`, `src/infrastructure/db/database.ts` | active |
+| EDR-006 | Recall ranking — candidate selection, lexical scoring, optional vectors | `src/services/recall-ranker.ts`, `src/shared/text.ts`, `src/infrastructure/gateways/lexical-vector-gateway.ts`, `src/services/memory-service.ts`, `src/adapters/repositories/sqlite-memory-repository.ts` | active |
 
 ## Rules
 

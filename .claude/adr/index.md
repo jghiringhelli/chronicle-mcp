@@ -26,7 +26,7 @@ carries the local context a change actually needs.
 | ADR-011 | Three action-dispatching MCP tools, not twenty flat ones | Accepted | @docs/adrs/active/ADR-011-consolidated-mcp-tool-surface.md |
 | ADR-012 | Six memory types — drop `session`, add `insight` and `coordination` | Accepted | @docs/adrs/active/ADR-012-six-memory-types.md |
 | ADR-013 | `docs/spec.md` is the single functional spec; `chronicle-spec.md` superseded | Accepted | @docs/adrs/active/ADR-013-single-source-spec.md |
-| ADR-014 | Recall is keyword-first; semantic similarity is an optional gateway | Accepted | @docs/adrs/active/ADR-014-keyword-first-recall.md |
+| ADR-014 | Recall is keyword-first; semantic similarity is an optional gateway | Accepted · §3 and §4 amended by ADR-027; §1 and §2 stand | @docs/adrs/active/ADR-014-keyword-first-recall.md |
 | ADR-015 | `better-sqlite3@13` (Node-API) instead of pinning a Node major | Accepted | @docs/adrs/active/ADR-015-node-api-better-sqlite3.md |
 | ADR-016 | Concurrent multi-instance access is a supported contract | Accepted · amends ADR-001 | @docs/adrs/active/ADR-016-multi-instance-concurrency.md |
 | ADR-017 | Drop `fastembed` from the install tree; baseline the SDK's advisories | Accepted · supersedes ADR-003's acceptance | @docs/adrs/active/ADR-017-supply-chain-baseline.md |
@@ -39,6 +39,7 @@ carries the local context a change actually needs.
 | ADR-024 | Bind rows to a role via a lookup table, not by parsing the role name | Accepted · amends ADR-023 §4 (the SQL, not the decision) | @docs/adrs/active/ADR-024-role-map-not-string-surgery.md |
 | ADR-025 | A commissioned GS report is evidence, not gate output; `reports/gs-*.md` is tracked | Accepted · narrows `.gitignore:12`, derives from ADR-013 | @docs/adrs/active/ADR-025-gs-reports-are-evidence.md |
 | ADR-026 | Prompt history is a local staging buffer with a lifecycle; the cloud table never holds raw text | Accepted · reads ADR-019 §1 as a boundary, not an erasure; retention 7 days, 0 evicts on analysis | @docs/adrs/active/ADR-026-prompt-history-is-a-staging-buffer.md |
+| ADR-027 | Recall is scored against the query; the vector path ships available, not default | Accepted · amends ADR-014 §3 and §4, measured in docs/evidence/recall-experiment.json | @docs/adrs/active/ADR-027-recall-is-scored-vectors-are-available.md |
 
 ## Numbering — why it jumps from 003 to 010
 
@@ -51,7 +52,7 @@ gate can detect, because each file is individually well-formed. The gap is the s
 lines of work met, and it is left visible rather than renumbered: ADRs are immutable after
 acceptance.
 
-**The next ADR on this branch is ADR-027.**
+**The next ADR on this branch is ADR-028.**
 
 Two records that read similarly and are not the same decision: **ADR-010** put `axon`
 *coordination* in core (the earlier choice); **ADR-002** folded chronicle-team's *knowledge* layer

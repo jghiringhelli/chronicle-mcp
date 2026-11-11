@@ -35,7 +35,10 @@ import { fileURLToPath } from 'node:url';
 import { contentSimilarity } from '../../src/services/team-promotion-service.js';
 import { negationMismatch } from '../../src/services/contradiction.js';
 import { lexicalVector, cosine } from '../../src/infrastructure/gateways/lexical-vector-gateway.js';
+import { FastEmbedGateway } from '../../src/infrastructure/gateways/fastembed-gateway.js';
 import { DEDUP_PAIRS, POSITIVES, type PairTag } from './pairs.js';
+import { DUPLICATE_OF, NOVEL } from './pool.js';
+import { FIXTURE } from '../lib/fixture.js';
 import { f1 as harmonic, round4, fmt } from '../lib/metrics.js';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -267,12 +270,21 @@ function compareBaseline(headline: Record<string, { bestF1: number; bestThreshol
  * @param updateBaseline - Whether to re-record the baseline
  */
 function persist(
+  poolRows: Record<string, PoolOutcome[]>,
+  sensitivity: Record<string, ReturnType<typeof poolSizeSensitivity>>,
   results: MethodResult[],
   headline: Record<string, { bestF1: number; bestThreshold: number; shippedF1: number }>,
   updateBaseline: boolean,
 ): void {
   const evidence = {
     experiment: 'dedup',
+    poolScale: {
+      pool: FIXTURE.length,
+      duplicateCandidates: Object.keys(DUPLICATE_OF).length,
+      novelCandidates: NOVEL.length,
+      rows: poolRows,
+      sizeSensitivity: sensitivity,
+    },
     recordedAt: new Date().toISOString(),
     method: 'hand-labelled pairs; precision / recall / F1 for the duplicate class, swept over thresholds',
     platform: `${process.platform} node ${process.version}`,
@@ -309,7 +321,176 @@ function persist(
   say('Baseline updated at experiments/baseline-dedup.json');
 }
 
-function main(): number {
+/**
+ * Build a synchronous similarity function backed by a real sentence-transformer.
+ *
+ * Every text the experiment will compare is embedded up front — both sides of all 32 pairs, the
+ * 51 pool memories and the 12 novel candidates — so the method itself stays synchronous and
+ * slots into the same `Method` shape as the other two. Embedding on demand would have made the
+ * threshold sweep re-embed the same text nineteen times.
+ *
+ * @returns A scorer, or null when `fastembed` is not installed
+ */
+async function loadModelScorer(): Promise<((a: string, b: string) => number) | null> {
+  const gw = new FastEmbedGateway();
+  if (!(await gw.available())) return null;
+
+  const texts = [
+    ...DEDUP_PAIRS.flatMap((p) => [p.a, p.b]),
+    ...FIXTURE.map((m) => m.content),
+    ...NOVEL.map((n) => n.content),
+  ];
+  const unique = [...new Set(texts)];
+  const vectors = await gw.generateBatch(unique);
+  const byText = new Map(unique.map((t, i) => [t, vectors[i]!]));
+
+  return (a: string, b: string): number => {
+    const va = byText.get(a);
+    const vb = byText.get(b);
+    // A text the preload did not see would silently score 0 and look like a clean negative, so
+    // it fails loudly instead.
+    if (!va || !vb) throw new Error('model scorer asked about a text it was not given up front');
+    return gw.cosineSimilarity(va, vb);
+  };
+}
+
+// ── the pool-scale question ────────────────────────────────────────────────────────────────
+
+/** How a method behaves against a whole pool rather than against one other memory. */
+interface PoolOutcome {
+  threshold: number;
+  /** Of 11 candidates that restate a pool memory, how many were correctly suppressed. */
+  duplicatesSuppressed: number;
+  /** Of 12 candidates whose subject is absent from the pool, how many were wrongly suppressed. */
+  novelSuppressed: number;
+  /** Suppressed duplicates that were matched against the WRONG pool entry. */
+  wrongTarget: number;
+}
+
+/**
+ * Measure the decision the service actually makes: maximum similarity over the whole pool.
+ *
+ * This is the experiment that decides the threshold, and the pairwise sweep cannot stand in for
+ * it. A maximum over N draws grows with N, so a threshold that maximises pairwise F1 can suppress
+ * everything once the pool is large. `novelSuppressed` is the number that matters most: each one
+ * is a memory the team would never receive, and nobody observes a memory that was not shared.
+ *
+ * @param score - The similarity function under test
+ * @param guard - Whether to apply the negation guard, as the service does
+ * @param threshold - Operating point
+ * @returns The pool-scale outcome
+ */
+function evaluatePool(
+  score: (a: string, b: string) => number,
+  guard: boolean,
+  threshold: number,
+  poolSize = FIXTURE.length,
+): PoolOutcome {
+  const pool = FIXTURE.slice(0, poolSize).map((m) => ({ id: m.id, content: m.content }));
+
+  const closest = (candidate: string): { id: string; score: number } | undefined => {
+    let best: { id: string; score: number } | undefined;
+    for (const p of pool) {
+      if (guard && negationMismatch(candidate, p.content)) continue;
+      const sc = score(candidate, p.content);
+      if (!best || sc > best.score) best = { id: p.id, score: sc };
+    }
+    return best;
+  };
+
+  let duplicatesSuppressed = 0;
+  let wrongTarget = 0;
+  for (const [pairId, fixtureId] of Object.entries(DUPLICATE_OF)) {
+    const pair = DEDUP_PAIRS.find((p) => p.id === pairId);
+    if (!pair) continue;
+    const match = closest(pair.b);
+    if (match && match.score >= threshold) {
+      duplicatesSuppressed++;
+      if (match.id !== fixtureId) wrongTarget++;
+    }
+  }
+
+  let novelSuppressed = 0;
+  for (const n of NOVEL) {
+    const match = closest(n.content);
+    if (match && match.score >= threshold) novelSuppressed++;
+  }
+
+  return { threshold, duplicatesSuppressed, novelSuppressed, wrongTarget };
+}
+
+/**
+ * How a chosen threshold behaves as the pool grows.
+ *
+ * The threshold chosen above is safe **against 51 memories**. A real pool holds thousands, and
+ * the quantity being compared is a maximum over the pool, which grows with its size — so a
+ * number that loses no memories here can start losing them later, and that would present as
+ * "the team stopped receiving my memories" with nothing in any log.
+ *
+ * This cannot be measured past the corpus that exists. What it can do is show the direction: if
+ * the count of wrongly suppressed memories is already climbing between 10 and 51 entries, the
+ * threshold is a moving target and the product needs a rule rather than a constant.
+ *
+ * @param label - Method name
+ * @param score - Similarity function
+ * @param threshold - The proposed operating point
+ * @param sizes - Pool sizes to try
+ * @returns One row per pool size
+ */
+function poolSizeSensitivity(
+  label: string,
+  score: (a: string, b: string) => number,
+  threshold: number,
+  sizes: number[],
+): Array<{ poolSize: number; duplicatesSuppressed: number; novelSuppressed: number }> {
+  const rows = sizes.map((n) => {
+    const o = evaluatePool(score, true, threshold, n);
+    return { poolSize: n, duplicatesSuppressed: o.duplicatesSuppressed, novelSuppressed: o.novelSuppressed };
+  });
+  say();
+  say(`${label} at ${threshold.toFixed(2)} — does the safe threshold hold as the pool grows?`);
+  say('-'.repeat(94));
+  say(`pool size   duplicates suppressed (of ${Object.keys(DUPLICATE_OF).length})   novel wrongly suppressed (of ${NOVEL.length})`);
+  for (const r of rows) {
+    say(`${String(r.poolSize).padStart(4)}        ${String(r.duplicatesSuppressed).padStart(2)}                          ${String(r.novelSuppressed).padStart(2)}`);
+  }
+  return rows;
+}
+
+/**
+ * Print the pool-scale curve for one method.
+ *
+ * @param label - Method name
+ * @param score - Similarity function
+ * @param guard - Whether the negation guard is applied
+ * @param floors - Thresholds to report
+ * @returns The rows, for the evidence artefact
+ */
+function printPool(
+  label: string,
+  score: (a: string, b: string) => number,
+  guard: boolean,
+  floors: number[],
+): PoolOutcome[] {
+  const rows = floors.map((t) => evaluatePool(score, guard, t));
+  say();
+  say(`${label} — against the 51-memory pool, max similarity over the whole pool`);
+  say('-'.repeat(94));
+  say(`thr    duplicates suppressed (of ${Object.keys(DUPLICATE_OF).length})   novel wrongly suppressed (of ${NOVEL.length})   matched the wrong entry`);
+  for (const r of rows) {
+    say(`${r.threshold.toFixed(2)}   ${String(r.duplicatesSuppressed).padStart(2)}                          ` +
+        `${String(r.novelSuppressed).padStart(2)}                               ${r.wrongTarget}`);
+  }
+  return rows;
+}
+
+/** Thresholds the pool-scale section reports for Jaccard and the in-tree vectors. */
+const POOL_FLOORS = [0.10, 0.15, 0.20, 0.25, 0.30, 0.40, 0.50];
+
+/** Thresholds the pool-scale section reports for the model, whose scale is different. */
+const MODEL_POOL_FLOORS = [0.55, 0.60, 0.65, 0.70, 0.75, 0.80, 0.83];
+
+async function main(): Promise<number> {
   const updateBaseline = process.argv.slice(2).includes('--update-baseline');
 
   say();
@@ -317,21 +498,64 @@ function main(): number {
   say(`DE-DUPLICATION EXPERIMENT — ${DEDUP_PAIRS.length} labelled pairs (${POSITIVES} duplicates, ${DEDUP_PAIRS.length - POSITIVES} not)`);
   say('='.repeat(94));
 
-  const results = METHODS.map((m) => ({ method: m, shipped: evaluate(m, m.shippedThreshold), ...best(m) }));
+  const modelScore = await loadModelScorer();
+  if (modelScore) {
+    say();
+    say('Model loaded: fastembed BGE-small-en-v1.5, 384 dimensions.');
+    METHODS.push(
+      { name: 'model (cosine)', score: modelScore, shippedThreshold: SHIPPED.semantic },
+      {
+        name: 'model + guard',
+        score: (a, b) => (negationMismatch(a, b) ? 0 : modelScore(a, b)),
+        shippedThreshold: SHIPPED.semantic,
+      },
+    );
+  } else {
+    say();
+    say('fastembed is not installed, so the model rows are absent rather than zero.');
+    say('It is a devDependency and outside the runtime tree (ADR-017): `pnpm add -D fastembed`.');
+  }
+  const results: MethodResult[] = METHODS.map((m) => ({ method: m, shipped: evaluate(m, m.shippedThreshold), ...best(m) }));
 
   printOutcomes('At the thresholds the product ships with today', results, (r) => r.shipped);
   printOutcomes("At each method's own best threshold — the fair comparison", results, (r) => r.best);
   printByTag(results);
   printSweep(results);
 
+  say();
+  say('='.repeat(94));
+  say('THE DECISION THE SERVICE ACTUALLY MAKES — maximum similarity over the whole pool');
+  say('='.repeat(94));
+  say('A maximum over N draws grows with N, so a threshold tuned on pairs can suppress everything');
+  say('against a real pool. "novel wrongly suppressed" is the number that decides the threshold:');
+  say('each one is a memory the team never receives, and nobody can see a memory that was not sent.');
+  const poolRows: Record<string, PoolOutcome[]> = {
+    'lexical (Jaccard) + guard': printPool('lexical (Jaccard) + guard', contentSimilarity, true, POOL_FLOORS),
+    'vector + guard': printPool('vector + guard', (a, b) => cosine(lexicalVector(a), lexicalVector(b)), true, POOL_FLOORS),
+  };
+  if (modelScore) {
+    poolRows['model + guard'] = printPool('model + guard', modelScore, true, MODEL_POOL_FLOORS);
+  }
+
+  say();
+  say('Sensitivity of the chosen thresholds to pool size');
+  const sizes = [10, 25, FIXTURE.length];
+  const sensitivity: Record<string, ReturnType<typeof poolSizeSensitivity>> = {
+    'lexical (Jaccard) + guard': poolSizeSensitivity('lexical (Jaccard) + guard', contentSimilarity, 0.20, sizes),
+    'vector + guard': poolSizeSensitivity('vector + guard', (a, b) => cosine(lexicalVector(a), lexicalVector(b)), 0.25, sizes),
+  };
+  if (modelScore) {
+    sensitivity['model + guard'] = poolSizeSensitivity('model + guard', modelScore, 0.75, sizes);
+  }
+
   const headline = Object.fromEntries(
     results.map((r) => [r.method.name, { bestF1: round4(r.best.f1), bestThreshold: r.best.threshold, shippedF1: round4(r.shipped.f1) }]),
   );
 
   const exitCode = compareBaseline(headline);
-  persist(results, headline, updateBaseline);
+  persist(poolRows, sensitivity, results, headline, updateBaseline);
 
   return exitCode;
 }
 
-process.exit(main());
+process.exit(await main());

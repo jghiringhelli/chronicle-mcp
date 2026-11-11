@@ -1,6 +1,6 @@
 {
-  "recordedAt": "2026-11-11T01:39:31.202Z",
-  "note": "Headline MRR and R@5 per configuration. A later run failing against this file means recall quality moved. keyword-legacy is different in kind: it is a frozen copy of the pre-change path, so its numbers must stay put forever — a drift there means the copy stopped being faithful to what shipped, not that anything improved. It was verified against the real pre-change code, which measured MRR 0.2643 and R@5 0.4219.",
+  "recordedAt": "2026-11-11T02:45:41.197Z",
+  "note": "Headline MRR and R@5 per configuration. A later run failing against this file means recall quality moved. keyword-legacy is different in kind: it is a frozen copy of the pre-change path, so its numbers must stay put forever — a drift there means the copy stopped being faithful to what shipped, not that anything improved. It was verified against the real pre-change code, which measured MRR 0.2643 and R@5 0.4219. The two `*-model` rows are recorded only when fastembed is installed; a run without it reports them as not run and the comparison skips them, so a machine with no model never sees a false regression.",
   "configs": {
     "keyword-legacy": {
       "mrr": 0.2643,
@@ -17,6 +17,14 @@
     "hybrid": {
       "mrr": 0.7972,
       "r5": 0.7891
+    },
+    "semantic-model": {
+      "mrr": 0.8594,
+      "r5": 0.8516
+    },
+    "hybrid-model": {
+      "mrr": 0.8552,
+      "r5": 0.8828
     }
   }
 }

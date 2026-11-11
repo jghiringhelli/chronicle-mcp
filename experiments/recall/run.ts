@@ -44,7 +44,9 @@ import { fileURLToPath } from 'node:url';
 import { applyConcurrencyPragmas, ensureSchema } from '../../src/infrastructure/db/database.js';
 import { SqliteMemoryRepository } from '../../src/adapters/repositories/sqlite-memory-repository.js';
 import type { MemoryRepository } from '../../src/ports/repositories/memory-repository.js';
+import type { Embedding } from '../../src/domain/types.js';
 import { lexicalVector, cosine } from '../../src/infrastructure/gateways/lexical-vector-gateway.js';
+import { FastEmbedGateway } from '../../src/infrastructure/gateways/fastembed-gateway.js';
 import { NodeIdGenerator } from '../../src/infrastructure/gateways/node-id-generator.js';
 import { NodeClock } from '../../src/infrastructure/gateways/node-clock.js';
 import { MemoryService } from '../../src/services/memory-service.js';
@@ -416,8 +418,29 @@ async function runAll(strategies: Strategy[]): Promise<Result[]> {
   return results;
 }
 
-/** Cosine floors the sweep reports. */
+/** Cosine floors the sweep reports for the in-tree lexical vectors. */
 const SWEEP_FLOORS = [0.05, 0.10, 0.15, 0.20, 0.30];
+
+/**
+ * Cosine floors swept for the model vectors.
+ *
+ * A different range, because the two spaces are not comparable: BGE-small puts unrelated English
+ * sentences around 0.3-0.5 rather than near 0, so a floor that is strict for the lexical space is
+ * no filter at all here. Using one range for both would have measured the mismatch rather than
+ * the models.
+ */
+const MODEL_SWEEP_FLOORS = [0.40, 0.50, 0.60, 0.65, 0.70, 0.75];
+
+/**
+ * The model configuration's cosine floor, chosen **a priori**.
+ *
+ * 0.65 was fixed before any per-case result was read, the same way MIN_COSINE was, and it is what
+ * the headline row reports. The sweep below shows the whole curve, and if its best value differs
+ * from this one that difference is NOT folded into the headline: picking the floor that maximises
+ * MRR on the same 35 queries the MRR is reported over is tuning on the evaluation set, and it
+ * would quietly convert this experiment from a measurement into a demonstration.
+ */
+const MODEL_FLOOR = 0.65;
 
 /** How many corpus cases expect nothing back — the denominator of the false-positive count. */
 const OUT_OF_SCOPE_CASES = RECALL_CORPUS.filter((c) => c.expectEmpty).length;
@@ -457,6 +480,35 @@ async function sweepCosineFloor(
 }
 
 /**
+ * Measure the model configuration across its floor range.
+ *
+ * Same purpose as the lexical sweep: a single hand-picked floor invites the reader to assume it
+ * was chosen after seeing the results, and a metric that barely moves across the range is a
+ * parameter that did not matter.
+ *
+ * @param model - The loaded model and the embedded fixture
+ * @returns One row per floor
+ */
+async function sweepModelFloor(
+  model: ModelBundle,
+): Promise<Array<{ floor: number; mrr: number; r5: number; falsePositives: number }>> {
+  const rows: Array<{ floor: number; mrr: number; r5: number; falsePositives: number }> = [];
+  for (const floor of MODEL_SWEEP_FLOORS) {
+    const s = summarise(await measure(semanticModelAt(model, floor, `semantic-model@${floor.toFixed(2)}`)));
+    rows.push({ floor, mrr: round4(s.overall.mrr), r5: round4(s.overall.r5), falsePositives: s.outOfScope.withFalsePositives });
+  }
+  say();
+  say('Cosine floor sweep — model configuration only');
+  say('-'.repeat(94));
+  say(`floor   MRR    R@5    out-of-scope queries that returned something   (headline uses ${MODEL_FLOOR.toFixed(2)})`);
+  for (const r of rows) {
+    const mark = r.floor === MODEL_FLOOR ? '  <- headline, chosen a priori' : '';
+    say(`${r.floor.toFixed(2)}    ${fmt(r.mrr)}   ${fmt(r.r5)}   ${r.falsePositives}/${OUT_OF_SCOPE_CASES}${mark}`);
+  }
+  return rows;
+}
+
+/**
  * Assemble the evidence artefact.
  *
  * @param seeded - How many memories were written
@@ -464,15 +516,21 @@ async function sweepCosineFloor(
  * @param sweep - Threshold sweep rows
  * @returns The object written to docs/evidence/
  */
-function buildEvidence(seeded: number, results: Result[], sweep: Awaited<ReturnType<typeof sweepCosineFloor>>): unknown {
+function buildEvidence(
+  seeded: number,
+  results: Result[],
+  sweep: Awaited<ReturnType<typeof sweepCosineFloor>>,
+  modelSweep: Awaited<ReturnType<typeof sweepCosineFloor>>,
+): unknown {
   return {
     experiment: 'recall',
     recordedAt: new Date().toISOString(),
     method: 'CodeSeeker tests/relevance — hand-labelled corpus, 1-based ranks, MRR / P@1 / P@3 / R@5 / F1@3',
     platform: `${process.platform} node ${process.version}`,
     fixture: { memories: seeded, queries: RECALL_CORPUS.length, recallLimit: RECALL_LIMIT },
-    parameters: { minCosine: MIN_COSINE, fusionDepth: FUSION_DEPTH, candidateCap: CANDIDATE_CAP },
+    parameters: { minCosine: MIN_COSINE, modelFloor: MODEL_FLOOR, fusionDepth: FUSION_DEPTH, candidateCap: CANDIDATE_CAP },
     cosineFloorSweep: sweep,
+    modelFloorSweep: modelSweep,
     configs: results.map((r) => ({
       name: r.strategy.name,
       role: r.strategy.role,
@@ -532,11 +590,12 @@ function persist(
   seeded: number,
   results: Result[],
   sweep: Awaited<ReturnType<typeof sweepCosineFloor>>,
+  modelSweep: Awaited<ReturnType<typeof sweepCosineFloor>>,
   headline: Record<string, { mrr: number; r5: number }>,
   updateBaseline: boolean,
 ): void {
   mkdirSync(dirname(EVIDENCE_FILE), { recursive: true });
-  writeFileSync(EVIDENCE_FILE, `${JSON.stringify(buildEvidence(seeded, results, sweep), null, 2)}
+  writeFileSync(EVIDENCE_FILE, `${JSON.stringify(buildEvidence(seeded, results, sweep, modelSweep), null, 2)}
 `);
   say();
   say('Evidence written to docs/evidence/recall-experiment.json');
@@ -549,7 +608,9 @@ function persist(
       'quality moved. keyword-legacy is different in kind: it is a frozen copy of the pre-change ' +
       'path, so its numbers must stay put forever — a drift there means the copy stopped being ' +
       'faithful to what shipped, not that anything improved. It was verified against the real ' +
-      'pre-change code, which measured MRR 0.2643 and R@5 0.4219.',
+      'pre-change code, which measured MRR 0.2643 and R@5 0.4219. The two `*-model` rows are ' +
+      'recorded only when fastembed is installed; a run without it reports them as not run and ' +
+      'the comparison skips them, so a machine with no model never sees a false regression.',
     configs: headline,
   };
   writeFileSync(BASELINE_FILE, `${JSON.stringify(baseline, null, 2)}
@@ -573,11 +634,16 @@ async function runExperiment(db: Database.Database, updateBaseline: boolean): Pr
   const repo = new SqliteMemoryRepository(db);
   const seeded = seed(repo);
 
-  const results = await runAll(buildStrategies(repo, db));
+  const model = await loadModel();
+  if (model) say(`
+Model loaded: fastembed BGE-small-en-v1.5, 384 dimensions. Floor ${MODEL_FLOOR.toFixed(2)}, fixed a priori.`);
+
+  const results = await runAll(buildStrategies(repo, db, model, MODEL_FLOOR));
   printMatrix(results);
   printByTag(results);
   for (const r of results) if (r.summary) printFailures(r.strategy, r.obs);
   const sweep = await sweepCosineFloor(repo);
+  const modelSweep = model ? await sweepModelFloor(model) : [];
 
   const headline: Record<string, { mrr: number; r5: number }> = {};
   for (const r of results) {
@@ -592,7 +658,7 @@ async function runExperiment(db: Database.Database, updateBaseline: boolean): Pr
   }
 
   // Written even on a regression: the record of one is evidence too.
-  persist(seeded, results, sweep, headline, updateBaseline);
+  persist(seeded, results, sweep, modelSweep, headline, updateBaseline);
   return problems.length > 0 ? 1 : 0;
 }
 async function main(): Promise<number> {
@@ -660,6 +726,70 @@ function semanticAt(repo: MemoryRepository, floor: number): Strategy {
 }
 
 /**
+ * A loaded sentence-transformer plus the fixture embedded in its space.
+ *
+ * Held in memory rather than written to the `embedding` column, on purpose: the column holds the
+ * in-tree lexical vectors, and the two spaces are not comparable. Mixing them would produce a
+ * cosine between a 512-dimension hashed feature vector and a 384-dimension model output, which is
+ * meaningless whichever way it is computed — the same reason `FirstAvailableEmbeddingGateway`
+ * latches onto one gateway for the life of the process.
+ */
+interface ModelBundle {
+  gw: FastEmbedGateway;
+  /** Fixture id to its model vector. */
+  byId: Map<string, Embedding>;
+}
+
+/**
+ * Load the model and embed the whole fixture once.
+ *
+ * Returns null when `fastembed` is not installed, which is the normal case: it is a
+ * devDependency, deliberately absent from the runtime tree (ADR-017), so the model
+ * configurations report why they did not run and the rest of the experiment is unaffected. That
+ * is what keeps `pnpm run experiments` reproducible with no network and no download.
+ *
+ * @returns The bundle, or null when no model is available
+ */
+async function loadModel(): Promise<ModelBundle | null> {
+  const gw = new FastEmbedGateway();
+  if (!(await gw.available())) return null;
+
+  const texts = FIXTURE.map((m) => embeddableText(m.content, m.tags));
+  const vectors = await gw.generateBatch(texts);
+  const byId = new Map<string, Embedding>();
+  FIXTURE.forEach((m, i) => byId.set(m.id, vectors[i]!));
+  return { gw, byId };
+}
+
+/**
+ * Cosine over model vectors at a given floor.
+ *
+ * @param model - The loaded model and the embedded fixture
+ * @param floor - Minimum cosine for a memory to be returned
+ * @param name - Configuration name
+ * @returns The configuration
+ */
+function semanticModelAt(model: ModelBundle, floor: number, name = 'semantic-model'): Strategy {
+  const queryCache = new Map<string, Embedding>();
+  return {
+    name,
+    role: 'headline',
+    available: true,
+    async rank(query, limit) {
+      let qv = queryCache.get(query);
+      if (!qv) {
+        qv = await model.gw.generate(query);
+        queryCache.set(query, qv);
+      }
+      const scored = [...model.byId.entries()]
+        .map(([id, v]) => ({ id, score: model.gw.cosineSimilarity(qv!, v) }))
+        .filter((x) => x.score >= floor);
+      return rankByScore(scored).slice(0, limit);
+    },
+  };
+}
+
+/**
  * The path as it shipped before any of this work, frozen here as SQL.
  *
  * It is a copy rather than a call, and that is on purpose. The production implementation has since
@@ -721,9 +851,9 @@ function shippedStrategy(repo: MemoryRepository): Strategy {
  * @param semantic - The vector configuration
  * @returns The fused configuration
  */
-function hybridStrategy(shipped: Strategy, semantic: Strategy): Strategy {
+function hybridStrategy(shipped: Strategy, semantic: Strategy, name = 'hybrid'): Strategy {
   return {
-    name: 'hybrid',
+    name,
     role: 'headline',
     available: true,
     async rank(query, limit) {
@@ -736,10 +866,29 @@ function hybridStrategy(shipped: Strategy, semantic: Strategy): Strategy {
   };
 }
 
-function buildStrategies(repo: MemoryRepository, db: Database.Database): Strategy[] {
+function buildStrategies(repo: MemoryRepository, db: Database.Database, model: ModelBundle | null, modelFloor: number): Strategy[] {
   const shipped = shippedStrategy(repo);
   const semantic = semanticAt(repo, MIN_COSINE);
-  return [legacyStrategy(db), shipped, semantic, hybridStrategy(shipped, semantic)];
+  const base = [legacyStrategy(db), shipped, semantic, hybridStrategy(shipped, semantic)];
+
+  if (!model) {
+    const absent = (name: string): Strategy => ({
+      name,
+      role: 'headline',
+      available: false,
+      unavailableReason: 'fastembed is not installed — it is a devDependency and absent from the runtime tree (ADR-017). Run `pnpm add -D fastembed` to measure it.',
+      async rank() { return []; },
+    });
+    return [...base, absent('semantic-model'), absent('hybrid-model')];
+  }
+
+  // Two separate instances on purpose. Each `semanticModelAt` carries its own query-vector cache,
+  // and sharing one between the headline row and the hybrid made the hybrid inherit a warm cache
+  // and report 0.28ms for a path whose model inference costs ~150ms — a latency figure that was
+  // an artefact of the measurement rather than of the system.
+  const semanticModel = semanticModelAt(model, modelFloor);
+  const semanticModelForHybrid = semanticModelAt(model, modelFloor, 'semantic-model-inner');
+  return [...base, semanticModel, hybridStrategy(shipped, semanticModelForHybrid, 'hybrid-model')];
 }
 
 main()

@@ -1,0 +1,317 @@
+{
+  "experiment": "recall",
+  "recordedAt": "2026-11-11T01:26:18.818Z",
+  "method": "CodeSeeker tests/relevance — hand-labelled corpus, 1-based ranks, MRR / P@1 / P@3 / R@5 / F1@3",
+  "platform": "win32 node v24.18.0",
+  "fixture": {
+    "memories": 51,
+    "queries": 35,
+    "recallLimit": 10
+  },
+  "configs": [
+    {
+      "name": "keyword",
+      "role": "headline",
+      "available": true,
+      "unavailableReason": null,
+      "metrics": {
+        "mrr": 0.2643,
+        "p1": 0.1563,
+        "p3": 0.1146,
+        "r5": 0.4219,
+        "f1at3": 0.1656,
+        "cases": 32,
+        "passed": 9,
+        "outOfScope": {
+          "cases": 3,
+          "withFalsePositives": 2,
+          "falsePositiveRate": 0.6666666666666666
+        },
+        "latencyMs": {
+          "mean": 0.1309,
+          "max": 0.575
+        },
+        "byTag": {
+          "exact-keyword": {
+            "mrr": 0.5625,
+            "r5": 1,
+            "cases": 8
+          },
+          "morphology": {
+            "mrr": 0.3,
+            "r5": 0.4,
+            "cases": 5
+          },
+          "paraphrase": {
+            "mrr": 0.0736,
+            "r5": 0.15,
+            "cases": 10
+          },
+          "synonym": {
+            "mrr": 0.0222,
+            "r5": 0,
+            "cases": 5
+          },
+          "ranking": {
+            "mrr": 0.4167,
+            "r5": 0.8,
+            "cases": 5
+          },
+          "multi-relevant": {
+            "mrr": 0.2722,
+            "r5": 0.3,
+            "cases": 5
+          }
+        }
+      },
+      "failures": [
+        {
+          "case": "kw-terraform-lock",
+          "ranks": [
+            3
+          ],
+          "returned": 4,
+          "falsePositives": []
+        },
+        {
+          "case": "kw-nat-gateway",
+          "ranks": [
+            3
+          ],
+          "returned": 3,
+          "falsePositives": []
+        },
+        {
+          "case": "kw-trigram-search",
+          "ranks": [
+            4
+          ],
+          "returned": 4,
+          "falsePositives": []
+        },
+        {
+          "case": "morph-migrating-column",
+          "ranks": [
+            0
+          ],
+          "returned": 10,
+          "falsePositives": []
+        },
+        {
+          "case": "morph-rotating-credentials",
+          "ranks": [
+            0
+          ],
+          "returned": 10,
+          "falsePositives": []
+        },
+        {
+          "case": "morph-pluralization",
+          "ranks": [
+            0
+          ],
+          "returned": 10,
+          "falsePositives": []
+        },
+        {
+          "case": "para-double-charge",
+          "ranks": [
+            0
+          ],
+          "returned": 10,
+          "falsePositives": []
+        },
+        {
+          "case": "para-why-not-floats",
+          "ranks": [
+            8
+          ],
+          "returned": 10,
+          "falsePositives": []
+        },
+        {
+          "case": "para-two-people-infra",
+          "ranks": [
+            0
+          ],
+          "returned": 10,
+          "falsePositives": []
+        },
+        {
+          "case": "para-customer-data-logs",
+          "ranks": [
+            0
+          ],
+          "returned": 10,
+          "falsePositives": []
+        },
+        {
+          "case": "para-rubber-stamped",
+          "ranks": [
+            9
+          ],
+          "returned": 10,
+          "falsePositives": []
+        },
+        {
+          "case": "para-green-but-broken",
+          "ranks": [
+            0
+          ],
+          "returned": 10,
+          "falsePositives": []
+        },
+        {
+          "case": "para-noisy-alerts",
+          "ranks": [
+            0
+          ],
+          "returned": 10,
+          "falsePositives": []
+        },
+        {
+          "case": "para-lost-typing",
+          "ranks": [
+            4
+          ],
+          "returned": 10,
+          "falsePositives": []
+        },
+        {
+          "case": "syn-stale-prices",
+          "ranks": [
+            9
+          ],
+          "returned": 10,
+          "falsePositives": []
+        },
+        {
+          "case": "syn-one-client-overwhelms",
+          "ranks": [
+            0
+          ],
+          "returned": 10,
+          "falsePositives": []
+        },
+        {
+          "case": "syn-stuck-in-dialog",
+          "ranks": [
+            0
+          ],
+          "returned": 10,
+          "falsePositives": []
+        },
+        {
+          "case": "syn-misspelled-names",
+          "ranks": [
+            0
+          ],
+          "returned": 10,
+          "falsePositives": []
+        },
+        {
+          "case": "syn-rollback-fast",
+          "ranks": [
+            0
+          ],
+          "returned": 10,
+          "falsePositives": []
+        },
+        {
+          "case": "rank-retry-storm",
+          "ranks": [
+            4
+          ],
+          "returned": 4,
+          "falsePositives": []
+        },
+        {
+          "case": "multi-money-rounding",
+          "ranks": [
+            9,
+            0
+          ],
+          "returned": 10,
+          "falsePositives": []
+        },
+        {
+          "case": "multi-performance-fixes",
+          "ranks": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "returned": 10,
+          "falsePositives": []
+        },
+        {
+          "case": "multi-how-we-deploy",
+          "ranks": [
+            0,
+            4
+          ],
+          "returned": 10,
+          "falsePositives": []
+        },
+        {
+          "case": "multi-green-check",
+          "ranks": [
+            0,
+            0
+          ],
+          "returned": 10,
+          "falsePositives": []
+        },
+        {
+          "case": "empty-bluetooth",
+          "ranks": [],
+          "returned": 10,
+          "falsePositives": [
+            "m-currency-iso",
+            "m-retry-queue",
+            "m-timeout-grpc",
+            "m-migration-backfill",
+            "m-oncall-runbook"
+          ]
+        },
+        {
+          "case": "empty-capital-france",
+          "ranks": [],
+          "returned": 10,
+          "falsePositives": [
+            "m-currency-iso",
+            "m-retry-queue",
+            "m-timeout-grpc",
+            "m-migration-backfill",
+            "m-oncall-runbook"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "keyword-scored",
+      "role": "diagnostic",
+      "available": false,
+      "unavailableReason": "no embedding gateway wired into recall yet (ADR-014 §3)",
+      "metrics": null,
+      "failures": []
+    },
+    {
+      "name": "semantic",
+      "role": "headline",
+      "available": false,
+      "unavailableReason": "no embedding gateway wired into recall yet (ADR-014 §3)",
+      "metrics": null,
+      "failures": []
+    },
+    {
+      "name": "hybrid",
+      "role": "headline",
+      "available": false,
+      "unavailableReason": "no embedding gateway wired into recall yet (ADR-014 §3)",
+      "metrics": null,
+      "failures": []
+    }
+  ]
+}

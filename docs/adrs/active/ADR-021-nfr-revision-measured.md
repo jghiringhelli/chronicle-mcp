@@ -129,3 +129,31 @@ test is the only thing standing between a schema change and a database that sile
 - **Not measured:** a slower machine. Every number here is from one 20-core Windows host; a CI matrix
   would say whether 300ms holds on a modest runner, and until it does, NFR-02 is a budget from one
   machine.
+
+## Re-measured 2026-11-12 — decision 1 no longer holds
+
+This ADR is left as written and is **not** silently re-rounded, because decision 1's own argument
+cuts against that. The budget it chose is now missed on the same host it was chosen on:
+
+| | ADR-021, 2026-09-12 | re-measured 2026-11-12 |
+|---|---|---|
+| bare `node` startup | ~65ms | ~85ms |
+| + importing `sdk/server/mcp.js` | ~165ms | **~265ms** |
+| cold start, median of 10 spawns | 251ms *(one sample)* | **447ms** (336–534ms) |
+
+Nothing in Chronicle's own code explains it: the component that this ADR named as the reason 200ms
+was unreachable has itself grown by ~100ms, and bare `node` is ~20ms slower on the same machine, so
+part is the host and part is not. `@modelcontextprotocol/sdk` moved from the `^1.30.0` resolved here
+to **1.32.1** (`21ef668`) in between, which is the obvious suspect and is *not* established by this
+measurement — separating them needs the old version installed and measured.
+
+This is **RM-109**, and it is a decision rather than an edit. Decision 2 of this ADR already
+anticipated the shape of it — *"a future tightening requires either a lighter protocol layer or
+lazy-loading the SDK behind the first request"* — and the Alternatives section rejected lazy-loading
+once, on the grounds that it moves the cost to where a user is actually waiting. Whether that
+trade-off still reads the same way when the alternative is a permanently missed budget is exactly
+what needs deciding, by a person, with these numbers in front of them.
+
+Until then `docs/spec.md §5` records NFR-02 as **missed on win32, met on linux**, which is what the
+evidence says. Decision 3 stands unchanged: NFR-03 is met with room at the size it specifies, and
+NFR-04 is met on the median.

@@ -49,6 +49,14 @@ been measured, and the mutation floor is 20.67% against a 65% target.
 **The two lowest scores are the next two moves** (Field Guide §4): **Executable** (1) — benchmark
 the NFRs — and **Defended** (1) — branch protection, the TDD phase gate, and gate provenance.
 
+> **This score is a snapshot of 2026-09-10 and is not re-scored in place.** Two rows above have
+> since been overtaken by evidence and are left as written so the assessment stays an audit rather
+> than a running tally: **Executable** cites "the latency NFRs are still unrun", and they were
+> measured two days later (ADR-021, `nfr-bench*.json`); the maturity paragraph cites a 20.67%
+> mutation floor, which is 40 now. The **treatment plan** below is the living part, and it is where
+> a reader should look for current status. What has *not* changed is that measuring the NFRs did
+> not make all three pass — see P1 item 4.
+
 ### Why Verifiable reached 2 and Executable did not
 
 Verifiable asks whether the checking infrastructure *exists and is adversarial*. It does: mutation
@@ -270,7 +278,7 @@ This property gates the tiers: T3 (contracts run against the live system) requir
 | **Architectural Drift (01)** | The aggregate: four documents disagreeing about the memory model and the tool surface; an ADR describing unbuilt behaviour; a scope boundary contradicting shipped features | addressed by ADR-010…006 + the spec corrections |
 | **Specification Debt (05)** | `docs/PRD.md` and `docs/TechSpec.md` unfilled templates in required cascade slots | closed — both filled; gate added |
 | **Session Amnesia** | Corrections Log and Known Pitfalls were empty stubs, so nothing carried a correction forward | closed — `.claude/ledger.md`, 6 corrections + 4 pitfalls |
-| **Test Theater** | 80% coverage threshold declared and never evaluated; no mutation gate; the two largest units untested | **open** — gates now exist, MSI still unmeasured |
+| **Test Theater** | 80% coverage threshold declared and never evaluated; no mutation gate; the two largest units untested | **open, and now with an instance** — both gates run and ratchet (coverage 63.79% floor 63, MSI 40.81% floor 40, 2026-11-12). The instrument then found the pathology by name: `src/shared/text.ts` has **100% line coverage and 11.11% MSI**, 96 mutants surviving, in the tokenizer `recall-ranker.ts` and `contradiction.ts` both depend on. Coverage said done; mutation said nothing is pinned |
 | **AI Security Blindspot** | No dependency policy, no approved-library list, no `npm audit` gate | closed — `docs/dependency-policy.md` + `check-dependency-policy.mjs` + CI audit job |
 | **ADR Absence → decision debt** | ADR-001 `Proposed` for five months while implemented; three shipped decisions unrecorded | closed — back-filled with provenance |
 | **Ghost code** | `axon` (771 lines) and cloud sync (522 lines) with no use case, no ADR, no tests | half-closed — UC-009 + ADR-010 + EDRs written; **tests still absent** |
@@ -282,7 +290,7 @@ This property gates the tiers: T3 (contracts run against the live system) requir
 
 Ordered by obligation tier. Each item names the property it raises and its exit criterion.
 
-### P1 — admissibility of every claim — **4 of 5 done**
+### P1 — admissibility of every claim — **5 of 5 done**, one of them discovered already done
 
 1. ~~**Run the gates and commit the records.**~~ **Done**, and on Node 24 rather than a pinned 20
    (ADR-015). `docs/evidence/` holds nine records. The fix was the dependency, not the environment.
@@ -292,9 +300,18 @@ Ordered by obligation tier. Each item names the property it raises and its exit 
    chain, a diamond, disconnected components and a **cycle**; plus the availability invariant,
    branch derivation for all three role prefixes, downstream promotion, and the merge-gate
    authorisation rule (only a `merger` may resolve).
-4. **Benchmark NFR-02/03/04** and write the numbers to `docs/evidence/` — **still open** (RM-104),
-   and now the single largest remaining gap. If NFR-03 misses, ADR-014 §3 (FTS5) moves from planned
-   to scheduled. A missed benchmark is a result, not a failure.
+4. ~~**Benchmark NFR-02/03/04** and write the numbers to `docs/evidence/`.~~ **Done**
+   2026-09-12/13 — ADR-021 and `nfr-bench*.json`. This item read *"still open, and now the single
+   largest remaining gap"* until 2026-11-12, two months after the work, while
+   `docs/evidence/README.md` recorded RM-104 as closed. Both sentences were in the repository at
+   once.
+
+   "A missed benchmark is a result, not a failure" held up twice. **NFR-03 was predicted to miss
+   and meets with room** — p95 30ms at the specified 10k against a 50ms budget — so ADR-014 §3's
+   FTS5 plan was struck rather than scheduled, and the recall defect turned out to be ranking
+   instead (ADR-027). **NFR-04 was out by 20×** and that was a genuine defect, fixed to a 314ms
+   median at 50,000 memories. **NFR-02 misses**: 447ms against a 300ms budget on the 2026-11-12
+   re-run, which is RM-109 and needs ADR-021 amended rather than the number quietly moved again.
 5. ~~**Fix or retract NFR-08.**~~ **Half done** — `server.json` exists and validates against the
    registry schema; the submission has not been made (RM-105).
 

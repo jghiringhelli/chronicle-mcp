@@ -39,6 +39,25 @@ When the user says *"don't do that"* about a pattern produced here, append a lin
   never cleared the threshold and the duplicate branch never ran. The assertion was never reached.
   A test for a veto must be shown to fail with the veto removed; `-t` plus a one-line revert costs
   a minute and is the only thing that distinguishes a test from a comment.
+- `[2026-11-12]` — I was about to re-do work the repository had already recorded as done. `Status.md`,
+  `docs/roadmap.md` and `docs/gs-assessment.md` each called the latency NFRs *unmeasured* while
+  `docs/evidence/README.md` recorded RM-104 **closed** and ADR-021 had revised NFR-02 on the
+  measurement two months earlier. Four documents, two answers. Before starting a task named in a
+  status document, `ls docs/evidence/` and grep the item id — the index of what has been measured
+  outranks any prose about what is pending. A stale *pending* costs a whole session; the GS audit
+  caught this class once already, in `Status.md`'s gate table, and nobody checked the other three.
+- `[2026-11-12]` — A budget set from a dependency's cost expires when the dependency moves. ADR-021
+  chose NFR-02's 300ms because Node plus the MCP SDK measured ~165ms and that left room. Measured
+  again today, the same two cost **~265ms** — bare `node` ~85ms, `+sdk/server/mcp.js` ~265ms over
+  five runs each — and cold start is 447ms against the 300. Nothing in Chronicle changed to cause
+  it. Re-measure the *components* of a dependency-dominated NFR on every bump, and record the
+  breakdown beside the verdict, or the budget quietly becomes a number nobody can reach.
+- `[2026-11-12]` — 100% line coverage, 11% mutation score. `src/shared/text.ts` executes every line
+  under test and **96** mutants survive it — and it is the tokenizer `recall-ranker.ts` and
+  `contradiction.ts` are both built on, so every measured claim on this branch stands on a unit
+  whose tests pin almost nothing. Coverage counts lines *reached*; only mutation asks whether any
+  assertion would notice them changing. When a unit is a dependency of a measurement, read its MSI
+  before trusting the measurement, and never read 100% lines as "tested".
 
 > Entries before 2026-09-12 live in `.claude/ledger-archive.md` — moved, not deleted, so this node
 > stays inside its read budget. They bind exactly as much as the ones below.

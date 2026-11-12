@@ -36,11 +36,12 @@ anything after it.
 | RM-101 | Run every gate and commit the execution records | — | **done** 2026-09-10 | `docs/session-prompts/RM-101.md` |
 | RM-102 | Test `sync.ts` — the five assertions named in EDR-003 | RM-101 | **done** — 15 tests | `docs/session-prompts/RM-102.md` |
 | RM-103 | Test `coordination-service.ts` — `computePriorityRanks` first, cycle included | RM-101 | **done** — 45 tests | `docs/session-prompts/RM-103.md` |
-| RM-104 | Benchmark NFR-02/03/04 into `docs/evidence/` | RM-101 | **pending — next** | `docs/session-prompts/RM-104.md` |
+| RM-104 | Benchmark NFR-02/03/04 into `docs/evidence/` | RM-101 | **done** 2026-09-13 (ADR-021, `nfr-bench*.json`) — this row read *pending* for the two months after the work was finished | `docs/session-prompts/RM-104.md` |
 | RM-105 | Add `server.json` and publish to the MCP Registry, or strike NFR-08 | — | **half done** — file exists, not submitted | `docs/session-prompts/RM-105.md` |
 | RM-106 | Run `pnpm audit --prod --audit-level=high` — the one gate never executed | — | pending | _not written — generate with the format below_ |
 | RM-107 | Open a v11-written database with v13 (ADR-015 is verified for new DBs only) | — | pending | _not written — generate with the format below_ |
 | RM-108 | Unit-test `src/mcp/server.ts` — 581 of 1,684 mutants, 0% covered | — | pending | _not written — generate with the format below_ |
+| RM-109 | Decide NFR-02: cold start measures **447ms** against its 300ms budget (2026-11-12, win32 dev host). Node plus the MCP SDK alone is ~265ms of it, where ADR-021 measured that same pair at ~165ms. Either the budget moves again on a recorded measurement, or the SDK import is deferred behind the first request, or the NFR is struck — ADR-021 already rejected the first two once, so this needs the ADR amended rather than a quiet edit | RM-104 | **pending — next** | _not written — generate with the format below_ |
 
 **Exit criterion for Phase 1:** no line in `Status.md` reads *unrun*, and `docs/evidence/` holds
 a green test run, a coverage number and a first mutation score.
@@ -49,6 +50,15 @@ a green test run, a coverage number and a first mutation score.
 holds a green run (119/119), a coverage number (41.17%) and a first MSI (20.67%) — so the original
 exit criterion is met for the gates. What keeps Phase 1 open is RM-104: the latency NFRs in
 spec §5 are still the only wholly unmeasured claims in the repository.
+
+**Status 2026-11-12, correcting the paragraph above.** RM-104 was finished on 2026-09-12/13 and
+this document did not notice for two months — ADR-021 revised NFR-02 and kept NFR-03 and NFR-04,
+and `nfr-bench*.json` holds the readings. `docs/evidence/README.md` has said *RM-104 closed* the
+whole time, so the repository disagreed with itself in writing. That is the same defect the GS
+audit of 2026-10-27 found in `Status.md`'s gate table, in a second place nobody checked.
+
+Phase 1 now closes on RM-105 to RM-108, and the re-run that confirmed the closure opened one new
+item, **RM-109**: NFR-02 no longer meets the budget ADR-021 set for it.
 
 ## Phase 2 — The gate corpus becomes provenance-bearing (P2 · Defended 1 → 2)
 
@@ -72,9 +82,9 @@ spec §5 are still the only wholly unmeasured claims in the repository.
 | ID | Title | Depends on | Status | Prompt |
 |---|---|---|---|---|
 | RM-401 | Split `coordination-service.ts` at the four seams in EDR-004 | RM-103 | pending | _not written — generate with the format below_ |
-| RM-402 | Spec-map for `spec.md` once it passes ~500 lines (426 now) | — | pending | _not written — generate with the format below_ |
+| RM-402 | Spec-map for `spec.md` once it passes ~500 lines — **495 on 2026-11-12**, up from 426, so this is about to trigger | — | pending | _not written — generate with the format below_ |
 | RM-403 | Migration for rows carrying `memory_type = 'session'` (ADR-012 §2) | RM-101 | pending | _not written — generate with the format below_ |
-| RM-404 | FTS5 recall, if RM-104 shows NFR-03 missed (ADR-014 §3) | RM-104 | pending | _not written — generate with the format below_ |
+| RM-404 | ~~FTS5 recall, if RM-104 shows NFR-03 missed (ADR-014 §3)~~ | RM-104 | **struck** 2026-11-12 — its condition did not occur. NFR-03 meets with room (p95 **30ms** at the specified 10k against 50ms), so the leading-wildcard scan is real and not dominant; and the measured recall defect was *ranking*, not retrieval (ADR-027 §5, spec §4). FTS5 would have fixed the thing that was not broken | — |
 
 ## Phase 5 — Deferred features
 

@@ -71,8 +71,10 @@ The session log below keeps the earlier entries, newest first.
 
 ## Gates — measured
 
-Every gate runs, and every gate passes. Rows dated 2026-09-10 unless stated; Node 24.18.0,
-win32-x64.
+Every gate runs. **One does not pass:** `pnpm run bench` exits 1 because NFR-02 misses its budget,
+and it is in the table rather than described as "not a gate" — the script has always set a failing
+exit code on a miss, so calling it anything else would be a choice about wording, not a fact. Rows
+dated 2026-09-10 unless stated; Node 24.18.0, win32-x64.
 
 | Gate | Command | Result | Record |
 |---|---|---|---|
@@ -80,11 +82,12 @@ win32-x64.
 | Typecheck | `pnpm run typecheck` | **exit 0** | `docs/evidence/typecheck.txt` |
 | Lint (cycles + layers) | `pnpm run lint` | **0 errors**, 54 warnings (exc-009) · scope is now `eslint .`, one list instead of two that had drifted | `docs/evidence/lint.txt` |
 | Tests | `vitest run` (pre-commit) | **420 passed / 420**, 2026-11-10 | this table's own run record |
-| Coverage | `pnpm run test:coverage` | **59.98% lines** (floor 41, target 80) | `docs/evidence/test-coverage.txt` |
-| Mutation | `pnpm run test:mutation` | **MSI 36.92%** (floor 20, target 65) | `docs/evidence/mutation.txt` |
+| Coverage | `pnpm run test:coverage` | **63.79% lines**, 2026-11-12 (floor raised 59 → **63**, target 80) | `docs/evidence/test-coverage.txt` |
+| Mutation | `pnpm run test:mutation` | **MSI 40.81%**, 2026-11-12 over 3,372 mutants (floor raised 36 → **40**, target 65) | `docs/evidence/mutation.txt` |
 | Dependency policy | `pnpm run deps:policy` | **ok** | `docs/evidence/dependency-policy.txt` |
 | Build | `pnpm run build` | **exit 0** | `docs/evidence/build.txt` |
-| **MCP generative execution** | `pnpm run smoke` | **12 / 12 checks** | `docs/evidence/mcp-smoke.json` |
+| **MCP generative execution** | `pnpm run smoke` | **22 / 22 checks** | `docs/evidence/mcp-smoke.json` |
+| **Latency NFRs** | `pnpm run bench` | NFR-03 **p95 30ms at 10k** (budget 50) ✔ · NFR-04 **median 315ms at 50k** (budget 500) ✔ · NFR-02 **median 447ms** (budget 300) ✘ — 2026-11-12, win32 dev host | `docs/evidence/nfr-bench.json` |
 | Supply chain | `pnpm audit --prod --audit-level=high` | **exit 0**, 3 advisories allow-listed, 2026-10-26 | `package.json` `auditConfig.ignoreGhsas` |
 
 ### Recall quality — measured, not gated
@@ -200,7 +203,7 @@ anchor named for each property, the evidence, and the tiered treatment plan:
 | Auditable | 2 | — |
 | Verifiable | **2** | — MSI measured and gating; both large units now tested |
 | Defended | 1 *(provisional)* | no branch protection; no TDD phase gate; gates still carry no `provenance` |
-| Executable | **1** | 12 contracts run against a live runtime; the latency NFRs remain unmeasured |
+| Executable | **1** | 22 contracts run against a live runtime; all three latency NFRs are measured, and **NFR-02 does not meet its budget** — 447ms against 300ms, RM-109 |
 
 ---
 
@@ -237,18 +240,34 @@ the labelled corpus committed one commit ahead of the ranker so it cannot have b
 
 ## Next Session Entry Point
 
-Raise the two ratchet floors: run `pnpm run test:coverage` and `pnpm run test:mutation`, then set
-`vitest.config.ts` and `stryker.config.json` to the measured values — item 1 and item 4 of the
-audit. The run is now needed for a second reason: the suite has gone from 314 tests to 406 since
-this table was last reconciled, and the 59.98% record predates even the 314 — so the gap between
-the floors and the truth is wider than the 19 points the table cites, by an amount nobody has
-measured.
+**Done 2026-11-12, previously listed here.** Both floors were measured rather than estimated.
+Coverage came in at **63.79%** against a floor of 59, and `vitest.config.ts` now reads 63 — its
+comment had drifted too, claiming a floor of 42 beside a value of 59, so the whole floor history is
+recorded there now. Mutation came in at **40.81%** against a floor of 36, over **3,372** mutants
+where the September run had 2,763 — the score rose against a *larger* corpus, which is the only
+version of that comparison worth making. `stryker.config.json` now reads 40.
+
+That run also produced the finding worth more than either number. **`src/shared/text.ts` has 100%
+line coverage and an 11.11% mutation score**, with **96** mutants surviving — and it is the
+tokenizer that `recall-ranker.ts` and `contradiction.ts` are both built on. Every claim measured on
+this branch rests on a unit whose tests execute every line and pin almost none of its behaviour.
+That is the *Test Theater* pathology in `docs/gs-assessment.md`, found by the instrument that exists
+to find it, in the last place this branch would have looked. Units added here score 77–84%, so the
+gap is not a methodology artefact. **New entry point: kill those 96 mutants**, ahead of
+`src/mcp/server.ts` (27.64%, 356 uncovered) despite server.ts being the larger count — a unit that
+lies about its coverage is worse than one that admits it has none.
 
 From the treatment plan in `docs/gs-assessment.md`. P1 items are what make every claim above
 admissible:
 
-1. **Benchmark NFR-02/03/04** into `docs/evidence/` (RM-104) — the last wholly unmeasured claims.
-   NFR-03 is at risk: a leading-wildcard `LIKE` cannot use an index (EDR-002).
+1. **Decide NFR-02** (RM-109). This item used to read *"benchmark NFR-02/03/04 — the last wholly
+   unmeasured claims"*, and that was wrong for two months: RM-104 closed on 2026-09-13 and
+   `docs/evidence/README.md` said so the whole time. Re-measured 2026-11-12, cold start is **447ms
+   against a 300ms budget** — and ~265ms of it is Node plus the MCP SDK, where ADR-021 measured
+   that same pair at ~165ms when it set the 300. The budget was derived from a dependency that has
+   since grown, so this needs ADR-021 amended, not the number moved again. NFR-03 was the one
+   predicted to miss and it meets with room (p95 30ms at 10k), which is why RM-404's FTS5 work was
+   struck rather than scheduled.
 2. **`pnpm audit --prod --audit-level=high`** — the one gate still never run.
 3. **Submit to the MCP Registry** with the new `server.json`, or strike NFR-08 (RM-105).
 4. **Branch protection on `master`** and the TDD phase gate — the two remaining Defended gaps

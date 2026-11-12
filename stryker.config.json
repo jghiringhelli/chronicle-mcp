@@ -29,11 +29,11 @@
   ],
   "thresholds": {
     "high": 65,
-    "low": 36,
-    "break": 36
+    "low": 40,
+    "break": 40
   },
   "timeoutMS": 20000,
   "concurrency": 4,
   "ignoreStatic": true,
-  "_thresholds_comment": "RATCHET, not the target. break=36 is the floor measured on 2026-09-12 after the mcp/server.ts tests (MSI 36.43%; it was 27.06% before them, and 9.14% at the first run ever); it was 24.19% after the v0.4.0 merge, 20.67% before it, and 9.14% at the first run ever. The TARGET is 65% overall and 70% on changed code (.claude/standards/testing.md) — raise `break` toward it as tests land, and NEVER lower it. A threshold nobody can pass is a disabled gate; a floor at the measured value blocks regressions from today forward, which is what a ratchet is. Biggest remaining block: src/mcp/server.ts, the largest single share of mutants with no unit coverage — deliberately still mutated, because the session-end defect found by scripts/smoke-mcp.mjs lived exactly there."
+  "_thresholds_comment": "RATCHET, not the target. break=40 is the floor measured on 2026-11-12 (MSI 40.81% over 3,372 mutants, up from 36.92% over 2,763 — the corpus grew with the ranker, the vector gateways and the contradiction guard, so the score rose against MORE mutants, not fewer). Floor history, each the measurement of its day rounded down: 9.14% at the first run ever, 20.67%, 24.19% after the v0.4.0 merge, 36.43% after the mcp/server.ts tests, 36.92%, now 40.81%. The TARGET is 65% overall and 70% on changed code (.claude/standards/testing.md) — raise `break` toward it as tests land, and NEVER lower it. A threshold nobody can pass is a disabled gate; a floor at the measured value blocks regressions from today forward, which is what a ratchet is. Biggest remaining block by mutant count: src/mcp/server.ts at 27.64% with 356 uncovered mutants, plus src/mcp/team-tools.ts at 6.19% with 150 — both deliberately still mutated, because the session-end defect found by scripts/smoke-mcp.mjs lived exactly there. Biggest block by DECEPTION rather than count: src/shared/text.ts, 100% line coverage and 11.11% mutation score, 96 mutants surviving in the tokenizer that recall-ranker.ts and contradiction.ts are both built on. Units added on this branch score well by comparison: contradiction.ts 80.81%, recall-ranker.ts 83.61%, team-promotion-service.ts 77.52%."
 }

@@ -1,11 +1,71 @@
 command: npx stryker run
 exit code: 0
-run: 2026-09-13T04:44:18Z
+run: 2026-11-12T21:27:27Z
 node: v24.18.0
 
--         if (match && match.score >= threshold) {
-+         if (match && match.score > threshold) {
-                                   | % Mutation score |          |           |            |          |          |
-File                               |  total | covered | # killed | # timeout | # survived | # no cov | # errors |
-All files                          |  36.92 |   69.58 |     1015 |         5 |        446 |     1297 |        0 |
-23:44:17 (24548) INFO MutationTestReportHelper Final mutation score of 36.92 is greater than or equal to break threshold 36
+
+Ran 3.99 tests per mutant on average.
+----------------------------------------|------------------|----------|-----------|------------|----------|----------|
+                                        | % Mutation score |          |           |            |          |          |
+File                                    |  total | covered | # killed | # timeout | # survived | # no cov | # errors |
+----------------------------------------|--------|---------|----------|-----------|------------|----------|----------|
+All files                               |  40.81 |   68.97 |     1359 |        17 |        619 |     1377 |        0 |
+ adapters                               |  50.58 |   78.21 |      219 |         0 |         61 |      153 |        0 |
+  repositories                          |  50.58 |   78.21 |      219 |         0 |         61 |      153 |        0 |
+   sqlite-memory-repository.ts          |  56.25 |   78.83 |      108 |         0 |         29 |       55 |        0 |
+   sqlite-preference-repository.ts      |  13.73 |   58.33 |        7 |         0 |          5 |       39 |        0 |
+   sqlite-session-repository.ts         |  27.27 |   57.14 |       12 |         0 |          9 |       23 |        0 |
+   sqlite-team-repository.ts            |  63.01 |   83.64 |       92 |         0 |         18 |       36 |        0 |
+ domain                                 |  62.79 |   91.53 |       54 |         0 |          5 |       27 |        0 |
+  entities                              |  62.79 |   91.53 |       54 |         0 |          5 |       27 |        0 |
+   decision.ts                          |   0.00 |    0.00 |        0 |         0 |          0 |        2 |        0 |
+   memory.ts                            | 100.00 |  100.00 |       30 |         0 |          0 |        0 |        0 |
+   preference.ts                        |   0.00 |    0.00 |        0 |         0 |          0 |        8 |        0 |
+   prompt-log.ts                        |  54.55 |   54.55 |        6 |         0 |          5 |        0 |        0 |
+   session.ts                           | 100.00 |  100.00 |       17 |         0 |          0 |        0 |        0 |
+   solution.ts                          |   0.00 |    0.00 |        0 |         0 |          0 |        6 |        0 |
+   team.ts                              |  16.67 |  100.00 |        1 |         0 |          0 |        5 |        0 |
+   trigger.ts                           |   0.00 |    0.00 |        0 |         0 |          0 |        6 |        0 |
+  types.ts                              |    n/a |     n/a |        0 |         0 |          0 |        0 |        0 |
+ infrastructure                         |  66.10 |   78.79 |      148 |         8 |         42 |       38 |        0 |
+  db                                    |  67.50 |   96.43 |       27 |         0 |          1 |       12 |        0 |
+   database.ts                          |  67.50 |   96.43 |       27 |         0 |          1 |       12 |        0 |
+  gateways                              |  65.82 |   75.88 |      121 |         8 |         41 |       26 |        0 |
+   fastembed-gateway.ts                 |  55.74 |   70.83 |       33 |         1 |         14 |       13 |        0 |
+   first-available-embedding-gateway.ts |  81.48 |   95.65 |       22 |         0 |          1 |        4 |        0 |
+   lexical-vector-gateway.ts            |  73.40 |   73.40 |       62 |         7 |         25 |        0 |        0 |
+   node-clock.ts                        |   0.00 |    0.00 |        0 |         0 |          1 |        7 |        0 |
+   node-id-generator.ts                 |  66.67 |  100.00 |        4 |         0 |          0 |        2 |        0 |
+ mcp                                    |  22.21 |   50.61 |      209 |         0 |        204 |      528 |        0 |
+  server.ts                             |  27.64 |   55.52 |      196 |         0 |        157 |      356 |        0 |
+  team-gate.ts                          |   0.00 |    0.00 |        0 |         0 |          0 |       22 |        0 |
+  team-tools.ts                         |   6.19 |   21.67 |       13 |         0 |         47 |      150 |        0 |
+ services                               |  44.69 |   77.38 |      576 |         9 |        171 |      553 |        0 |
+  contradiction.ts                      |  80.81 |   81.63 |       75 |         5 |         18 |        1 |        0 |
+  coordination-service.ts               |  54.10 |   77.65 |      194 |         4 |         57 |      111 |        0 |
+  distill.ts                            |   0.00 |    0.00 |        0 |         0 |          0 |       57 |        0 |
+  memory-service.ts                     |  63.64 |   65.12 |       28 |         0 |         15 |        1 |        0 |
+  pattern-service.ts                    |  69.39 |   79.07 |       34 |         0 |          9 |        6 |        0 |
+  preference-service.ts                 |  37.50 |   42.86 |        3 |         0 |          4 |        1 |        0 |
+  prompt-log-service.ts                 |  72.97 |   81.82 |       27 |         0 |          6 |        4 |        0 |
+  recall-ranker.ts                      |  83.61 |   83.61 |       51 |         0 |         10 |        0 |        0 |
+  session-service.ts                    |  90.00 |   90.00 |        9 |         0 |          1 |        0 |        0 |
+  sync.ts                               |  10.71 |   60.00 |       27 |         0 |         18 |      207 |        0 |
+  team-promotion-service.ts             |  77.52 |   82.64 |      100 |         0 |         21 |        8 |        0 |
+  team-service.ts                       |  21.51 |   68.97 |       20 |         0 |          9 |       64 |        0 |
+  team-sync-service.ts                  |   0.00 |    0.00 |        0 |         0 |          0 |       83 |        0 |
+  trigger-service.ts                    |  38.10 |   72.73 |        8 |         0 |          3 |       10 |        0 |
+ shared                                 |  41.69 |   52.94 |      153 |         0 |        136 |       78 |        0 |
+  config                                |   0.00 |    0.00 |        0 |         0 |          0 |       56 |        0 |
+   index.ts                             |   0.00 |    0.00 |        0 |         0 |          0 |       56 |        0 |
+  exceptions                            |   6.67 |   13.33 |        2 |         0 |         13 |       15 |        0 |
+   index.ts                             |   6.67 |   13.33 |        2 |         0 |         13 |       15 |        0 |
+  assert-runtime.ts                     |   0.00 |    0.00 |        0 |         0 |          0 |        5 |        0 |
+  repo-identity.ts                      |  79.44 |   80.95 |       85 |         0 |         20 |        2 |        0 |
+  runtime.ts                            |  92.59 |   92.59 |       25 |         0 |          2 |        0 |        0 |
+  text.ts                               |  11.11 |   11.11 |       12 |         0 |         96 |        0 |        0 |
+  time.ts                               |  85.29 |   85.29 |       29 |         0 |          5 |        0 |        0 |
+----------------------------------------|--------|---------|----------|-----------|------------|----------|----------|
+[32m15:26:47 (2924) INFO MutationTestReportHelper[39m Final mutation score of 40.81 is greater than or equal to break threshold 36
+[32m15:26:47 (2924) INFO JsonReporter[39m Your report can be found at: file:///C:/workspace/PragmaWorks/mcp/chronicle/reports/mutation/mutation.json
+[32m15:26:47 (2924) INFO HtmlReporter[39m Your report can be found at: file:///C:/workspace/PragmaWorks/mcp/chronicle/reports/mutation/index.html
